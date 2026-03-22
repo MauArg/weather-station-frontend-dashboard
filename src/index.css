@@ -133,8 +133,14 @@ body {
 /* Charts Grid */
 .charts-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    grid-template-columns: repeat(2, 1fr);
     gap: 1rem;
+}
+
+@media (max-width: 900px) {
+    .charts-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 .chart-card {
@@ -351,4 +357,91 @@ body {
 
 .extreme-card small {
     color: #71717a;
+}
+
+/* Energy Dashboard Widget Centerpiece */
+.energy-centerpiece {
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    padding: 2rem;
+    box-shadow: var(--glass-shadow);
+    text-align: center;
+    margin: 2rem 0;
+    position: relative;
+    overflow: hidden;
+    grid-column: 1 / -1;
+}
+
+.energy-balance-value {
+    font-size: 5rem;
+    font-weight: 700;
+    line-height: 1;
+    margin: 1rem 0;
+    text-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+}
+
+.energy-balance-positive {
+    color: #4ade80;
+    /* bright green */
+}
+
+.energy-balance-negative {
+    color: #f87171;
+    /* bright red */
+}
+
+.pulse-animation-positive {
+    animation: pulse-green 2s infinite;
+}
+
+.pulse-animation-negative {
+    animation: pulse-red 2s infinite;
+}
+
+@keyframes pulse-green {
+    0% {
+        filter: drop-shadow(0 0 10px rgba(74, 222, 128, 0.4));
+        transform: scale(1);
+    }
+
+    50% {
+        filter: drop-shadow(0 0 30px rgba(74, 222, 128, 0.8));
+        transform: scale(1.02);
+    }
+
+    100% {
+        filter: drop-shadow(0 0 10px rgba(74, 222, 128, 0.4));
+        transform: scale(1);
+    }
+}
+
+@keyframes pulse-red {
+    0% {
+        filter: drop-shadow(0 0 10px rgba(248, 113, 113, 0.4));
+        transform: scale(1);
+    }
+
+    50% {
+        filter: drop-shadow(0 0 30px rgba(248, 113, 113, 0.8));
+        transform: scale(1.02);
+    }
+
+    100% {
+        filter: drop-shadow(0 0 10px rgba(248, 113, 113, 0.4));
+        transform: scale(1);
+    }
+}
+
+.energy-subtitle {
+    color: #a1a1aa;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-size: 0.9rem;
+    font-weight: 600;
 }

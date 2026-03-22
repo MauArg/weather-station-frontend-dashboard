@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
-import { Thermometer, Droplets, Gauge, CloudRain, Clock } from 'lucide-react';
+import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ComposedChart } from 'recharts';
+import { Thermometer, Droplets, Gauge, CloudRain, Clock, Battery, Sun, Zap, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
 import StatCard from './StatCard';
 import { getRealTimeData, getDailyStats, getRecentHistory } from '../services/MockDataService';
 
@@ -17,6 +17,8 @@ const Dashboard = () => {
     const [activeTemp, setActiveTemp] = useState(null);
     const [activeHum, setActiveHum] = useState(null);
 
+    const [activeEnergy, setActiveEnergy] = useState(null);
+
     useEffect(() => {
         // Initial fetch
         const data = getRealTimeData();
@@ -29,11 +31,7 @@ const Dashboard = () => {
         const interval = setInterval(() => {
             const newData = getRealTimeData();
             setCurrentData(newData);
-            // In a real app we would push new data, but for this mock with time ranges
-            // we will just respect the current range's static mock + 1 new point or refetch.
-            // For simplicity in this mock, we'll keep the static "RecentHistory" generator mostly constant
-            // but effectively we might want to just append if it's "Live". 
-            // Let's just append to current history and slice
+
             setHistory(prev => {
                 const now = new Date();
                 const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
@@ -58,6 +56,8 @@ const Dashboard = () => {
     }, [timeRange]); // Re-run when timeRange changes
 
     if (!currentData || !stats) return <div className="loading">Loading Weather Station...</div>;
+
+    const isCharging = currentData.energyBalance > 0;
 
     return (
         <div className="dashboard-container">
@@ -91,6 +91,26 @@ const Dashboard = () => {
                     icon={CloudRain}
                     color="#69db7c"
                 />
+            </div>
+
+            {/* Energy Centerpiece */}
+            <div className={`energy-centerpiece ${isCharging ? 'pulse-animation-positive' : 'pulse-animation-negative'}`}>
+                <div className="energy-subtitle">Instant Energy Balance</div>
+                <div className={`energy-balance-value ${isCharging ? 'energy-balance-positive' : 'energy-balance-negative'}`}>
+                    {isCharging ? <ArrowUpCircle size={64} /> : <ArrowDownCircle size={64} />}
+                    {Math.abs(currentData.energyBalance).toFixed(0)} <span style={{ fontSize: '2rem', marginTop: '1rem' }}>mW</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '3rem', marginTop: '1rem' }}>
+                    <div style={{ color: '#fde047', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600 }}>
+                        <Sun size={20} /> Production: {formatValue(currentData.solarPower)} mW
+                    </div>
+                    <div style={{ color: '#a1a1aa', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600 }}>
+                        <Zap size={20} /> Consumption: {formatValue(currentData.systemConsumption)} mW
+                    </div>
+                    <div style={{ color: '#6ee7b7', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600 }}>
+                        <Battery size={20} /> Battery SOC: {formatValue(currentData.batterySoc)}%
+                    </div>
+                </div>
             </div>
 
             {/* Main Graphs */}
@@ -188,6 +208,72 @@ const Dashboard = () => {
                         </ResponsiveContainer>
                     </div>
                 </div>
+
+                {/* Energy Chart: Production curve and consumption */}
+                <div className="chart-card wide">
+                    <h3>Solar Engine & Consumption</h3>
+                    <div className="chart-wrapper" style={{ cursor: 'crosshair' }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart
+                                data={history}
+                                margin={{ top: 20, right: 30, left: 30, bottom: 5 }}
+                                onMouseMove={(e) => {
+                                    if (e.activePayload && e.activePayload[0]) {
+                                        setActiveEnergy(e.activePayload[0].payload.solarPower);
+                                    }
+                                }}
+                                onMouseLeave={() => setActiveEnergy(null)}
+                            >
+                                <defs>
+                                    <linearGradient id="colorSolar" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#facc15" stopOpacity={0.8} />
+                                        <stop offset="95%" stopColor="#facc15" stopOpacity={0} />
+                                    </linearGradient>
+                                    <linearGradient id="colorCons" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#f87171" stopOpacity={0.5} />
+                                        <stop offset="95%" stopColor="#f87171" stopOpacity={0} />
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ffffff20" />
+                                <XAxis dataKey="time" stroke="#ffffff80" tick={{ fontSize: 12 }} minTickGap={30} tickMargin={10} />
+                                <YAxis width={80} domain={[0, 'auto']} stroke="#ffffff80" tickFormatter={val => `${val}mW`} tickMargin={10} padding={{ top: 20, bottom: 20 }} />
+                                <Tooltip
+                                    contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: 'none', borderRadius: '8px' }}
+                                    itemStyle={{ color: '#fff' }}
+                                    cursor={{ stroke: 'rgba(255,255,255,0.5)', strokeWidth: 1, strokeDasharray: '4 4' }}
+                                />
+                                <Area type="monotone" dataKey="solarPower" name="Solar Prod." stroke="#facc15" fillOpacity={1} fill="url(#colorSolar)" />
+                                <Area type="step" dataKey="systemConsumption" name="Consumption" stroke="#f87171" fillOpacity={1} fill="url(#colorCons)" />
+                                {activeEnergy !== null && (
+                                    <ReferenceLine y={activeEnergy} stroke="rgba(255,255,255,0.3)" strokeDasharray="4 4" />
+                                )}
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+
+                {/* Correlation Chart: Irradiance (Solar) vs Temperature (Shows thermal lag) */}
+                <div className="chart-card wide">
+                    <h3>Weather: Solar vs Thermal Lag</h3>
+                    <div className="chart-wrapper" style={{ cursor: 'crosshair' }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                            <ComposedChart data={history} margin={{ top: 20, right: 30, left: 30, bottom: 20 }}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ffffff20" />
+                                <XAxis dataKey="time" stroke="#ffffff80" tick={{ fontSize: 12 }} minTickGap={30} tickMargin={10} />
+                                <YAxis yAxisId="left" width={80} domain={[0, 6000]} stroke="#facc15" tickFormatter={val => `${val}mW`} tickMargin={10} padding={{ top: 20, bottom: 20 }} />
+                                <YAxis yAxisId="right" orientation="right" width={60} domain={[0, 40]} stroke="#ff6b6b" tickFormatter={val => `${val}°C`} tickMargin={10} padding={{ top: 20, bottom: 20 }} />
+                                <Tooltip
+                                    contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: 'none', borderRadius: '8px' }}
+                                    itemStyle={{ color: '#fff' }}
+                                    cursor={{ stroke: 'rgba(255,255,255,0.5)', strokeWidth: 1, strokeDasharray: '4 4' }}
+                                />
+                                <Area yAxisId="left" type="monotone" dataKey="solarPower" name="Solar Heat Input" fill="#facc15" stroke="#facc15" fillOpacity={0.2} />
+                                <Line yAxisId="right" type="monotone" dataKey="temperature" name="Ambient Temp" stroke="#ff6b6b" strokeWidth={3} dot={false} />
+                            </ComposedChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+
             </div>
 
             {/* Daily Extremes */}

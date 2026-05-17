@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ComposedChart } from 'recharts';
-import { Thermometer, Droplets, Gauge, CloudRain, Clock, Battery, Sun, Zap, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
+import { Thermometer, Droplets, Gauge, CloudRain, Clock, Battery, Sun, Zap, ArrowUpCircle, ArrowDownCircle, Loader2 } from 'lucide-react';
 import StatCard from './StatCard';
-import { getRealTimeData, getDailyStats, getRecentHistory } from '../services/MockDataService';
+import { getRealTimeData, getDailyStats, getRecentHistory } from '../services/ApiService';
+import toast from 'react-hot-toast';
 
 const Dashboard = () => {
     const formatValue = (val) => {
         if (typeof val !== 'number') return val;
-        return val.toFixed(1).replace('.', ',');
+        return val.toLocaleString('es-AR', { maximumFractionDigits: 2 });
     };
 
     const [currentData, setCurrentData] = useState(null);
@@ -19,45 +20,86 @@ const Dashboard = () => {
 
     const [activeEnergy, setActiveEnergy] = useState(null);
 
+    const [isLoading, setIsLoading] = useState(true);
+
     useEffect(() => {
-        // Initial fetch
-        const data = getRealTimeData();
-        setCurrentData(data);
-        setStats(getDailyStats());
+        let isMounted = true;
 
-        // Load history based on selected range
-        setHistory(getRecentHistory(timeRange));
-
-        const interval = setInterval(() => {
-            const newData = getRealTimeData();
-            setCurrentData(newData);
-
-            setHistory(prev => {
-                const now = new Date();
-                const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
-
-                const lastPoint = prev[prev.length - 1];
-
-                if (lastPoint && lastPoint.time === timeStr) {
-                    const newHistory = [...prev];
-                    newHistory[newHistory.length - 1] = { ...newData, time: timeStr };
-                    return newHistory;
+        const loadData = async () => {
+            setIsLoading(true);
+            try {
+                const [current, dailyStats, historyData] = await Promise.all([
+                    getRealTimeData(),
+                    getDailyStats(),
+                    getRecentHistory(timeRange)
+                ]);
+                
+                if (isMounted) {
+                    setCurrentData(current);
+                    setStats(dailyStats);
+                    setHistory(historyData);
                 }
+            } catch (error) {
+                console.error(error);
+                if (isMounted) toast.error("Failed to load dashboard data");
+            } finally {
+                if (isMounted) setIsLoading(false);
+            }
+        };
 
-                const newHistory = [...prev, {
-                    ...newData,
-                    time: timeStr
-                }];
-                return newHistory.slice(-100);
-            });
+        loadData();
+
+        const interval = setInterval(async () => {
+            try {
+                const newData = await getRealTimeData();
+                if (!isMounted) return;
+                setCurrentData(newData);
+            } catch (error) {
+                console.error("Interval fetch error:", error);
+            }
         }, 3000);
 
-        return () => clearInterval(interval);
+        // Refresh history graph data every 5 minutes to keep it up to date
+        // without distorting the curve with unaggregated real-time points
+        const historyInterval = setInterval(async () => {
+            try {
+                const historyData = await getRecentHistory(timeRange);
+                if (!isMounted) return;
+                setHistory(historyData);
+            } catch (error) {
+                console.error("History interval fetch error:", error);
+            }
+        }, 5 * 60 * 1000);
+
+        return () => {
+            isMounted = false;
+            clearInterval(interval);
+            clearInterval(historyInterval);
+        };
     }, [timeRange]); // Re-run when timeRange changes
 
-    if (!currentData || !stats) return <div className="loading">Loading Weather Station...</div>;
+    if (isLoading || !currentData || !stats) {
+        return (
+            <div className="loading" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '1rem' }}>
+                <Loader2 className="animate-spin" size={48} color="#4dabf7" />
+                <p>Loading Weather Station...</p>
+            </div>
+        );
+    }
 
     const isCharging = currentData.energyBalance > 0;
+
+    const midnightPoints = [];
+    if (history.length > 0) {
+        for (let i = 1; i < history.length; i++) {
+            if (!history[i-1].uniqueTime || !history[i].uniqueTime) continue;
+            const prevDate = new Date(history[i-1].uniqueTime);
+            const currDate = new Date(history[i].uniqueTime);
+            if (prevDate.getDate() !== currDate.getDate()) {
+                midnightPoints.push(history[i].uniqueTime);
+            }
+        }
+    }
 
     return (
         <div className="dashboard-container">
@@ -157,9 +199,11 @@ const Dashboard = () => {
                                     </linearGradient>
                                 </defs>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ffffff20" />
-                                <XAxis dataKey="time" stroke="#ffffff80" tick={{ fontSize: 12 }} minTickGap={30} />
+                                <XAxis dataKey="uniqueTime" stroke="#ffffff80" tickFormatter={(val) => val ? new Date(val).toLocaleTimeString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', hour: '2-digit', minute: '2-digit' }) : ''} tick={{ fontSize: 12 }} minTickGap={30} />
                                 <YAxis domain={['auto', 'auto']} stroke="#ffffff80" tickFormatter={val => `${val}°`} />
                                 <Tooltip
+                                    formatter={(value) => formatValue(value)}
+                                    labelFormatter={(label) => label ? new Date(label).toLocaleTimeString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', hour: '2-digit', minute: '2-digit' }) : ''}
                                     contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: 'none', borderRadius: '8px' }}
                                     itemStyle={{ color: '#fff' }}
                                     cursor={{ stroke: 'rgba(255,255,255,0.5)', strokeWidth: 1, strokeDasharray: '4 4' }}
@@ -168,6 +212,9 @@ const Dashboard = () => {
                                 {activeTemp !== null && (
                                     <ReferenceLine y={activeTemp} stroke="rgba(255,255,255,0.5)" strokeDasharray="4 4" />
                                 )}
+                                {midnightPoints.map(uniqueTime => (
+                                    <ReferenceLine key={`mid-${uniqueTime}`} x={uniqueTime} stroke="rgba(255,255,255,0.3)" strokeDasharray="5 5" />
+                                ))}
                             </AreaChart>
                         </ResponsiveContainer>
                     </div>
@@ -193,9 +240,11 @@ const Dashboard = () => {
                                     </linearGradient>
                                 </defs>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ffffff20" />
-                                <XAxis dataKey="time" stroke="#ffffff80" tick={{ fontSize: 12 }} minTickGap={30} />
+                                <XAxis dataKey="uniqueTime" stroke="#ffffff80" tickFormatter={(val) => val ? new Date(val).toLocaleTimeString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', hour: '2-digit', minute: '2-digit' }) : ''} tick={{ fontSize: 12 }} minTickGap={30} />
                                 <YAxis domain={[0, 100]} stroke="#ffffff80" tickFormatter={val => `${val}%`} />
                                 <Tooltip
+                                    formatter={(value) => formatValue(value)}
+                                    labelFormatter={(label) => label ? new Date(label).toLocaleTimeString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', hour: '2-digit', minute: '2-digit' }) : ''}
                                     contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: 'none', borderRadius: '8px' }}
                                     itemStyle={{ color: '#fff' }}
                                     cursor={{ stroke: 'rgba(255,255,255,0.5)', strokeWidth: 1, strokeDasharray: '4 4' }}
@@ -204,6 +253,9 @@ const Dashboard = () => {
                                 {activeHum !== null && (
                                     <ReferenceLine y={activeHum} stroke="rgba(255,255,255,0.5)" strokeDasharray="4 4" />
                                 )}
+                                {midnightPoints.map(uniqueTime => (
+                                    <ReferenceLine key={`mid-${uniqueTime}`} x={uniqueTime} stroke="rgba(255,255,255,0.3)" strokeDasharray="5 5" />
+                                ))}
                             </AreaChart>
                         </ResponsiveContainer>
                     </div>
@@ -235,9 +287,11 @@ const Dashboard = () => {
                                     </linearGradient>
                                 </defs>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ffffff20" />
-                                <XAxis dataKey="time" stroke="#ffffff80" tick={{ fontSize: 12 }} minTickGap={30} tickMargin={10} />
-                                <YAxis width={80} domain={[0, 'auto']} stroke="#ffffff80" tickFormatter={val => `${val}mW`} tickMargin={10} padding={{ top: 20, bottom: 20 }} />
+                                <XAxis dataKey="uniqueTime" stroke="#ffffff80" tickFormatter={(val) => val ? new Date(val).toLocaleTimeString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', hour: '2-digit', minute: '2-digit' }) : ''} tick={{ fontSize: 12 }} minTickGap={30} tickMargin={10} />
+                                <YAxis width={80} domain={[0, 'auto']} stroke="#ffffff80" tickFormatter={val => `${val}mW`} tickMargin={10} />
                                 <Tooltip
+                                    formatter={(value) => formatValue(value)}
+                                    labelFormatter={(label) => label ? new Date(label).toLocaleTimeString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', hour: '2-digit', minute: '2-digit' }) : ''}
                                     contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: 'none', borderRadius: '8px' }}
                                     itemStyle={{ color: '#fff' }}
                                     cursor={{ stroke: 'rgba(255,255,255,0.5)', strokeWidth: 1, strokeDasharray: '4 4' }}
@@ -247,6 +301,9 @@ const Dashboard = () => {
                                 {activeEnergy !== null && (
                                     <ReferenceLine y={activeEnergy} stroke="rgba(255,255,255,0.3)" strokeDasharray="4 4" />
                                 )}
+                                {midnightPoints.map(uniqueTime => (
+                                    <ReferenceLine key={`mid-${uniqueTime}`} x={uniqueTime} stroke="rgba(255,255,255,0.3)" strokeDasharray="5 5" />
+                                ))}
                             </AreaChart>
                         </ResponsiveContainer>
                     </div>
@@ -258,17 +315,22 @@ const Dashboard = () => {
                     <div className="chart-wrapper" style={{ cursor: 'crosshair' }}>
                         <ResponsiveContainer width="100%" height="100%">
                             <ComposedChart data={history} margin={{ top: 20, right: 30, left: 30, bottom: 20 }}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ffffff20" />
-                                <XAxis dataKey="time" stroke="#ffffff80" tick={{ fontSize: 12 }} minTickGap={30} tickMargin={10} />
-                                <YAxis yAxisId="left" width={80} domain={[0, 6000]} stroke="#facc15" tickFormatter={val => `${val}mW`} tickMargin={10} padding={{ top: 20, bottom: 20 }} />
-                                <YAxis yAxisId="right" orientation="right" width={60} domain={[0, 40]} stroke="#ff6b6b" tickFormatter={val => `${val}°C`} tickMargin={10} padding={{ top: 20, bottom: 20 }} />
+                                <CartesianGrid yAxisId="left" strokeDasharray="3 3" vertical={false} stroke="#ffffff20" />
+                                <XAxis dataKey="uniqueTime" stroke="#ffffff80" tickFormatter={(val) => val ? new Date(val).toLocaleTimeString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', hour: '2-digit', minute: '2-digit' }) : ''} tick={{ fontSize: 12 }} minTickGap={30} tickMargin={10} />
+                                <YAxis yAxisId="left" width={80} domain={[0, 6000]} stroke="#facc15" tickFormatter={val => `${val}mW`} tickMargin={10} />
+                                <YAxis yAxisId="right" orientation="right" width={60} domain={[0, 40]} stroke="#ff6b6b" tickFormatter={val => `${val}°C`} tickMargin={10} />
                                 <Tooltip
+                                    formatter={(value) => formatValue(value)}
+                                    labelFormatter={(label) => label ? new Date(label).toLocaleTimeString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', hour: '2-digit', minute: '2-digit' }) : ''}
                                     contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: 'none', borderRadius: '8px' }}
                                     itemStyle={{ color: '#fff' }}
                                     cursor={{ stroke: 'rgba(255,255,255,0.5)', strokeWidth: 1, strokeDasharray: '4 4' }}
                                 />
                                 <Area yAxisId="left" type="monotone" dataKey="solarPower" name="Solar Heat Input" fill="#facc15" stroke="#facc15" fillOpacity={0.2} />
                                 <Line yAxisId="right" type="monotone" dataKey="temperature" name="Ambient Temp" stroke="#ff6b6b" strokeWidth={3} dot={false} />
+                                {midnightPoints.map(uniqueTime => (
+                                    <ReferenceLine yAxisId="left" key={`mid-${uniqueTime}`} x={uniqueTime} stroke="rgba(255,255,255,0.3)" strokeDasharray="5 5" />
+                                ))}
                             </ComposedChart>
                         </ResponsiveContainer>
                     </div>

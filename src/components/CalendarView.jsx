@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { format, addYears, subYears } from 'date-fns';
-import { ChevronLeft, ChevronRight, X } from 'lucide-react';
-import { getYearlyTableData, getHistoricData } from '../services/MockDataService';
+import { ChevronLeft, ChevronRight, X, Loader2 } from 'lucide-react';
+import { getYearlyTableData, getHistoricData } from '../services/ApiService';
+import toast from 'react-hot-toast';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const CalendarView = ({ onBack }) => {
@@ -15,15 +16,44 @@ const CalendarView = ({ onBack }) => {
     const [selectedDay, setSelectedDay] = useState(null);
     const [historyData, setHistoryData] = useState(null);
 
+    const [isLoadingYear, setIsLoadingYear] = useState(true);
+    const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+
     useEffect(() => {
-        const data = getYearlyTableData(currentDate);
-        setYearData(data);
+        let isMounted = true;
+        const loadYearData = async () => {
+            setIsLoadingYear(true);
+            try {
+                const data = await getYearlyTableData(currentDate);
+                if (isMounted) setYearData(data);
+            } catch (error) {
+                console.error(error);
+                if (isMounted) toast.error("Failed to load calendar data");
+            } finally {
+                if (isMounted) setIsLoadingYear(false);
+            }
+        };
+        loadYearData();
+        return () => { isMounted = false; };
     }, [currentDate]);
 
     useEffect(() => {
-        if (selectedDay) {
-            setHistoryData(getHistoricData(selectedDay));
-        }
+        if (!selectedDay) return;
+        let isMounted = true;
+        const loadHistory = async () => {
+            setIsLoadingHistory(true);
+            try {
+                const data = await getHistoricData(selectedDay);
+                if (isMounted) setHistoryData(data);
+            } catch (error) {
+                console.error(error);
+                if (isMounted) toast.error("Failed to load history data");
+            } finally {
+                if (isMounted) setIsLoadingHistory(false);
+            }
+        };
+        loadHistory();
+        return () => { isMounted = false; };
     }, [selectedDay]);
 
     const getStyle = (temp) => {
@@ -60,13 +90,19 @@ const CalendarView = ({ onBack }) => {
     const nextYear = () => setCurrentDate(addYears(currentDate, 1));
     const prevYear = () => setCurrentDate(subYears(currentDate, 1));
 
-    if (selectedDay && historyData) {
+    if (selectedDay) {
         return (
             <div className="history-view">
                 <div className="history-header">
                     <button onClick={() => setSelectedDay(null)} className="back-btn"><ChevronLeft /> Back to Calendar</button>
                     <h2>History for {format(selectedDay, 'MMMM d, yyyy')}</h2>
                 </div>
+                {isLoadingHistory || !historyData ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '4rem', gap: '1rem' }}>
+                        <Loader2 className="animate-spin" size={48} color="#4dabf7" />
+                        <p>Loading History...</p>
+                    </div>
+                ) : (
                 <div className="charts-grid">
                     <div className="chart-card wide">
                         <h3>Temperature History</h3>
@@ -76,15 +112,31 @@ const CalendarView = ({ onBack }) => {
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ffffff20" />
                                     <XAxis dataKey="time" stroke="#ffffff80" />
                                     <YAxis stroke="#ffffff80" />
-                                    <Tooltip contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: 'none' }} />
+                                    <Tooltip 
+                                        formatter={(value) => {
+                                            if (typeof value !== 'number') return value;
+                                            return value.toLocaleString('es-AR', { maximumFractionDigits: 2 });
+                                        }}
+                                        contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: 'none' }} 
+                                    />
                                     <Area type="monotone" dataKey="temperature" stroke="#ff6b6b" fill="#ff6b6b80" />
                                 </AreaChart>
                             </ResponsiveContainer>
                         </div>
                     </div>
                 </div>
+                )}
             </div>
         )
+    }
+
+    if (isLoadingYear) {
+        return (
+            <div className="calendar-container full-width" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '400px', gap: '1rem' }}>
+                <Loader2 className="animate-spin" size={48} color="#4dabf7" />
+                <p>Loading Calendar Data...</p>
+            </div>
+        );
     }
 
     return (

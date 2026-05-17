@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Dashboard from './components/Dashboard';
 import CalendarView from './components/CalendarView';
 import { Calendar as CalendarIcon, Activity } from 'lucide-react';
+import { Toaster } from 'react-hot-toast';
 import './index.css';
 
 function App() {
@@ -9,10 +10,11 @@ function App() {
 
   return (
     <div className="app-container">
+      <Toaster position="top-right" />
       <nav className="navbar">
         <div className="logo">
           <Activity className="logo-icon" />
-          <h1>WeatherStation<span className="highlight">Pro</span></h1>
+          <h1>Weather Station<span className="highlight">UI</span></h1>
         </div>
         <div className="nav-actions">
           {view === 'dashboard' && (

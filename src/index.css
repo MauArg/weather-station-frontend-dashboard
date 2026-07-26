@@ -66,6 +66,15 @@ body {
     font-weight: 300;
 }
 
+/* Sin esto los botones quedan pegados: JSX no emite espacio entre elementos
+   hermanos que están en líneas distintas. */
+.nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
 .nav-btn {
     display: flex;
     align-items: center;
@@ -478,9 +487,14 @@ body {
    the two columns stay flush instead of leaving a ragged gap under the shorter
    one. The slack is absorbed by the flexible element inside each card — the
    battery sparkline and the payload log — not left as dead space. */
+/* minmax(0, 1fr) y no 1fr: el default de 1fr es minmax(auto, 1fr), y ese `auto`
+   se resuelve al ancho intrínseco del contenido. El visor de payloads usa
+   white-space: nowrap, así que una línea de ~490 caracteres estiraba la columna y
+   desbordaba la página entera con scroll horizontal. Con minmax(0, ...) la columna
+   puede achicarse y el scroll queda donde corresponde: dentro del payload. */
 .svc-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 1rem;
 }
 
@@ -500,6 +514,9 @@ body {
     display: flex;
     flex-direction: column;
     gap: 0.6rem;
+    /* Permite que el contenido que no envuelve scrollee adentro en vez de
+       ensanchar la card. Ver la nota de minmax(0, 1fr) en .svc-grid. */
+    min-width: 0;
 }
 
 .svc-card h3 {
@@ -556,6 +573,11 @@ body {
     font-size: 0.8rem;
     font-weight: 600;
     white-space: nowrap;
+}
+
+.svc-pill-muted {
+    border-color: var(--glass-border);
+    color: #a1a1aa;
 }
 
 .svc-badge {
@@ -682,6 +704,34 @@ body {
     flex: 1 1 auto;
     min-height: 190px;
     width: 100%;
+}
+
+/* Último visto / próxima aparición — fila completa, dos columnas que colapsan */
+.svc-lastseen {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 2rem;
+    padding: 0.5rem 0.7rem;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.22);
+    border: 1px solid var(--glass-border);
+}
+
+.svc-lastseen > div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+}
+
+.svc-lastseen-next {
+    margin-left: auto;
+}
+
+@media (max-width: 620px) {
+    .svc-lastseen-next {
+        margin-left: 0;
+    }
 }
 
 /* Payload budget bar */
@@ -1012,6 +1062,7 @@ body {
     flex: 1 1 auto;
     min-height: 280px;
     max-height: 620px;
+    min-width: 0;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
@@ -1025,6 +1076,7 @@ body {
 .svc-log-row {
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     padding-bottom: 0.3rem;
+    min-width: 0;
 }
 
 .svc-log-head {
@@ -1033,6 +1085,11 @@ body {
     gap: 0.5rem;
     cursor: pointer;
     font-size: 0.78rem;
+    min-width: 0;
+}
+
+.svc-log-topic {
+    white-space: nowrap;
 }
 
 .svc-log-time {
@@ -1044,23 +1101,37 @@ body {
     font-weight: 600;
 }
 
+/* Colapsado: una sola línea que se desplaza en horizontal. Antes se recortaba y no
+   había forma de leer el resto sin expandir — y expandir cada payload para mirar un
+   campo del final es exactamente la fricción que esta vista vino a sacar. */
 .svc-log-body {
     margin: 0.15rem 0 0 0;
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
     font-size: 0.75rem;
     color: #d4d4d8;
-    white-space: pre-wrap;
-    word-break: break-all;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-height: 1.3em;
+    white-space: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
 }
 
+/* Expandido: JSON indentado, que sí conviene que envuelva. */
 .svc-log-body.open {
-    max-height: none;
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow-x: auto;
     background: rgba(0, 0, 0, 0.3);
     border-radius: 6px;
     padding: 0.4rem 0.5rem;
+}
+
+.svc-log-body::-webkit-scrollbar {
+    height: 6px;
+}
+
+.svc-log-body::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
 }
 
 .animate-spin {

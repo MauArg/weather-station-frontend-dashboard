@@ -54,16 +54,39 @@ const NodeHealthPanel = ({ state }) => {
                     <span className="svc-kv-label"><Wifi size={13} aria-hidden="true" /> RSSI</span>
                     <span className="svc-kv-value">{telemetry?.rssiDbm != null ? `${telemetry.rssiDbm} dBm` : '—'}</span>
                 </div>
-                <div className="svc-kv">
+            </div>
+
+            {/* Fila propia y no una celda más del grid: con la fuente y la próxima
+                aparición no entra en una columna de 150px y se partía en varias
+                líneas. La fuente importa — en service mode el nodo no publica
+                telemetría, solo heartbeats, así que mirar el reloj de la telemetría
+                mostraría una hora congelada justo cuando el nodo está más vivo. */}
+            <div className="svc-lastseen">
+                <div>
                     <span className="svc-kv-label">Último visto</span>
                     <span className="svc-kv-value">
-                        {telemetry ? formatClock(telemetry.receivedAt) : '—'}
-                        {node?.state === 'sleeping' && node.nextWakeInSec > 0 && (
-                            <span className="svc-muted svc-small"> · próximo wake en ~{node.nextWakeInSec}s</span>
+                        {node?.lastSeenAt ? formatClock(node.lastSeenAt) : '—'}
+                        {node?.lastSeenSource && (
+                            <span className="svc-muted svc-small">
+                                {' '}({node.lastSeenSource === 'heartbeat' ? 'heartbeat de service mode' : 'telemetría'})
+                            </span>
                         )}
-                        {node?.state === 'overdue' && (
-                            <span className="svc-muted svc-small"> · hace {node.secondsSinceSeen}s, se esperaba cada {node.expectedIntervalSec}s</span>
+                        {node?.secondsSinceSeen > 0 && (
+                            <span className="svc-muted svc-small"> · hace {node.secondsSinceSeen}s</span>
                         )}
+                    </span>
+                </div>
+                <div className="svc-lastseen-next">
+                    <span className="svc-kv-label">
+                        {node?.state === 'overdue' ? 'Se esperaba' : 'Próxima aparición'}
+                    </span>
+                    <span className="svc-kv-value">
+                        {node?.nextExpectedAt ? `~${formatClock(node.nextExpectedAt)}` : '—'}
+                        {node?.state === 'overdue' ? (
+                            <span className="svc-muted svc-small"> · atrasado, cada {node.expectedIntervalSec}s</span>
+                        ) : node?.nextWakeInSec > 0 ? (
+                            <span className="svc-muted svc-small"> · en ~{node.nextWakeInSec}s</span>
+                        ) : null}
                     </span>
                 </div>
             </div>

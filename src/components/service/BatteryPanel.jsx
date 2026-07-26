@@ -22,6 +22,13 @@ const BatteryPanel = ({ battery }) => {
     const [hours, setHours] = useState(72);
     const [trendError, setTrendError] = useState(null);
 
+    // Se re-consulta con cada lectura nueva, no solo al montar. Antes el gráfico
+    // quedaba clavado en el momento en que se abrió la vista. Y durante service
+    // mode InfluxDB no recibe nada —el nodo no publica telemetría—, así que los
+    // puntos frescos salen del ring en memoria del backend, que el endpoint pega
+    // al final de la serie histórica.
+    const measuredAt = battery?.measuredAt;
+
     useEffect(() => {
         let isMounted = true;
         getBatteryTrend(hours)
@@ -32,7 +39,7 @@ const BatteryPanel = ({ battery }) => {
             })
             .catch((err) => isMounted && setTrendError(err.message));
         return () => { isMounted = false; };
-    }, [hours]);
+    }, [hours, measuredAt]);
 
     if (!battery) {
         return (

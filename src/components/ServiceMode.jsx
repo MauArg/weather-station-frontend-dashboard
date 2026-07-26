@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Loader2, Wifi, WifiOff, ArrowLeft } from 'lucide-react';
+import { Loader2, Wifi, WifiOff, ArrowLeft, Cpu } from 'lucide-react';
 import OtaWizard from './service/OtaWizard';
 import BatteryPanel from './service/BatteryPanel';
 import NodeHealthPanel from './service/NodeHealthPanel';
@@ -80,6 +80,14 @@ const ServiceMode = ({ onBack }) => {
                         {connected ? <Wifi size={15} /> : <WifiOff size={15} />}
                         {connected ? `Broker ${state.broker.address}` : 'Broker desconectado'}
                     </span>
+                    {state.stationIp && (
+                        <span
+                            className="svc-status-pill svc-pill-muted"
+                            title="IP estática del nodo — es el destino del OTA. Sale de la config del backend, no de la telemetría."
+                        >
+                            <Cpu size={15} /> Nodo {state.stationIp}
+                        </span>
+                    )}
                     <span className="svc-muted svc-small">
                         estación {state.stationId} · stream {streamUp ? 'en vivo' : 'reconectando…'}
                     </span>

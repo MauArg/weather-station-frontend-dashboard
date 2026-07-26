@@ -445,3 +445,604 @@ body {
     font-size: 0.9rem;
     font-weight: 600;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Service mode
+   Status colour never carries meaning on its own here: every state also ships an
+   icon and a text label. Required rather than decorative — the green and amber
+   this dashboard uses separate by only ΔE 6.8 under protanopia.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.svc-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.svc-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.svc-header-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.svc-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    align-items: start;
+}
+
+@media (max-width: 900px) {
+    .svc-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.svc-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(5px);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    padding: 1.25rem;
+    box-shadow: var(--glass-shadow);
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.svc-card h3 {
+    margin: 0;
+    font-size: 1.05rem;
+    color: #e4e4e7;
+}
+
+.svc-h4 {
+    margin: 0.5rem 0 0 0;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #d4d4d8;
+}
+
+.svc-card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.svc-muted {
+    color: #a1a1aa;
+    margin: 0;
+}
+
+.svc-small {
+    font-size: 0.8rem;
+}
+
+.svc-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.svc-card code {
+    background: rgba(0, 0, 0, 0.35);
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+    font-size: 0.85em;
+}
+
+/* Pills, chips, badges */
+.svc-status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.25rem 0.7rem;
+    border: 1px solid;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.svc-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.1rem 0.45rem;
+    border-radius: 6px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    margin-left: 0.4rem;
+}
+
+.svc-badge-warn {
+    background: rgba(250, 204, 21, 0.15);
+    color: #facc15;
+    border: 1px solid rgba(250, 204, 21, 0.4);
+}
+
+.svc-badge-muted {
+    background: rgba(255, 255, 255, 0.08);
+    color: #a1a1aa;
+}
+
+.svc-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.svc-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.3rem 0.6rem;
+    border: 1px solid;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.2);
+    font-size: 0.78rem;
+}
+
+/* Key/value grid */
+.svc-kv-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0.6rem;
+}
+
+.svc-kv {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.svc-kv-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    color: #a1a1aa;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.svc-kv-value {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #e4e4e7;
+}
+
+/* Battery */
+.svc-batt-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.svc-batt-reading {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.svc-batt-volts {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    font-size: 2.4rem;
+    font-weight: 700;
+    line-height: 1;
+    color: #e4e4e7;
+}
+
+.svc-batt-volts svg {
+    align-self: center;
+}
+
+.svc-batt-unit {
+    font-size: 1rem;
+    color: #71717a;
+    font-weight: 400;
+}
+
+.svc-risk {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    padding: 0.6rem 0.8rem;
+    border: 1px solid;
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.25);
+    max-width: 340px;
+}
+
+.svc-risk-label {
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+
+.svc-spark {
+    height: 200px;
+    width: 100%;
+}
+
+/* Payload budget bar */
+.svc-budget {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.svc-budget-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.svc-budget-bar {
+    height: 8px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    overflow: hidden;
+}
+
+.svc-budget-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.4s ease;
+}
+
+/* Anomalies */
+.svc-anomalies {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.svc-anomalies li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+    color: #d4d4d8;
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 8px;
+    padding: 0.4rem 0.6rem;
+}
+
+/* Wizard */
+.svc-wizard {
+    grid-column: 1 / -1;
+}
+
+.svc-steps {
+    display: flex;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+    counter-reset: svc-step;
+}
+
+.svc-step {
+    counter-increment: svc-step;
+    padding: 0.2rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    color: #a1a1aa;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid transparent;
+}
+
+.svc-step::before {
+    content: counter(svc-step) ". ";
+}
+
+.svc-step.active {
+    color: #4dabf7;
+    border-color: #4dabf7;
+    background: rgba(77, 171, 247, 0.12);
+    font-weight: 600;
+}
+
+.svc-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.svc-slider {
+    width: 100%;
+    accent-color: #4dabf7;
+}
+
+.svc-waiting,
+.svc-ready {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    padding: 0.9rem 1rem;
+    border-radius: 12px;
+    background: rgba(77, 171, 247, 0.1);
+    border: 1px solid rgba(77, 171, 247, 0.35);
+}
+
+.svc-ready.done {
+    background: rgba(74, 222, 128, 0.1);
+    border-color: rgba(74, 222, 128, 0.35);
+}
+
+.svc-cmdline {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.6rem 0.8rem;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid var(--glass-border);
+    overflow-x: auto;
+}
+
+.svc-cmdline code {
+    flex: 1;
+    background: none;
+    font-size: 0.9rem;
+    color: #4ade80;
+    white-space: nowrap;
+}
+
+/* Alerts */
+.svc-alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    padding: 0.7rem 0.9rem;
+    border-radius: 12px;
+    border: 1px solid;
+}
+
+.svc-alert-warn {
+    background: rgba(250, 204, 21, 0.1);
+    border-color: rgba(250, 204, 21, 0.4);
+    color: #fde68a;
+}
+
+.svc-alert-danger {
+    background: rgba(248, 113, 113, 0.1);
+    border-color: rgba(248, 113, 113, 0.45);
+    color: #fecaca;
+}
+
+/* Global retained-command banner */
+.svc-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    text-align: left;
+    padding: 0.8rem 1.2rem;
+    border-radius: 12px;
+    background: rgba(250, 204, 21, 0.12);
+    border: 1px solid rgba(250, 204, 21, 0.45);
+    color: #fde68a;
+    font-family: inherit;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.svc-banner:hover {
+    background: rgba(250, 204, 21, 0.2);
+}
+
+.svc-banner-cta {
+    margin-left: auto;
+    white-space: nowrap;
+    font-weight: 700;
+    text-decoration: underline;
+}
+
+/* Buttons & inputs */
+.svc-btn-row {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.svc-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.55rem 1rem;
+    border-radius: 10px;
+    border: 1px solid var(--glass-border);
+    background: rgba(255, 255, 255, 0.08);
+    color: #e4e4e7;
+    font-family: inherit;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    align-self: flex-start;
+}
+
+.svc-btn:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.16);
+}
+
+.svc-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.svc-btn-primary {
+    background: rgba(77, 171, 247, 0.9);
+    border-color: #4dabf7;
+    color: #0b1120;
+}
+
+.svc-btn-primary:hover:not(:disabled) {
+    background: #4dabf7;
+}
+
+.svc-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.25rem 0.55rem;
+    border-radius: 8px;
+    border: 1px solid var(--glass-border);
+    background: rgba(255, 255, 255, 0.06);
+    color: #d4d4d8;
+    font-family: inherit;
+    font-size: 0.75rem;
+    cursor: pointer;
+}
+
+.svc-icon-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.svc-icon-btn-bare {
+    border-color: transparent;
+    background: none;
+    margin-left: auto;
+}
+
+.svc-range,
+.svc-toolbar {
+    display: flex;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.svc-range-btn {
+    padding: 0.25rem 0.7rem;
+    border-radius: 6px;
+    border: 1px solid var(--glass-border);
+    background: transparent;
+    color: #d4d4d8;
+    font-family: inherit;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+.svc-range-btn.active {
+    background: rgba(77, 171, 247, 0.25);
+    border-color: #4dabf7;
+    color: #fff;
+    font-weight: 600;
+}
+
+.svc-input {
+    flex: 1;
+    min-width: 0;
+    padding: 0.5rem 0.7rem;
+    border-radius: 8px;
+    border: 1px solid var(--glass-border);
+    background: rgba(0, 0, 0, 0.35);
+    color: #e4e4e7;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.85rem;
+}
+
+.svc-raw-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: stretch;
+}
+
+.svc-raw-row .svc-btn {
+    align-self: stretch;
+}
+
+.svc-checkbox {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.8rem;
+    color: #a1a1aa;
+    cursor: pointer;
+}
+
+/* Live payload log */
+.svc-log {
+    max-height: 420px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid var(--glass-border);
+    padding: 0.6rem;
+}
+
+.svc-log-row {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    padding-bottom: 0.3rem;
+}
+
+.svc-log-head {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    font-size: 0.78rem;
+}
+
+.svc-log-time {
+    color: #71717a;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.svc-log-topic {
+    font-weight: 600;
+}
+
+.svc-log-body {
+    margin: 0.15rem 0 0 0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.75rem;
+    color: #d4d4d8;
+    white-space: pre-wrap;
+    word-break: break-all;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-height: 1.3em;
+}
+
+.svc-log-body.open {
+    max-height: none;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 6px;
+    padding: 0.4rem 0.5rem;
+}
+
+.animate-spin {
+    animation: svc-spin 1s linear infinite;
+}
+
+@keyframes svc-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}

@@ -474,11 +474,14 @@ body {
     flex-wrap: wrap;
 }
 
+/* Cards stretch to their grid row rather than keeping their natural height, so
+   the two columns stay flush instead of leaving a ragged gap under the shorter
+   one. The slack is absorbed by the flexible element inside each card — the
+   battery sparkline and the payload log — not left as dead space. */
 .svc-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 1rem;
-    align-items: start;
 }
 
 @media (max-width: 900px) {
@@ -673,8 +676,11 @@ body {
     font-size: 0.9rem;
 }
 
+/* Grows to fill whatever height the row gives the battery card. The floor keeps
+   the trend readable when the card is the tall one and there is nothing to absorb. */
 .svc-spark {
-    height: 200px;
+    flex: 1 1 auto;
+    min-height: 190px;
     width: 100%;
 }
 
@@ -707,6 +713,8 @@ body {
 }
 
 /* Anomalies */
+/* Capped and scrollable: on a node with a weak link these pile up fast, and an
+   unbounded list would drive the whole row's height. */
 .svc-anomalies {
     list-style: none;
     padding: 0;
@@ -714,6 +722,15 @@ body {
     display: flex;
     flex-direction: column;
     gap: 0.4rem;
+    max-height: 190px;
+    overflow-y: auto;
+}
+
+/* Trailing footnote inside a card that got stretched: sits at the bottom so the
+   slack reads as deliberate spacing rather than an unfinished panel. */
+.svc-card-foot {
+    margin-top: auto;
+    padding-top: 0.5rem;
 }
 
 .svc-anomalies li {
@@ -829,6 +846,12 @@ body {
     background: rgba(248, 113, 113, 0.1);
     border-color: rgba(248, 113, 113, 0.45);
     color: #fecaca;
+}
+
+.svc-alert-info {
+    background: rgba(77, 171, 247, 0.08);
+    border-color: rgba(77, 171, 247, 0.35);
+    color: #bfdbfe;
 }
 
 /* Global retained-command banner */
@@ -986,7 +1009,9 @@ body {
 
 /* Live payload log */
 .svc-log {
-    max-height: 420px;
+    flex: 1 1 auto;
+    min-height: 280px;
+    max-height: 620px;
     overflow-y: auto;
     display: flex;
     flex-direction: column;

@@ -96,19 +96,21 @@ const ServiceMode = ({ onBack }) => {
                 </div>
             )}
 
+            {/* Two columns pairing a tall card with a short one on each row, so the
+                cards stretch to a common height instead of leaving ragged gaps:
+                batería ↔ estado del nodo, then consola ↔ payloads. */}
             <div className="svc-grid">
                 <OtaWizard state={state} session={session} onSession={setSession} />
                 <BatteryPanel battery={state.battery} />
                 <NodeHealthPanel state={state} />
                 <CommandConsole connected={connected} />
+                <PayloadViewer
+                    payloads={payloads}
+                    paused={paused}
+                    onTogglePause={() => setPaused((p) => !p)}
+                    onClear={() => setPayloads([])}
+                />
             </div>
-
-            <PayloadViewer
-                payloads={payloads}
-                paused={paused}
-                onTogglePause={() => setPaused((p) => !p)}
-                onClear={() => setPayloads([])}
-            />
         </div>
     );
 };

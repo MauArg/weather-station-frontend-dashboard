@@ -81,7 +81,7 @@ const CommandConsole = ({ connected }) => {
                     <Send size={16} /> Publicar
                 </button>
             </div>
-            <p className="svc-muted svc-small">
+            <p className="svc-muted svc-small svc-card-foot">
                 Se publica con retain. El backend valida que sea JSON — parseCommand() descarta cualquier
                 cosa que no lo sea, y el nodo seguiría su ciclo normal sin avisar.
             </p>

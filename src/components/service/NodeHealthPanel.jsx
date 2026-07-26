@@ -10,7 +10,11 @@ const NODE_STATE_UI = {
 };
 
 const NodeHealthPanel = ({ state }) => {
-    const { node, telemetry, battery, payloadBudget, sensorCatalog = [], bootAnomalies = [] } = state;
+    const { node, telemetry, battery, payloadBudget } = state;
+    // Coalesce rather than destructure with defaults: Go marshals an empty slice
+    // as null, and a default parameter only fires on undefined.
+    const sensorCatalog = state.sensorCatalog ?? [];
+    const bootAnomalies = state.bootAnomalies ?? [];
     const ui = NODE_STATE_UI[node?.state] ?? NODE_STATE_UI.unknown;
     const StateIcon = ui.Icon;
 
@@ -119,7 +123,7 @@ const NodeHealthPanel = ({ state }) => {
             )}
 
             {battery?.source === 'service_heartbeat' && (
-                <p className="svc-muted svc-small">
+                <p className="svc-muted svc-small svc-card-foot">
                     El voltaje que se muestra viene del heartbeat de service mode, o sea medido con el nodo despierto y drenando.
                 </p>
             )}

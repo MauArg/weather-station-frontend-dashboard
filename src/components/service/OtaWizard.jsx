@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-    Wrench, Clock, CheckCircle2, Copy, Power, Loader2, AlertTriangle, ShieldX, Terminal, ArrowRight,
+    Wrench, Clock, CheckCircle2, Copy, Power, Loader2, AlertTriangle, ShieldX, Terminal, ArrowRight, HelpCircle,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { sendServiceCommand, formatDuration } from '../../services/ServiceApi';
@@ -42,7 +42,11 @@ const OtaWizard = ({ state, session, onSession }) => {
 
     const step = deriveStep(state, session);
     const battery = state.battery;
-    const risk = battery?.flashRisk ?? 'unsafe';
+    // "No reading yet" is not the same claim as "the reading is dangerous", and
+    // defaulting the former to the latter produced a red "Batería en V" gate on a
+    // cold start. Unknown gets its own neutral state and does not block: the first
+    // telemetry cycle lands within 60 s and will raise the real gate if warranted.
+    const risk = battery?.flashRisk ?? 'unknown';
     const connected = state.broker?.connected;
 
     // Local 1s tick so the countdown moves between the node's 30 s heartbeats.
@@ -70,7 +74,7 @@ const OtaWizard = ({ state, session, onSession }) => {
                 firmwareAtArm: state.telemetry?.firmware ?? null,
                 timeoutMin,
             });
-            toast.success(`Service mode armado${res.note ? ` — ${res.note}` : ''}`);
+            toast.success(`Service mode activado${res.note ? ` — ${res.note}` : ''}`);
         } catch (err) {
             toast.error(err.message);
         } finally {
@@ -83,7 +87,7 @@ const OtaWizard = ({ state, session, onSession }) => {
         try {
             await sendServiceCommand({ cmd: 'clear' });
             onSession(null);
-            toast.success('Service mode desarmado — el nodo vuelve al ciclo normal');
+            toast.success('Service mode desactivado — el nodo vuelve al ciclo normal');
         } catch (err) {
             toast.error(err.message);
         } finally {
@@ -106,7 +110,7 @@ const OtaWizard = ({ state, session, onSession }) => {
                 <h3>Sesión de OTA</h3>
                 <ol className="svc-steps">
                     {[
-                        ['idle', 'Armar'],
+                        ['idle', 'Activar'],
                         ['armed', 'Esperar wake'],
                         ['ready', 'Flashear'],
                         ['flashed', 'Verificar'],
@@ -145,7 +149,7 @@ const OtaWizard = ({ state, session, onSession }) => {
                                 <div className="svc-small">{battery?.riskNote}</div>
                                 <label className="svc-checkbox" style={{ marginTop: '0.5rem' }}>
                                     <input type="checkbox" checked={overrideRisk} onChange={(e) => setOverrideRisk(e.target.checked)} />
-                                    Entiendo el riesgo, armar igual
+                                    Entiendo el riesgo, activar igual
                                 </label>
                             </div>
                         </div>
@@ -159,6 +163,15 @@ const OtaWizard = ({ state, session, onSession }) => {
                             </div>
                         </div>
                     )}
+                    {risk === 'unknown' && (
+                        <div className="svc-alert svc-alert-info">
+                            <HelpCircle size={18} aria-hidden="true" />
+                            <div className="svc-small">
+                                Todavía sin lectura de batería — llega con el primer ciclo de telemetría, en
+                                hasta 60 s. Si conviene esperar, el aviso aparece solo.
+                            </div>
+                        </div>
+                    )}
 
                     <button
                         className="svc-btn svc-btn-primary"
@@ -166,7 +179,7 @@ const OtaWizard = ({ state, session, onSession }) => {
                         onClick={arm}
                     >
                         {busy ? <Loader2 size={16} className="animate-spin" /> : <Wrench size={16} />}
-                        Armar service mode
+                        Activar service mode
                     </button>
                     {!connected && <p className="svc-muted svc-small">Sin conexión al broker MQTT.</p>}
                 </>
@@ -258,7 +271,7 @@ const OtaWizard = ({ state, session, onSession }) => {
 
                     {step === 'flashed' && (
                         <p className="svc-muted svc-small">
-                            La versión cambió, así que el OTA entró bien. Desarmá para que vuelva al ciclo normal:
+                            La versión cambió, así que el OTA entró bien. Desactivá para que vuelva al ciclo normal:
                             si no, sigue despierto hasta que se agote el timeout.
                         </p>
                     )}
@@ -269,7 +282,7 @@ const OtaWizard = ({ state, session, onSession }) => {
                         onClick={disarm}
                     >
                         {busy ? <Loader2 size={16} className="animate-spin" /> : <Power size={16} />}
-                        Desarmar y volver al ciclo normal
+                        Desactivar service mode
                         {step === 'flashed' && <ArrowRight size={16} />}
                     </button>
                 </>

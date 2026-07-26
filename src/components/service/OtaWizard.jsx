@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-    Wrench, Clock, CheckCircle2, Copy, Power, Loader2, AlertTriangle, ShieldX, Terminal, ArrowRight, HelpCircle,
+    Wrench, Clock, CheckCircle2, Copy, Power, Loader2, AlertTriangle, ShieldX, Terminal, ArrowRight, HelpCircle, RefreshCw,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { sendServiceCommand, formatDuration } from '../../services/ServiceApi';
+import { sendServiceCommand, formatDuration, formatClock } from '../../services/ServiceApi';
 
 const OTA_ENVS = [
     { id: 'ota_production', label: 'Producción', hint: 'LOG_LEVEL=0 — el que va a campo' },
@@ -48,6 +48,7 @@ const OtaWizard = ({ state, session, onSession }) => {
     // telemetry cycle lands within 60 s and will raise the real gate if warranted.
     const risk = battery?.flashRisk ?? 'unknown';
     const connected = state.broker?.connected;
+    const restarts = state.session?.starts ?? 0;
 
     // Local 1s tick so the countdown moves between the node's 30 s heartbeats.
     // Each heartbeat resets the anchor, so drift never accumulates.
@@ -225,9 +226,27 @@ const OtaWizard = ({ state, session, onSession }) => {
                                 {step === 'flashed' && session?.firmwareAtArm && (
                                     <> (antes {session.firmwareAtArm})</>
                                 )}
+                                {state.session?.deadline && (
+                                    <> · corte del backend {formatClock(state.session.deadline)}</>
+                                )}
                             </div>
                         </div>
                     </div>
+
+                    {restarts > 1 && (
+                        <div className="svc-alert svc-alert-warn">
+                            <RefreshCw size={18} aria-hidden="true" />
+                            <div>
+                                <strong>El nodo reinició la sesión {restarts} veces.</strong>
+                                <div className="svc-small">
+                                    Pierde MQTT en medio, duerme sin poder limpiar el comando retenido, y al
+                                    despertar lo vuelve a leer. Con firmware ≤ 1.1.0 cada reinicio estrena el
+                                    timeout entero. El backend igual corta a las {state.session?.timeoutMin} min
+                                    desde que se armó — si el flash no entra en esa ventana, volvé a activar.
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {step === 'ready' && (
                         <>

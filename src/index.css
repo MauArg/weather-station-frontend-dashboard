@@ -562,6 +562,58 @@ body {
     font-size: 0.85em;
 }
 
+/* Tooltip — se muestra en hover y en foco de teclado */
+.svc-tip {
+    position: relative;
+    cursor: help;
+    outline: none;
+}
+
+.svc-tip::after {
+    content: attr(data-tip);
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    width: max-content;
+    max-width: 280px;
+    padding: 0.5rem 0.7rem;
+    border-radius: 8px;
+    background: rgba(10, 12, 18, 0.97);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+    color: #e4e4e7;
+    font-size: 0.75rem;
+    font-weight: 400;
+    line-height: 1.45;
+    letter-spacing: normal;
+    text-transform: none;
+    text-align: left;
+    white-space: normal;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.15s ease;
+    z-index: 50;
+    pointer-events: none;
+}
+
+.svc-tip:hover::after,
+.svc-tip:focus-visible::after {
+    opacity: 1;
+    visibility: visible;
+}
+
+.svc-tip:focus-visible {
+    text-decoration: underline dotted;
+    text-underline-offset: 3px;
+}
+
+/* Cerca del borde izquierdo el tooltip centrado se saldría de la card */
+.svc-tip-left::after {
+    left: 0;
+    transform: none;
+}
+
 /* Pills, chips, badges */
 .svc-status-pill {
     display: inline-flex;
@@ -726,6 +778,20 @@ body {
 
 .svc-lastseen-next {
     margin-left: auto;
+}
+
+/* Contador vivo: tabular-nums evita que el ancho salte con cada dígito */
+.svc-countdown {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+}
+
+.svc-countdown-due {
+    color: #facc15;
+}
+
+.svc-countdown-late {
+    color: #f87171;
 }
 
 @media (max-width: 620px) {

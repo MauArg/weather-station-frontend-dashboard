@@ -2,15 +2,25 @@ import React, { useEffect, useState } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { BatteryCharging, Battery, ShieldCheck, AlertTriangle, ShieldX, Sun } from 'lucide-react';
 import { getBatteryTrend } from '../../services/ServiceApi';
+import Tip from './Tip';
 
 // Flash-risk presentation. Colour alone never carries the meaning: every state
 // ships an icon and a text label. That is a hard requirement here rather than a
 // nicety — under protanopia the green and amber used by this dashboard separate
 // by only ΔE 6.8, which is below the level where hue is legible on its own.
 const RISK_UI = {
-    safe: { label: 'Seguro para flashear', color: '#4ade80', Icon: ShieldCheck },
-    caution: { label: 'Precaución', color: '#facc15', Icon: AlertTriangle },
-    unsafe: { label: 'No flashear', color: '#f87171', Icon: ShieldX },
+    safe: {
+        label: 'Seguro para flashear', color: '#4ade80', Icon: ShieldCheck,
+        tip: 'Por encima de 4.00 V. El umbral es más estricto que los tiers de energía a propósito: durante service mode el nodo queda despierto sin deep sleep que le permita recuperar tensión.',
+    },
+    caution: {
+        label: 'Precaución', color: '#facc15', Icon: AlertTriangle,
+        tip: 'Entre 3.85 y 4.00 V. Alcanza para una sesión corta, pero evitá flashes repetidos: cada uno mantiene al nodo despierto a 50-140 mA y hunde un poco más la tensión.',
+    },
+    unsafe: {
+        label: 'No flashear', color: '#f87171', Icon: ShieldX,
+        tip: 'Por debajo de 3.85 V. El riesgo no es quedarse sin capacidad —15 min a ~100 mA son ~25 mAh de 1500— sino el sag bajo carga: el boost tira más corriente de entrada a medida que baja Vin, y eso realimenta la caída hasta el brownout a mitad de escritura.',
+    },
 };
 
 // Matches models.FlashRiskSafeMinV / FlashRiskCautionMinV in the backend.
@@ -73,30 +83,49 @@ const BatteryPanel = ({ battery }) => {
 
             <div className="svc-batt-top">
                 <div className="svc-batt-reading">
-                    <div className="svc-batt-volts">
-                        <ChargeIcon size={28} color={battery.charging ? '#4ade80' : '#a1a1aa'} aria-hidden="true" />
-                        <span>{battery.volts.toFixed(3)}</span>
-                        <span className="svc-batt-unit">V</span>
-                    </div>
-                    <div className="svc-muted svc-small">
-                        {battery.socPct.toFixed(0)}% SoC · Tier {battery.tier} — {battery.tierLabel}
-                    </div>
-                    {battery.solarMa != null && (
-                        <div className="svc-muted svc-small svc-inline">
-                            <Sun size={14} aria-hidden="true" />
-                            Panel {battery.solarV?.toFixed(2)} V · {battery.solarMa.toFixed(1)} mA
-                            {battery.charging ? ' · cargando' : ' · sin carga significativa'}
+                    <Tip
+                        className="svc-tip-left"
+                        text={fromHeartbeat
+                            ? 'Medido con el nodo despierto en service mode, o sea bajo carga. Es el número relevante para decidir si arrancar un flash.'
+                            : 'Medido en el último ciclo de telemetría, con WiFi activo. Queda algo por debajo de la tensión en reposo, que es el lado seguro para equivocarse.'}
+                    >
+                        <div className="svc-batt-volts">
+                            <ChargeIcon size={28} color={battery.charging ? '#4ade80' : '#a1a1aa'} aria-hidden="true" />
+                            <span>{battery.volts.toFixed(3)}</span>
+                            <span className="svc-batt-unit">V</span>
                         </div>
+                    </Tip>
+                    <Tip
+                        className="svc-tip-left"
+                        text="El SoC sale de una curva por tramos de Li-ion, no de una recta: la descarga es muy plana entre 3.7 y 4.0 V. Los tiers vienen de componentes_y_conexiones.md y describen qué rails debería apagar el firmware — todavía no está implementado, así que acá son solo una etiqueta."
+                    >
+                        <div className="svc-muted svc-small">
+                            {battery.socPct.toFixed(0)}% SoC · Tier {battery.tier} — {battery.tierLabel}
+                        </div>
+                    </Tip>
+                    {battery.solarMa != null && (
+                        <Tip
+                            className="svc-tip-left"
+                            text="Lectura del INA219 del panel. Por debajo de 20 mA se considera sin carga significativa: unos pocos mA son fuga o el MPPT recortando sobre una batería casi llena, no carga real."
+                        >
+                            <div className="svc-muted svc-small svc-inline">
+                                <Sun size={14} aria-hidden="true" />
+                                Panel {battery.solarV?.toFixed(2)} V · {battery.solarMa.toFixed(1)} mA
+                                {battery.charging ? ' · cargando' : ' · sin carga significativa'}
+                            </div>
+                        </Tip>
                     )}
                 </div>
 
-                <div className="svc-risk" style={{ borderColor: risk.color }}>
-                    <RiskIcon size={22} color={risk.color} aria-hidden="true" />
-                    <div>
-                        <div className="svc-risk-label" style={{ color: risk.color }}>{risk.label}</div>
-                        <div className="svc-muted svc-small">{battery.riskNote}</div>
+                <Tip text={risk.tip}>
+                    <div className="svc-risk" style={{ borderColor: risk.color }}>
+                        <RiskIcon size={22} color={risk.color} aria-hidden="true" />
+                        <div>
+                            <div className="svc-risk-label" style={{ color: risk.color }}>{risk.label}</div>
+                            <div className="svc-muted svc-small">{battery.riskNote}</div>
+                        </div>
                     </div>
-                </div>
+                </Tip>
             </div>
 
             <div className="svc-card-head" style={{ marginTop: '1rem' }}>

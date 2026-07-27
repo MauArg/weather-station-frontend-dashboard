@@ -23,6 +23,16 @@ const NODE_STATE_UI = {
     },
 };
 
+// De dónde salió el último contacto. Importa mostrarlo porque cada fuente implica
+// un ritmo distinto de reaparición, y por lo tanto una cuenta regresiva distinta.
+const LAST_SEEN_SOURCE = {
+    telemetry: 'telemetría',
+    heartbeat: 'heartbeat de service mode',
+    service_ended: 'fin de service mode',
+    reboot: 'reinicio',
+    ping: 'respuesta a ping',
+};
+
 const sensorTip = (key) => (
     key === 'dht11_ok'
         ? 'Campo dht11_ok del JSON. El sensor físico es un DHT22 desde 2026-07-25; el nombre se conservó para no partir la serie histórica en InfluxDB.'
@@ -113,7 +123,7 @@ const NodeHealthPanel = ({ state }) => {
                         {node?.lastSeenAt ? formatClock(node.lastSeenAt) : '—'}
                         {node?.lastSeenSource && (
                             <span className="svc-muted svc-small">
-                                {' '}({node.lastSeenSource === 'heartbeat' ? 'heartbeat de service mode' : 'telemetría'})
+                                {' '}({LAST_SEEN_SOURCE[node.lastSeenSource] ?? node.lastSeenSource})
                             </span>
                         )}
                         {secondsSince != null && secondsSince >= 0 && (

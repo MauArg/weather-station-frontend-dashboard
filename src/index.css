@@ -865,6 +865,13 @@ body {
     grid-column: 1 / -1;
 }
 
+/* Tarjeta a todo el ancho de la grilla de dos columnas. La usa el panel de logs:
+   cada renglón lleva hora, número de ciclo y una frase entera, y a media columna
+   el texto se parte y deja de leerse de un vistazo. */
+.svc-span-2 {
+    grid-column: 1 / -1;
+}
+
 .svc-steps {
     display: flex;
     list-style: none;

@@ -5,6 +5,7 @@ import BatteryPanel from './service/BatteryPanel';
 import NodeHealthPanel from './service/NodeHealthPanel';
 import PayloadViewer from './service/PayloadViewer';
 import CommandConsole from './service/CommandConsole';
+import LogPanel from './service/LogPanel';
 import { openServiceStream, getServiceState } from '../services/ServiceApi';
 
 const MAX_PAYLOADS = 500;
@@ -118,6 +119,10 @@ const ServiceMode = ({ onBack }) => {
                     onTogglePause={() => setPaused((p) => !p)}
                     onClear={() => setPayloads([])}
                 />
+                {/* A todo el ancho, como el wizard: los renglones de log llevan hora,
+                    ciclo y una frase entera, y partidos a media columna se vuelven
+                    ilegibles. */}
+                <LogPanel state={state} connected={connected} />
             </div>
         </div>
     );

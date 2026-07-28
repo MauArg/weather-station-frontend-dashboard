@@ -608,6 +608,19 @@ body {
     text-underline-offset: 3px;
 }
 
+/* El tooltip también sirve sobre un botón. Ahí no corresponde el cursor de ayuda
+   —el botón ya se ve accionable— ni el subrayado punteado del foco, que compite
+   con el estilo de foco propio del botón. Y como un botón es focusable de por sí,
+   no necesita el tabIndex que agrega el componente Tip: alcanza con la clase y
+   el data-tip directamente sobre el <button>. */
+button.svc-tip {
+    cursor: pointer;
+}
+
+button.svc-tip:focus-visible {
+    text-decoration: none;
+}
+
 /* Cerca del borde izquierdo el tooltip centrado se saldría de la card */
 .svc-tip-left::after {
     left: 0;
@@ -872,6 +885,32 @@ body {
     grid-column: 1 / -1;
 }
 
+/* Encabezado de una card plegable. Es un <button> a todo el ancho para que el
+   área clickeable sea toda la fila y no sólo el texto, y para que funcione con
+   teclado sin agregar handlers. */
+.svc-collapse-head {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    width: 100%;
+    padding: 0;
+    background: none;
+    border: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.svc-collapse-head h3 {
+    margin: 0;
+}
+
+/* Empuja lo que venga después al extremo derecho de la fila del encabezado. */
+.svc-collapse-spacer {
+    margin-left: auto;
+}
+
 .svc-steps {
     display: flex;
     list-style: none;
@@ -957,6 +996,16 @@ body {
     padding: 0.7rem 0.9rem;
     border-radius: 12px;
     border: 1px solid;
+}
+
+/* El ícono se alinea al tope de la caja, pero el texto de al lado arranca más
+   abajo por su line-height, así que a simple vista queda desfasado hacia arriba.
+   Estos 3px lo centran ópticamente contra el primer renglón —(24px de línea −
+   18px de ícono) / 2— en vez de contra el borde de la caja. flex-shrink evita
+   que el SVG se achique cuando el texto es largo. */
+.svc-alert > svg {
+    flex-shrink: 0;
+    margin-top: 3px;
 }
 
 .svc-alert-warn {

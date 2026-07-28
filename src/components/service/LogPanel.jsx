@@ -1,5 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ScrollText, Download, Play, Square, DownloadCloud, AlertTriangle, Search } from 'lucide-react';
+import {
+    ScrollText, Download, Play, Square, DownloadCloud, AlertTriangle, Search,
+    ChevronRight, ChevronDown,
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 import Tip from './Tip';
 import {
@@ -12,23 +15,26 @@ import {
 } from '../../services/ServiceApi';
 
 /**
- * Node logging: arm a capture, let it run, pull it back.
+ * Node logging: start a capture, let it run, transfer it back.
  *
  * The node has no observability in the field — LOG_LEVEL=0 compiles its Serial
  * macros to no-ops, and the only sink is a USB cable inside a sealed enclosure.
- * This is the replacement: a ring of 8-byte events in RTC memory, armed on
+ * This is the replacement: a ring of 8-byte events in RTC memory, started on
  * demand and retrieved over MQTT.
  *
- * Two things worth knowing when reading this component:
+ * Three things worth knowing when reading this component:
  *
  * - Capturing is free. Writing an entry is an 8-byte memcpy, so leaving a capture
- *   running costs no measurable energy. The expensive half is the download, which
- *   needs the node awake in service mode. That is why the UI nudges towards
- *   arming generously and only warns about the retrieval.
+ *   running costs no measurable energy. The expensive half is the transfer, which
+ *   needs the node awake in service mode.
  * - Timestamps are reconstructed by the backend, not sent by the node, which has
  *   no clock. Cycles that published telemetry are anchored to real time; the rest
  *   are interpolated — and those are precisely the cycles worth looking at, so
  *   every row says which kind it is.
+ * - The panel is collapsed by default because debugging the node is occasional.
+ *   The capture state stays visible in the collapsed header anyway: the whole
+ *   reason the firmware spends payload bytes on log_active is so a capture left
+ *   running cannot be forgotten, and hiding it behind a click would undo that.
  */
 
 // Entries per wake cycle at each level, used only to estimate how long a capture
@@ -71,10 +77,12 @@ const LogPanel = ({ state, connected }) => {
     // El backend viejo no manda `logs` en el snapshot. Puede pasar de verdad: el
     // frontend y el backend se despliegan como dos imágenes distintas, así que hay
     // una ventana en la que uno está actualizado y el otro no. Sin este guard el
-    // panel se vería roto —captura "apagada" que no se puede armar, botón muerto
+    // panel se vería roto —captura "apagada" que no se puede iniciar, botón muerto
     // sin motivo— y parecería un bug del nodo en vez de un deploy a medias.
     const supported = state?.logs !== undefined;
     const logs = state?.logs ?? {};
+
+    const [open, setOpen] = useState(false);
     const [level, setLevel] = useState(2);
     const [keep, setKeep] = useState(false);
     const [busy, setBusy] = useState(false);
@@ -82,7 +90,7 @@ const LogPanel = ({ state, connected }) => {
     const [codeFilter, setCodeFilter] = useState('all');
     const [text, setText] = useState('');
 
-    // Recupera la última captura bajada por el backend, para que recargar la
+    // Recupera la última captura transferida por el backend, para que recargar la
     // página no cueste otra sesión de service mode.
     useEffect(() => {
         let cancelled = false;
@@ -92,14 +100,14 @@ const LogPanel = ({ state, connected }) => {
         return () => { cancelled = true; };
     }, []);
 
-    const arm = async (lvl) => {
+    const setCaptureLevel = async (lvl) => {
         setBusy(true);
         try {
             const res = await sendServiceCommand({ cmd: 'log_on', level: lvl, entries: 0 });
             toast.success(
                 lvl === 0
-                    ? `Captura desactivada${res.note ? ` — ${res.note}` : ''}`
-                    : `Captura armada en nivel ${lvl}${res.note ? ` — ${res.note}` : ''}`
+                    ? `Captura detenida${res.note ? ` — ${res.note}` : ''}`
+                    : `Captura iniciada en nivel ${lvl}${res.note ? ` — ${res.note}` : ''}`
             );
         } catch (err) {
             toast.error(err.message);
@@ -108,15 +116,15 @@ const LogPanel = ({ state, connected }) => {
         }
     };
 
-    const pull = async () => {
+    const transfer = async () => {
         setBusy(true);
         try {
             const c = await fetchNodeLogs(keep);
             setCapture(c);
             setCodeFilter('all');
             const n = c.entries?.length ?? 0;
-            if (n === 0) toast('El nodo no tenía entries capturadas.', { icon: 'ℹ️' });
-            else toast.success(`${n} entries bajadas${c.cleared ? ' — el nodo ya las borró' : ''}`);
+            if (n === 0) toast('El nodo no tenía eventos capturados.', { icon: 'ℹ️' });
+            else toast.success(`${n} eventos transferidos${c.cleared ? ' — el nodo ya los borró' : ''}`);
         } catch (err) {
             toast.error(err.message);
         } finally {
@@ -144,66 +152,86 @@ const LogPanel = ({ state, connected }) => {
     const fillPct = logs.active && ring ? Math.min(100, (logs.count / ring) * 100) : 0;
     const activeLevel = LEVELS.find((l) => l.value === logs.level);
 
+    // Se muestra plegado o desplegado, pero nunca oculto: si quedó una captura
+    // corriendo hace semanas, tiene que verse sin abrir nada.
+    const stateChip = logs.active ? (
+        <span className="svc-chip" style={{ borderColor: '#4ade80', color: '#4ade80' }}>
+            <Play size={13} aria-hidden="true" /> Capturando · nivel {logs.level}
+            {activeLevel ? ` (${activeLevel.label})` : ''} · {logs.count}/{ring}
+        </span>
+    ) : (
+        <span className="svc-chip svc-badge-muted">
+            <Square size={13} aria-hidden="true" /> Captura detenida
+        </span>
+    );
+
+    const head = (
+        <button
+            className="svc-collapse-head"
+            onClick={() => setOpen((o) => !o)}
+            aria-expanded={open}
+        >
+            {open ? <ChevronDown size={17} aria-hidden="true" /> : <ChevronRight size={17} aria-hidden="true" />}
+            <h3><ScrollText size={17} aria-hidden="true" /> Logs del nodo</h3>
+            {supported && stateChip}
+            <span className="svc-muted svc-small svc-collapse-spacer">
+                {open ? 'ocultar' : 'mostrar'}
+            </span>
+        </button>
+    );
+
     if (!supported) {
         return (
             <div className="svc-card svc-span-2">
-                <div className="svc-card-head">
-                    <h3><ScrollText size={17} aria-hidden="true" /> Logs del nodo</h3>
-                </div>
-                <div className="svc-alert svc-alert-info">
-                    <AlertTriangle size={18} aria-hidden="true" />
-                    <div>
-                        <strong>El backend todavía no expone el sistema de logs.</strong>
-                        <div className="svc-small">
-                            Este panel necesita el campo <code>logs</code> en el snapshot de estado.
-                            Rebuildeá y redesplegá la imagen del backend; el firmware del nodo además
-                            tiene que estar en 1.3.0 o superior.
+                {head}
+                {open && (
+                    <div className="svc-alert svc-alert-info" style={{ marginTop: '0.75rem' }}>
+                        <AlertTriangle size={18} aria-hidden="true" />
+                        <div>
+                            <strong>El backend todavía no expone el sistema de logs.</strong>
+                            <div className="svc-small">
+                                Este panel necesita el campo <code>logs</code> en el snapshot de estado.
+                                Rebuildeá y redesplegá la imagen del backend; el firmware del nodo además
+                                tiene que estar en 1.3.0 o superior.
+                            </div>
                         </div>
                     </div>
-                </div>
+                )}
             </div>
         );
     }
 
+    if (!open) {
+        return <div className="svc-card svc-span-2">{head}</div>;
+    }
+
     return (
         <div className="svc-card svc-span-2">
-            <div className="svc-card-head">
-                <h3><ScrollText size={17} aria-hidden="true" /> Logs del nodo</h3>
-                <span className="svc-muted svc-small">
-                    Capturar no cuesta energía; bajar los logs necesita el nodo en service mode
-                </span>
-            </div>
+            {head}
 
-            {/* ── Estado de la captura ─────────────────────────────────────── */}
-            <div className="svc-chips" style={{ marginBottom: '0.75rem' }}>
-                {logs.active ? (
-                    <span className="svc-chip" style={{ borderColor: '#4ade80', color: '#4ade80' }}>
-                        <Play size={13} aria-hidden="true" /> Capturando · nivel {logs.level}
-                        {activeLevel ? ` (${activeLevel.label})` : ''}
-                    </span>
-                ) : (
-                    <span className="svc-chip svc-badge-muted">
-                        <Square size={13} aria-hidden="true" /> Captura apagada
-                    </span>
-                )}
-                {logs.dictKnown && (
+            <p className="svc-muted svc-small" style={{ marginTop: '0.5rem' }}>
+                Capturar no cuesta energía; transferir los logs necesita el nodo en service mode.
+            </p>
+
+            {logs.dictKnown && (
+                <div className="svc-chips" style={{ marginTop: '0.5rem' }}>
                     <Tip
                         className="svc-chip svc-badge-muted"
-                        text="El backend ya tiene cacheado el diccionario código→texto de esta versión de firmware, así que no hace falta pedírselo al nodo en la próxima descarga."
+                        text="El backend ya tiene cacheado el diccionario código→texto de esta versión de firmware, así que no hace falta pedírselo al nodo en la próxima transferencia."
                     >
                         diccionario en caché
                     </Tip>
-                )}
-            </div>
+                </div>
+            )}
 
             {logs.active && (
-                <div className="svc-budget">
+                <div className="svc-budget" style={{ marginTop: '0.5rem' }}>
                     <div className="svc-budget-head">
-                        <span className="svc-small">Ring: {logs.count} / {ring} entries</span>
+                        <span className="svc-small">Memoria de captura: {logs.count} / {ring} eventos</span>
                         <span className="svc-muted svc-small">
                             {fillPct >= 100
-                                ? 'lleno — ya está pisando lo más viejo'
-                                : `${Math.round(fillPct)}% ocupado`}
+                                ? 'llena — ya está reemplazando los eventos más viejos'
+                                : `${Math.round(fillPct)}% ocupada`}
                         </span>
                     </div>
                     <div className="svc-budget-bar">
@@ -215,13 +243,14 @@ const LogPanel = ({ state, connected }) => {
                 </div>
             )}
 
-            {/* ── Armar ────────────────────────────────────────────────────── */}
+            {/* ── Iniciar / detener ────────────────────────────────────────── */}
             <label className="svc-kv-label" style={{ marginTop: '0.75rem' }}>Nivel de captura</label>
             <div className="svc-toolbar">
                 {LEVELS.map((l) => (
                     <button
                         key={l.value}
-                        className={`svc-range-btn ${level === l.value ? 'active' : ''}`}
+                        className={`svc-range-btn svc-tip ${level === l.value ? 'active' : ''}`}
+                        data-tip={`${l.blurb} Dura ${formatWindow(ring, l.entriesPerCycle)} antes de empezar a reemplazar los eventos más viejos.`}
                         onClick={() => setLevel(l.value)}
                     >
                         {l.label} · {formatWindow(ring, l.entriesPerCycle)}
@@ -230,44 +259,43 @@ const LogPanel = ({ state, connected }) => {
             </div>
             <p className="svc-muted svc-small" style={{ marginTop: '0.4rem' }}>
                 {LEVELS.find((l) => l.value === level)?.blurb}{' '}
-                La ventana estimada asume ciclos de {CYCLE_SEC} s. El ring vive en RTC memory y no se
-                puede agrandar: más detalle es menos horas.
+                La ventana estimada asume ciclos de {CYCLE_SEC} s. La memoria de captura vive en la RTC
+                memory del ESP32 y no se puede agrandar: más detalle es menos horas.
             </p>
 
             <div className="svc-btn-row" style={{ marginTop: '0.6rem' }}>
                 <button
-                    className="svc-btn svc-btn-primary"
+                    className="svc-btn svc-btn-primary svc-tip"
+                    data-tip="Publica el comando en el topic retenido. El nodo lo levanta al despertar (hasta un ciclo de demora) y arranca de cero: lo que hubiera capturado antes se descarta."
                     disabled={busy || !connected}
-                    onClick={() => arm(level)}
+                    onClick={() => setCaptureLevel(level)}
                 >
-                    <Play size={16} /> Armar captura
+                    <Play size={16} /> Comenzar captura
                 </button>
                 <button
-                    className="svc-btn"
+                    className="svc-btn svc-tip"
+                    data-tip="Detiene la captura y vacía la memoria del nodo. Si quedaron eventos sin transferir, se pierden — conviene transferir primero."
                     disabled={busy || !connected || !logs.active}
-                    onClick={() => arm(0)}
+                    onClick={() => setCaptureLevel(0)}
                 >
-                    <Square size={16} /> Desactivar
+                    <Square size={16} /> Detener captura
                 </button>
             </div>
-            <p className="svc-muted svc-small svc-card-foot">
-                Armar borra lo que hubiera capturado antes. El comando se publica retenido, así que
-                el nodo lo levanta recién en su próximo despertar — hasta un ciclo de demora.
-            </p>
 
-            {/* ── Bajar ────────────────────────────────────────────────────── */}
+            {/* ── Transferir ───────────────────────────────────────────────── */}
             <div className="svc-btn-row" style={{ marginTop: '0.9rem' }}>
                 <button
-                    className="svc-btn svc-btn-primary"
+                    className="svc-btn svc-btn-primary svc-tip"
+                    data-tip="Trae los eventos capturados página por página. El nodo sólo los borra después de que el backend confirma que llegaron todos, así que una transferencia cortada no cuesta la captura."
                     disabled={busy || !logs.canFetch}
-                    onClick={pull}
+                    onClick={transfer}
                 >
-                    <DownloadCloud size={16} /> {busy ? 'Bajando…' : 'Traer logs del nodo'}
+                    <DownloadCloud size={16} /> {busy ? 'Transfiriendo…' : 'Transferir logs desde el nodo'}
                 </button>
                 <label className="svc-checkbox">
                     <input type="checkbox" checked={keep} onChange={(e) => setKeep(e.target.checked)} />
-                    <Tip text="Trae una copia sin desactivar la captura ni vaciar el ring, para investigaciones que siguen corriendo. Por defecto la descarga borra y desarma.">
-                        mantener capturando
+                    <Tip text="Trae una copia sin detener la captura ni vaciar la memoria del nodo, para investigaciones que siguen corriendo. Por defecto la transferencia vacía y detiene.">
+                        mantener captura activa
                     </Tip>
                 </label>
             </div>
@@ -278,47 +306,57 @@ const LogPanel = ({ state, connected }) => {
                 <div className="svc-alert svc-alert-warn" style={{ marginTop: '0.6rem' }}>
                     <AlertTriangle size={18} aria-hidden="true" />
                     <div>
-                        <strong>La última descarga falló.</strong>
+                        <strong>La última transferencia falló.</strong>
                         <div className="svc-small">{logs.lastError}</div>
                     </div>
                 </div>
             )}
 
-            {/* ── Captura ──────────────────────────────────────────────────── */}
+            {/* ── Captura transferida ──────────────────────────────────────── */}
             {capture && (
                 <>
                     <div className="svc-card-head" style={{ marginTop: '1rem' }}>
                         <h4 className="svc-h4">
-                            Captura · {capture.count || capture.entries?.length || 0} entries
+                            Captura · {capture.count || capture.entries?.length || 0} eventos
                             {capture.firmware ? ` · ${capture.firmware}` : ''}
                         </h4>
                         <div className="svc-toolbar">
-                            <a className="svc-icon-btn" href={LOG_EXPORT_JSON_URL} download>
+                            <a
+                                className="svc-icon-btn svc-tip"
+                                data-tip="Descarga la captura como JSON, con el diccionario de códigos y las anclas de tiempo adentro. Se lee aunque el firmware avance y renumere los códigos."
+                                href={LOG_EXPORT_JSON_URL}
+                                download
+                            >
                                 <Download size={15} /> JSON
                             </a>
-                            <a className="svc-icon-btn" href={LOG_EXPORT_NDJSON_URL} download>
+                            <a
+                                className="svc-icon-btn svc-tip"
+                                data-tip="Igual que el JSON pero un evento por línea, con una primera línea de cabecera. Mismo formato que el export del visor de payloads."
+                                href={LOG_EXPORT_NDJSON_URL}
+                                download
+                            >
                                 <Download size={15} /> NDJSON
                             </a>
                         </div>
                     </div>
                     <p className="svc-muted svc-small">
-                        Bajada {formatClock(capture.fetchedAt)}.{' '}
+                        Transferida {formatClock(capture.fetchedAt)}.{' '}
                         {capture.cleared
-                            ? (capture.kept ? 'El ring se vació pero la captura sigue activa.' : 'El nodo borró el ring y desarmó la captura.')
-                            : 'El nodo no confirmó el borrado: la captura sigue ocupando el ring.'}{' '}
-                        Los exports incluyen el diccionario y las anclas de tiempo, así que se leen aunque
-                        el firmware avance.
+                            ? (capture.kept
+                                ? 'La memoria del nodo se vació pero la captura sigue activa.'
+                                : 'El nodo vació su memoria y detuvo la captura.')
+                            : 'El nodo no confirmó el borrado: la captura sigue ocupando su memoria.'}
                     </p>
 
                     {capture.dropped > 0 && (
                         <div className="svc-alert svc-alert-warn" style={{ marginTop: '0.5rem' }}>
                             <AlertTriangle size={18} aria-hidden="true" />
                             <div>
-                                <strong>Captura truncada.</strong>
+                                <strong>Faltan los eventos más viejos.</strong>
                                 <div className="svc-small">
-                                    El ring pisó {capture.dropped} entries por wraparound: falta el principio de la
-                                    ventana y puede faltar justo el evento que buscabas. Para la próxima, un nivel
-                                    más magro dura más.
+                                    La memoria del nodo se llenó y reemplazó {capture.dropped} eventos por otros
+                                    más nuevos, así que la captura no llega hasta el principio de la ventana y
+                                    puede no cubrir lo que buscabas. Para la próxima, un nivel más magro dura más.
                                 </div>
                             </div>
                         </div>
@@ -363,7 +401,7 @@ const LogPanel = ({ state, connected }) => {
 
                             <div className="svc-log" style={{ marginTop: '0.5rem' }}>
                                 {filtered.length === 0 && (
-                                    <p className="svc-muted svc-small">Ninguna entry coincide con el filtro.</p>
+                                    <p className="svc-muted svc-small">Ningún evento coincide con el filtro.</p>
                                 )}
                                 {filtered.map((e, i) => (
                                     <div key={i} className="svc-log-row">
@@ -371,7 +409,7 @@ const LogPanel = ({ state, connected }) => {
                                             <span className="svc-log-time">
                                                 {e.at ? formatClock(e.at) : '—'}
                                                 {e.at && !e.atAnchored && (
-                                                    <Tip text="Hora estimada: este ciclo no publicó telemetría, así que se interpoló desde el ciclo anclado más cercano usando el tiempo despierto real. El timer de deep sleep tiene ±5%, así que la deriva crece con la distancia.">
+                                                    <Tip text="Hora estimada: este ciclo no publicó telemetría, así que se interpoló desde el ciclo con hora real más cercano usando el tiempo despierto medido. El timer de deep sleep tiene ±5%, así que la desviación crece con la distancia.">
                                                         {' '}≈
                                                     </Tip>
                                                 )}

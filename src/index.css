@@ -1098,6 +1098,55 @@ button.svc-tip:focus-visible {
     background: #4dabf7;
 }
 
+/* Acción destructiva. No queda sólo en el color: el botón vive dentro de un
+   diálogo cuyo título e ícono ya dicen qué se pierde, y su etiqueta nombra la
+   consecuencia ("Detener y borrar"), no la acción. */
+.svc-btn-danger {
+    background: rgba(248, 113, 113, 0.9);
+    border-color: #f87171;
+    color: #0b1120;
+}
+
+.svc-btn-danger:hover:not(:disabled) {
+    background: #f87171;
+}
+
+/* ─── Diálogo de confirmación ──────────────────────────────────────────────── */
+.svc-dialog {
+    max-width: 30rem;
+    padding: 1.1rem 1.2rem;
+    border-radius: 14px;
+    border: 1px solid var(--glass-border);
+    background: #131722;
+    color: #e4e4e7;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+.svc-dialog::backdrop {
+    background: rgba(5, 7, 12, 0.65);
+    backdrop-filter: blur(2px);
+}
+
+.svc-dialog-head {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #fde68a;
+    font-size: 1rem;
+}
+
+.svc-dialog-body {
+    margin: 0.6rem 0 1rem 0;
+    color: #a1a1aa;
+    line-height: 1.5;
+}
+
+/* Las acciones van a la derecha, con Cancelar primero: es el destino del foco
+   inicial y el que conviene que quede bajo el pulgar. */
+.svc-dialog-actions {
+    justify-content: flex-end;
+}
+
 .svc-icon-btn {
     display: inline-flex;
     align-items: center;

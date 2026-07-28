@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Tip from './Tip';
+import ConfirmDialog from './ConfirmDialog';
 import {
     sendServiceCommand,
     fetchNodeLogs,
@@ -89,6 +90,11 @@ const LogPanel = ({ state, connected }) => {
     const [capture, setCapture] = useState(null);
     const [codeFilter, setCodeFilter] = useState('all');
     const [text, setText] = useState('');
+
+    // 'stop' | 'start' | null. Las dos acciones vacían la memoria del nodo, así
+    // que las dos se confirman — guardar sólo una dejaría el otro camino abierto,
+    // y peor, haría creer que ese otro es inofensivo.
+    const [confirm, setConfirm] = useState(null);
 
     // Recupera la última captura transferida por el backend, para que recargar la
     // página no cueste otra sesión de service mode.
@@ -268,7 +274,7 @@ const LogPanel = ({ state, connected }) => {
                     className="svc-btn svc-btn-primary svc-tip"
                     data-tip="Publica el comando en el topic retenido. El nodo lo levanta al despertar (hasta un ciclo de demora) y arranca de cero: lo que hubiera capturado antes se descarta."
                     disabled={busy || !connected}
-                    onClick={() => setCaptureLevel(level)}
+                    onClick={() => (logs.active ? setConfirm('start') : setCaptureLevel(level))}
                 >
                     <Play size={16} /> Comenzar captura
                 </button>
@@ -276,11 +282,36 @@ const LogPanel = ({ state, connected }) => {
                     className="svc-btn svc-tip"
                     data-tip="Detiene la captura y vacía la memoria del nodo. Si quedaron eventos sin transferir, se pierden — conviene transferir primero."
                     disabled={busy || !connected || !logs.active}
-                    onClick={() => setCaptureLevel(0)}
+                    onClick={() => setConfirm('stop')}
                 >
                     <Square size={16} /> Detener captura
                 </button>
             </div>
+
+            <ConfirmDialog
+                open={confirm !== null}
+                title={confirm === 'start'
+                    ? 'Comenzar descarta la captura en curso'
+                    : 'Detener vacía la memoria del nodo'}
+                confirmLabel={confirm === 'start' ? 'Descartar y comenzar' : 'Detener y borrar'}
+                onCancel={() => setConfirm(null)}
+                onConfirm={() => {
+                    const kind = confirm;
+                    setConfirm(null);
+                    setCaptureLevel(kind === 'start' ? level : 0);
+                }}
+            >
+                {confirm === 'start'
+                    ? <>Hay una captura activa en nivel {logs.level}. Comenzar una nueva la borra y arranca de cero.</>
+                    : <>Al detenerse, el nodo vacía su memoria de captura.</>}
+                {' '}El nodo reportó <strong>{logs.count} eventos</strong> en su última telemetría
+                {logs.count > 0 && <> — si no los transferiste, se pierden</>}.
+                {' '}El número puede estar hasta un ciclo atrasado, así que podría haber más.
+                {logs.count > 0 && (
+                    <> Si te interesan, cancelá y usá <em>Transferir logs desde el nodo</em> primero
+                    {confirm === 'stop' && <> (deja la memoria vacía y la captura detenida, que es lo mismo que buscabas)</>}.</>
+                )}
+            </ConfirmDialog>
 
             {/* ── Transferir ───────────────────────────────────────────────── */}
             <div className="svc-btn-row" style={{ marginTop: '0.9rem' }}>

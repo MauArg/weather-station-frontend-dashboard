@@ -1,7 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
     ScrollText, Download, Play, Square, DownloadCloud, AlertTriangle, Search,
-    ChevronRight, ChevronDown,
+    ChevronRight, ChevronDown, Info, Wrench,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Tip from './Tip';
@@ -96,6 +96,21 @@ const LogPanel = ({ state, connected }) => {
     // y peor, haría creer que ese otro es inofensivo.
     const [confirm, setConfirm] = useState(null);
 
+    // El selector muestra lo que vas a aplicar, pero tiene que arrancar en lo que
+    // el nodo está haciendo de verdad. Mostrar "Resumen" seleccionado mientras el
+    // nodo captura en "Verboso" es la clase de desajuste que hace desconfiar de
+    // toda la pantalla. Se sincroniza cuando el nodo reporta un nivel distinto, y
+    // después respeta lo que elijas a mano.
+    const nodeLevel = logs.active ? logs.level : 0;
+    // Arranca en 0 y no en nodeLevel: inicializarlo con el valor del primer render
+    // hace que la comparación de abajo sea falsa justo esa primera vez, que es
+    // cuando más importa — el panel se abre con una captura ya corriendo.
+    const prevNodeLevel = useRef(0);
+    useEffect(() => {
+        if (nodeLevel && nodeLevel !== prevNodeLevel.current) setLevel(nodeLevel);
+        prevNodeLevel.current = nodeLevel;
+    }, [nodeLevel]);
+
     // Recupera la última captura transferida por el backend, para que recargar la
     // página no cueste otra sesión de service mode.
     useEffect(() => {
@@ -158,6 +173,25 @@ const LogPanel = ({ state, connected }) => {
     const fillPct = logs.active && ring ? Math.min(100, (logs.count / ring) * 100) : 0;
     const activeLevel = LEVELS.find((l) => l.value === logs.level);
 
+    // La transferencia necesita al nodo despierto y suscripto, o sea en service
+    // mode. Es la parte del flujo que no se explicaba sola: el estado decía
+    // "capturando" y el botón estaba muerto, sin decir qué hacer al respecto.
+    const inServiceMode = state?.node?.state === 'service_mode';
+    const sessionArmed = state?.session?.armed;
+    const needsServiceMode = !logs.canFetch && !inServiceMode && connected && !logs.fetching;
+
+    const armServiceMode = async () => {
+        setBusy(true);
+        try {
+            const res = await sendServiceCommand({ cmd: 'maintenance', timeoutMin: 15 });
+            toast.success(`Service mode pedido${res.note ? ` — ${res.note}` : ''}`);
+        } catch (err) {
+            toast.error(err.message);
+        } finally {
+            setBusy(false);
+        }
+    };
+
     // Se muestra plegado o desplegado, pero nunca oculto: si quedó una captura
     // corriendo hace semanas, tiene que verse sin abrir nada.
     const stateChip = logs.active ? (
@@ -216,7 +250,8 @@ const LogPanel = ({ state, connected }) => {
             {head}
 
             <p className="svc-muted svc-small" style={{ marginTop: '0.5rem' }}>
-                Capturar no cuesta energía; transferir los logs necesita el nodo en service mode.
+                Capturar corre durante los ciclos normales y no cuesta energía. Transferir es lo
+                único que necesita al nodo despierto, y por eso va en un paso aparte.
             </p>
 
             {logs.dictKnown && (
@@ -249,8 +284,9 @@ const LogPanel = ({ state, connected }) => {
                 </div>
             )}
 
-            {/* ── Iniciar / detener ────────────────────────────────────────── */}
-            <label className="svc-kv-label" style={{ marginTop: '0.75rem' }}>Nivel de captura</label>
+            {/* ── Paso 1 ───────────────────────────────────────────────────── */}
+            <h4 className="svc-h4" style={{ marginTop: '1rem' }}>1 · Capturar en el nodo</h4>
+            <label className="svc-kv-label" style={{ marginTop: '0.4rem' }}>Nivel de captura</label>
             <div className="svc-toolbar">
                 {LEVELS.map((l) => (
                     <button
@@ -268,6 +304,14 @@ const LogPanel = ({ state, connected }) => {
                 La ventana estimada asume ciclos de {CYCLE_SEC} s. La memoria de captura vive en la RTC
                 memory del ESP32 y no se puede agrandar: más detalle es menos horas.
             </p>
+
+            {logs.active && logs.level !== level && (
+                <p className="svc-small" style={{ marginTop: '0.35rem', color: '#fde68a' }}>
+                    El nodo está capturando en nivel {logs.level}
+                    {activeLevel ? ` (${activeLevel.label})` : ''}. Comenzar de nuevo lo cambia a{' '}
+                    {LEVELS.find((l) => l.value === level)?.label} y descarta lo capturado hasta ahora.
+                </p>
+            )}
 
             <div className="svc-btn-row" style={{ marginTop: '0.6rem' }}>
                 <button
@@ -313,8 +357,41 @@ const LogPanel = ({ state, connected }) => {
                 )}
             </ConfirmDialog>
 
-            {/* ── Transferir ───────────────────────────────────────────────── */}
-            <div className="svc-btn-row" style={{ marginTop: '0.9rem' }}>
+            {/* ── Paso 2 ───────────────────────────────────────────────────── */}
+            <h4 className="svc-h4" style={{ marginTop: '1.2rem' }}>2 · Transferir al backend</h4>
+
+            {/* El requisito va ANTES del botón y con la acción adentro. Antes esta
+                explicación colgaba debajo de todo, así que se leía como si fuera la
+                respuesta a "Comenzar captura" — el botón de arriba— en vez del
+                requisito del de abajo. */}
+            {needsServiceMode && (
+                <div className="svc-alert svc-alert-info" style={{ marginTop: '0.4rem' }}>
+                    <Info size={18} aria-hidden="true" />
+                    <div>
+                        <strong>Primero hay que despertar al nodo.</strong>
+                        <div className="svc-small">
+                            Fuera de una sesión de service mode el nodo duerme 60 s de cada 70 y no
+                            escucha el topic de pedidos, así que no puede responder una transferencia.
+                            La captura mientras tanto sigue corriendo sin problema.
+                        </div>
+                        <button
+                            className="svc-btn svc-tip"
+                            style={{ marginTop: '0.6rem' }}
+                            data-tip="Publica el comando de mantenimiento con el timeout por defecto de 15 min. El nodo lo levanta en su próximo despertar y queda despierto — recién ahí se puede transferir."
+                            disabled={busy || sessionArmed}
+                            onClick={armServiceMode}
+                        >
+                            <Wrench size={16} /> {sessionArmed ? 'Service mode ya pedido — esperando al nodo' : 'Activar service mode'}
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {!logs.canFetch && !needsServiceMode && logs.cantWhy && (
+                <p className="svc-muted svc-small" style={{ marginTop: '0.4rem' }}>{logs.cantWhy}</p>
+            )}
+
+            <div className="svc-btn-row" style={{ marginTop: '0.6rem' }}>
                 <button
                     className="svc-btn svc-btn-primary svc-tip"
                     data-tip="Trae los eventos capturados página por página. El nodo sólo los borra después de que el backend confirma que llegaron todos, así que una transferencia cortada no cuesta la captura."
@@ -330,9 +407,6 @@ const LogPanel = ({ state, connected }) => {
                     </Tip>
                 </label>
             </div>
-            {!logs.canFetch && logs.cantWhy && (
-                <p className="svc-muted svc-small svc-card-foot">{logs.cantWhy}</p>
-            )}
             {logs.lastError && (
                 <div className="svc-alert svc-alert-warn" style={{ marginTop: '0.6rem' }}>
                     <AlertTriangle size={18} aria-hidden="true" />
@@ -346,9 +420,9 @@ const LogPanel = ({ state, connected }) => {
             {/* ── Captura transferida ──────────────────────────────────────── */}
             {capture && (
                 <>
-                    <div className="svc-card-head" style={{ marginTop: '1rem' }}>
+                    <div className="svc-card-head" style={{ marginTop: '1.2rem' }}>
                         <h4 className="svc-h4">
-                            Captura · {capture.count || capture.entries?.length || 0} eventos
+                            3 · Revisar · {capture.count || capture.entries?.length || 0} eventos
                             {capture.firmware ? ` · ${capture.firmware}` : ''}
                         </h4>
                         <div className="svc-toolbar">

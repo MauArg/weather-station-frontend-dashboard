@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle2, XCircle, Cpu, Wifi, Moon, Radio, AlertTriangle, HelpCircle, Bug, HardDrive } from 'lucide-react';
+import { CheckCircle2, XCircle, Cpu, Wifi, Moon, Radio, AlertTriangle, HelpCircle, Bug, HardDrive, Info } from 'lucide-react';
 import { formatClock } from '../../services/ServiceApi';
 import { useNow } from '../../hooks/useNow';
 import Tip from './Tip';
@@ -195,16 +195,25 @@ const NodeHealthPanel = ({ state }) => {
             {/* Boot anomalies */}
             {bootAnomalies.length > 0 && (
                 <>
-                    <h4 className="svc-h4">Anomalías de boot_count</h4>
+                    <h4 className="svc-h4">Discontinuidades de boot_count</h4>
                     <ul className="svc-anomalies">
-                        {bootAnomalies.slice().reverse().map((a, i) => (
-                            <li key={`${a.at}-${i}`}>
-                                <AlertTriangle size={14} color={a.kind === 'gap' ? '#facc15' : '#f87171'} aria-hidden="true" />
-                                <span>
-                                    <strong>{formatClock(a.at)}</strong> — {a.previous} → {a.current}. {a.note}
-                                </span>
-                            </li>
-                        ))}
+                        {bootAnomalies.slice().reverse().map((a, i) => {
+                            // Las esperadas —un reboot que pediste, un reflash— se
+                            // listan igual porque explican un corte en la serie, pero
+                            // no como advertencia: si la alarma suena por la acción que
+                            // acabás de tomar a propósito, se aprende a ignorarla.
+                            // El ícono cambia además del color, que solo no alcanza.
+                            const Icon = a.expected ? Info : AlertTriangle;
+                            const color = a.expected ? '#a1a1aa' : a.kind === 'gap' ? '#facc15' : '#f87171';
+                            return (
+                                <li key={`${a.at}-${i}`} style={a.expected ? { opacity: 0.75 } : undefined}>
+                                    <Icon size={14} color={color} aria-hidden="true" />
+                                    <span>
+                                        <strong>{formatClock(a.at)}</strong> — {a.previous} → {a.current}. {a.note}
+                                    </span>
+                                </li>
+                            );
+                        })}
                     </ul>
                 </>
             )}

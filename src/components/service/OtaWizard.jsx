@@ -5,6 +5,7 @@ import {
 import toast from 'react-hot-toast';
 import { sendServiceCommand, formatDuration, formatClock } from '../../services/ServiceApi';
 import { useNow } from '../../hooks/useNow';
+import { copyText } from '../../utils/clipboard';
 
 const OTA_ENVS = [
     { id: 'ota_production', label: 'Producción', hint: 'LOG_LEVEL=0 — el que va a campo' },
@@ -93,12 +94,8 @@ const OtaWizard = ({ state, session, onSession }) => {
     };
 
     const copyCommand = async () => {
-        try {
-            await navigator.clipboard.writeText(pioCommand);
-            toast.success('Comando copiado');
-        } catch {
-            toast.error('No se pudo copiar');
-        }
+        if (await copyText(pioCommand)) toast.success('Comando copiado');
+        else toast.error('No se pudo copiar');
     };
 
     return (

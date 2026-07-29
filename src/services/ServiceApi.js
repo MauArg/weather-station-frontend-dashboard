@@ -137,6 +137,24 @@ export const formatAge = (iso, now = Date.now()) => {
     return days === 1 ? 'hace 1 día' : `hace ${days} días`;
 };
 
+/**
+ * Cuánto lleva corriendo algo, en horas y minutos.
+ *
+ * Distinto de formatDuration(), que es un MM:SS para una cuenta regresiva corta:
+ * acá el rango útil son horas —una captura de logs se piensa en ventanas de 2 h,
+ * 8 h— y los segundos serían ruido que además obliga a refrescar cada segundo.
+ */
+export const formatElapsed = (totalSeconds) => {
+    if (totalSeconds == null || totalSeconds < 0) return '—';
+    const minutes = Math.floor(totalSeconds / 60);
+    if (minutes < 1) return 'menos de 1 min';
+    if (minutes < 60) return `${minutes} min`;
+
+    const hours = Math.floor(minutes / 60);
+    const rest = minutes % 60;
+    return rest === 0 ? `${hours} h` : `${hours} h ${rest} min`;
+};
+
 export const formatDuration = (totalSeconds) => {
     if (totalSeconds == null || totalSeconds < 0) return '—';
     const mins = Math.floor(totalSeconds / 60);

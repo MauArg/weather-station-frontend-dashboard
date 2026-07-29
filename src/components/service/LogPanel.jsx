@@ -1,16 +1,18 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
     ScrollText, Download, Play, Square, DownloadCloud, AlertTriangle, Search,
-    ChevronRight, ChevronDown, Info, Wrench,
+    ChevronRight, ChevronDown, Info, Wrench, Loader2, Clock,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Tip from './Tip';
 import ConfirmDialog from './ConfirmDialog';
+import { useNow } from '../../hooks/useNow';
 import {
     sendServiceCommand,
     fetchNodeLogs,
     getLastLogCapture,
     formatClock,
+    formatElapsed,
     LOG_EXPORT_JSON_URL,
     LOG_EXPORT_NDJSON_URL,
 } from '../../services/ServiceApi';
@@ -74,6 +76,39 @@ const formatWindow = (ringEntries, entriesPerCycle) => {
     return `~${hours.toFixed(1)} h`;
 };
 
+// El número y el nombre juntos, siempre en el mismo orden. El nivel es lo que
+// viaja en el comando y en el firmware; el nombre es lo único que se entiende de
+// un vistazo. Nombrar uno solo obliga a traducir mentalmente entre la pantalla y
+// el `level` que se ve en los payloads.
+const levelName = (value) => {
+    const level = LEVELS.find((l) => l.value === value);
+    return level ? `nivel ${value} (${level.label})` : `nivel ${value}`;
+};
+
+// Cuánto puede tardar el nodo en levantar un comando retenido antes de que valga
+// la pena sospechar: tres ciclos y monedas. Un ciclo suele alcanzar, pero el
+// payload de confirmación viaja por el mismo camino que pierde el 42% de la
+// telemetría, así que un par de ciclos sin novedades no prueban nada.
+const PENDING_TIMEOUT_MS = 4 * 60 * 1000;
+
+/**
+ * Hace cuánto corre la captura que hay ahora en el nodo.
+ *
+ * Componente aparte por el tick: lleva su propio reloj para que el minuto que
+ * pasa no re-renderice la lista de eventos transferidos, que puede tener cientos
+ * de renglones. 15 s alcanza porque se muestra en minutos y horas.
+ */
+const CaptureUptime = ({ since, exact }) => {
+    const now = useNow(15000);
+    const started = new Date(since).getTime();
+    if (isNaN(started)) return null;
+
+    const elapsed = formatElapsed(Math.floor((now - started) / 1000));
+    // El "≥" no es cosmético: sin haber visto arrancar la captura, el número es un
+    // piso y no una medición. Ver LogState.ActiveSinceExact en el backend.
+    return exact ? elapsed : `≥ ${elapsed}`;
+};
+
 const LogPanel = ({ state, connected }) => {
     // El backend viejo no manda `logs` en el snapshot. Puede pasar de verdad: el
     // frontend y el backend se despliegan como dos imágenes distintas, así que hay
@@ -87,6 +122,7 @@ const LogPanel = ({ state, connected }) => {
     const [level, setLevel] = useState(2);
     const [keep, setKeep] = useState(false);
     const [busy, setBusy] = useState(false);
+    const [transferring, setTransferring] = useState(false);
     const [capture, setCapture] = useState(null);
     const [codeFilter, setCodeFilter] = useState('all');
     const [text, setText] = useState('');
@@ -95,6 +131,22 @@ const LogPanel = ({ state, connected }) => {
     // que las dos se confirman — guardar sólo una dejaría el otro camino abierto,
     // y peor, haría creer que ese otro es inofensivo.
     const [confirm, setConfirm] = useState(null);
+
+    // Comando de captura publicado, esperando que el nodo lo aplique. Ver el
+    // efecto de más abajo.
+    const [pending, setPending] = useState(null);
+
+    // El comando retenido lleva un solo mensaje, así que hay que mirar cuál es y
+    // no sólo si hay alguno: session.armed del backend se prende con cualquiera,
+    // incluido el log_on que acabamos de publicar nosotros.
+    const inServiceMode = state?.node?.state === 'service_mode';
+    const maintenanceArmed = Boolean(
+        state?.retainedCmd?.present && state.retainedCmd.cmd === 'maintenance'
+    );
+    const retainedIsLogCmd = Boolean(
+        state?.retainedCmd?.present && state.retainedCmd.cmd === 'log_on'
+    );
+    const telemetryAt = state?.telemetry?.receivedAt ?? null;
 
     // El selector muestra lo que vas a aplicar, pero tiene que arrancar en lo que
     // el nodo está haciendo de verdad. Mostrar "Resumen" seleccionado mientras el
@@ -111,6 +163,65 @@ const LogPanel = ({ state, connected }) => {
         prevNodeLevel.current = nodeLevel;
     }, [nodeLevel]);
 
+    // ── Espera del comando de captura ─────────────────────────────────────────
+    //
+    // Publicar el comando no cambia nada en el nodo: queda retenido hasta que
+    // despierte, lo lea y lo aplique, o sea hasta un ciclo entero. El POST vuelve
+    // en milisegundos, así que sin esto el click no movía nada en pantalla —el
+    // chip seguía diciendo lo mismo— y se leía como que el botón no funcionaba.
+    //
+    // La confirmación pide tres cosas a la vez, y las tres hacen falta:
+    //
+    //  - `applied`: el nodo reporta el estado que le pedimos.
+    //  - `fresh`: lo reporta en una telemetría posterior al click, no en la que ya
+    //    estaba en pantalla cuando se apretó el botón.
+    //  - `moved`: algo cambió de verdad. Sin esto, volver a arrancar una captura en
+    //    el mismo nivel que ya corría se daría por aplicada con la primera
+    //    telemetría que llegue, aunque el nodo todavía no haya leído el comando.
+    //
+    // `moved` mira tres señales porque ninguna sola cubre todos los casos: el nodo
+    // limpia el retenido al consumirlo (pero ese publish puede perderse, como el
+    // 42% de los otros), el nivel cambia (pero no si se re-arranca en el mismo), y
+    // el contador retrocede (logging_configure() vacía el ring, y el contador nunca
+    // baja solo: satura en la capacidad cuando empieza a pisar lo viejo).
+    useEffect(() => {
+        if (!pending) return undefined;
+
+        if (retainedIsLogCmd && !pending.sawRetained) {
+            setPending((p) => (p && !p.sawRetained ? { ...p, sawRetained: true } : p));
+            return undefined;
+        }
+
+        const applied = pending.kind === 'stop'
+            ? !logs.active
+            : logs.active && logs.level === pending.level;
+        const fresh = telemetryAt != null && telemetryAt !== pending.telemetryAt;
+        const moved = (pending.sawRetained && !retainedIsLogCmd)
+            || logs.active !== pending.before.active
+            || logs.level !== pending.before.level
+            || logs.count < pending.before.count;
+
+        if (applied && fresh && moved) {
+            setPending(null);
+            toast.success(pending.kind === 'stop'
+                ? 'El nodo detuvo la captura y vació su memoria.'
+                : `El nodo está capturando en ${levelName(pending.level)}.`);
+            return undefined;
+        }
+
+        // Se agotó la espera. No se deshace nada: el comando sigue retenido y el
+        // nodo lo va a aplicar cuando logre leerlo. Lo único que se suelta es la UI,
+        // que si no quedaría bloqueada indefinidamente por un nodo que no aparece.
+        const id = setTimeout(() => {
+            setPending(null);
+            toast.error(
+                'El nodo no confirmó el cambio de captura. El comando sigue retenido: ' +
+                'si el nodo aparece, lo va a aplicar — mirá el chip de estado en un par de ciclos.'
+            );
+        }, Math.max(0, pending.deadline - Date.now()));
+        return () => clearTimeout(id);
+    }, [pending, logs.active, logs.level, logs.count, retainedIsLogCmd, telemetryAt]);
+
     // Recupera la última captura transferida por el backend, para que recargar la
     // página no cueste otra sesión de service mode.
     useEffect(() => {
@@ -123,12 +234,27 @@ const LogPanel = ({ state, connected }) => {
 
     const setCaptureLevel = async (lvl) => {
         setBusy(true);
+        // Foto de lo que el nodo reportaba antes de publicar. Es contra esto que se
+        // decide después si el nodo aplicó el comando o todavía no lo leyó.
+        const before = { active: logs.active, level: logs.level, count: logs.count };
         try {
             const res = await sendServiceCommand({ cmd: 'log_on', level: lvl, entries: 0 });
+            setPending({
+                kind: lvl === 0 ? 'stop' : 'start',
+                level: lvl,
+                before,
+                telemetryAt,
+                sawRetained: false,
+                deadline: Date.now() + PENDING_TIMEOUT_MS,
+            });
+            // "Publicado" y no "iniciada": en este punto lo único que pasó es que el
+            // mensaje quedó en el broker. Decir que la captura arrancó era la mentira
+            // que hacía parecer que después no pasaba nada.
             toast.success(
-                lvl === 0
-                    ? `Captura detenida${res.note ? ` — ${res.note}` : ''}`
-                    : `Captura iniciada en nivel ${lvl}${res.note ? ` — ${res.note}` : ''}`
+                (lvl === 0
+                    ? 'Comando de detener captura publicado'
+                    : `Comando de captura en ${levelName(lvl)} publicado`)
+                + (res.note ? ` — ${res.note}` : '')
             );
         } catch (err) {
             toast.error(err.message);
@@ -139,6 +265,7 @@ const LogPanel = ({ state, connected }) => {
 
     const transfer = async () => {
         setBusy(true);
+        setTransferring(true);
         try {
             const c = await fetchNodeLogs(keep);
             setCapture(c);
@@ -150,6 +277,7 @@ const LogPanel = ({ state, connected }) => {
             toast.error(err.message);
         } finally {
             setBusy(false);
+            setTransferring(false);
         }
     };
 
@@ -171,14 +299,20 @@ const LogPanel = ({ state, connected }) => {
 
     const ring = logs.ringEntries || 768;
     const fillPct = logs.active && ring ? Math.min(100, (logs.count / ring) * 100) : 0;
-    const activeLevel = LEVELS.find((l) => l.value === logs.level);
 
     // La transferencia necesita al nodo despierto y suscripto, o sea en service
     // mode. Es la parte del flujo que no se explicaba sola: el estado decía
     // "capturando" y el botón estaba muerto, sin decir qué hacer al respecto.
-    const inServiceMode = state?.node?.state === 'service_mode';
-    const sessionArmed = state?.session?.armed;
     const needsServiceMode = !logs.canFetch && !inServiceMode && connected && !logs.fetching;
+
+    // Al revés que transferir, cambiar la captura NO se puede hacer con el nodo en
+    // service mode, y no es una cuestión de esperar más: el comando se pierde.
+    // El loop de service_mode.cpp sólo reacciona al retenido cuando llega vacío
+    // —ese es el "salí de service mode"— y descarta cualquier otro payload; después,
+    // al cerrar la sesión, serviceMode_exit() limpia el topic y se lleva puesto el
+    // log_on que estaba esperando. Y como el topic retenido guarda un solo mensaje,
+    // publicarlo pisa el `maintenance` que sostiene la sesión de OTA.
+    const captureLocked = inServiceMode || maintenanceArmed;
 
     const armServiceMode = async () => {
         setBusy(true);
@@ -193,11 +327,15 @@ const LogPanel = ({ state, connected }) => {
     };
 
     // Se muestra plegado o desplegado, pero nunca oculto: si quedó una captura
-    // corriendo hace semanas, tiene que verse sin abrir nada.
+    // corriendo hace semanas, tiene que verse sin abrir nada. Por el mismo motivo
+    // el tiempo corriendo va acá y no sólo en el cuerpo: "¿ya pasaron las 2 h que
+    // quería capturar?" se tiene que contestar sin abrir el panel.
     const stateChip = logs.active ? (
         <span className="svc-chip" style={{ borderColor: '#4ade80', color: '#4ade80' }}>
-            <Play size={13} aria-hidden="true" /> Capturando · nivel {logs.level}
-            {activeLevel ? ` (${activeLevel.label})` : ''} · {logs.count}/{ring}
+            <Play size={13} aria-hidden="true" /> Capturando · {levelName(logs.level)} · {logs.count}/{ring}
+            {logs.activeSince && (
+                <> · <CaptureUptime since={logs.activeSince} exact={logs.activeSinceExact} /></>
+            )}
         </span>
     ) : (
         <span className="svc-chip svc-badge-muted">
@@ -281,6 +419,22 @@ const LogPanel = ({ state, connected }) => {
                             style={{ width: `${fillPct}%`, background: fillPct >= 100 ? '#facc15' : '#4dabf7' }}
                         />
                     </div>
+                    {logs.activeSince && (
+                        <p className="svc-muted svc-small" style={{ marginTop: '0.4rem' }}>
+                            <Clock size={13} aria-hidden="true" />{' '}
+                            {logs.activeSinceExact ? (
+                                <Tip text="Cuándo arrancó la ventana que el nodo tiene guardada ahora. Se reinicia al cambiar de nivel y al transferir, porque en los dos casos el nodo vacía su memoria. Lo deriva el backend mirando la telemetría —el nodo no tiene reloj—, así que tiene la precisión de un ciclo.">
+                                    Capturando desde las {formatClock(logs.activeSince)}
+                                </Tip>
+                            ) : (
+                                <Tip text="El backend encontró la captura ya corriendo —se reinició después de que arrancó—, así que no sabe cuándo empezó de verdad. El número es un piso: puede llevar mucho más.">
+                                    Corriendo desde antes de las {formatClock(logs.activeSince)}
+                                </Tip>
+                            )}
+                            {' — '}
+                            <CaptureUptime since={logs.activeSince} exact={logs.activeSinceExact} />
+                        </p>
+                    )}
                 </div>
             )}
 
@@ -292,24 +446,23 @@ const LogPanel = ({ state, connected }) => {
                     <button
                         key={l.value}
                         className={`svc-range-btn svc-tip ${level === l.value ? 'active' : ''}`}
-                        data-tip={`${l.blurb} Dura ${formatWindow(ring, l.entriesPerCycle)} antes de empezar a reemplazar los eventos más viejos.`}
+                        data-tip={`Nivel ${l.value}. ${l.blurb} Dura ${formatWindow(ring, l.entriesPerCycle)} antes de empezar a reemplazar los eventos más viejos.`}
                         onClick={() => setLevel(l.value)}
                     >
-                        {l.label} · {formatWindow(ring, l.entriesPerCycle)}
+                        {l.label} (N{l.value}) · {formatWindow(ring, l.entriesPerCycle)}
                     </button>
                 ))}
             </div>
             <p className="svc-muted svc-small" style={{ marginTop: '0.4rem' }}>
-                {LEVELS.find((l) => l.value === level)?.blurb}{' '}
+                Nivel {level}: {LEVELS.find((l) => l.value === level)?.blurb}{' '}
                 La ventana estimada asume ciclos de {CYCLE_SEC} s. La memoria de captura vive en la RTC
                 memory del ESP32 y no se puede agrandar: más detalle es menos horas.
             </p>
 
             {logs.active && logs.level !== level && (
                 <p className="svc-small" style={{ marginTop: '0.35rem', color: '#fde68a' }}>
-                    El nodo está capturando en nivel {logs.level}
-                    {activeLevel ? ` (${activeLevel.label})` : ''}. Comenzar de nuevo lo cambia a{' '}
-                    {LEVELS.find((l) => l.value === level)?.label} y descarta lo capturado hasta ahora.
+                    El nodo está capturando en {levelName(logs.level)}. Comenzar de nuevo lo cambia a{' '}
+                    {levelName(level)} y descarta lo capturado hasta ahora.
                 </p>
             )}
 
@@ -317,20 +470,72 @@ const LogPanel = ({ state, connected }) => {
                 <button
                     className="svc-btn svc-btn-primary svc-tip"
                     data-tip="Publica el comando en el topic retenido. El nodo lo levanta al despertar (hasta un ciclo de demora) y arranca de cero: lo que hubiera capturado antes se descarta."
-                    disabled={busy || !connected}
+                    disabled={busy || !connected || pending !== null || captureLocked}
                     onClick={() => (logs.active ? setConfirm('start') : setCaptureLevel(level))}
                 >
-                    <Play size={16} /> Comenzar captura
+                    {pending?.kind === 'start'
+                        ? <><Loader2 size={16} className="animate-spin" /> Comenzando captura…</>
+                        : <><Play size={16} /> Comenzar captura</>}
                 </button>
                 <button
                     className="svc-btn svc-tip"
                     data-tip="Detiene la captura y vacía la memoria del nodo. Si quedaron eventos sin transferir, se pierden — conviene transferir primero."
-                    disabled={busy || !connected || !logs.active}
+                    disabled={busy || !connected || !logs.active || pending !== null || captureLocked}
                     onClick={() => setConfirm('stop')}
                 >
-                    <Square size={16} /> Detener captura
+                    {pending?.kind === 'stop'
+                        ? <><Loader2 size={16} className="animate-spin" /> Deteniendo captura…</>
+                        : <><Square size={16} /> Detener captura</>}
                 </button>
             </div>
+
+            {/* La espera es el estado normal de este paso, no una excepción: el nodo
+                duerme 60 s de cada 64 y sólo mira el topic retenido al despertar. */}
+            {pending && (
+                <div className="svc-alert svc-alert-info" style={{ marginTop: '0.6rem' }}>
+                    <Loader2 size={18} className="animate-spin" aria-hidden="true" />
+                    <div>
+                        <strong>
+                            {pending.kind === 'stop'
+                                ? 'Deteniendo la captura'
+                                : `Comenzando la captura en ${levelName(pending.level)}`}
+                            {' '}— esperando al nodo.
+                        </strong>
+                        <div className="svc-small">
+                            {pending.sawRetained && !retainedIsLogCmd ? (
+                                <>El nodo levantó el comando y lo está aplicando. Falta la telemetría que
+                                lo confirme, que sale en este mismo ciclo.</>
+                            ) : (
+                                <>
+                                    El comando quedó retenido en el broker. El nodo lo lee recién al
+                                    despertar
+                                    {state?.node?.nextWakeInSec > 0
+                                        ? `, en ~${state.node.nextWakeInSec} s`
+                                        : ''}
+                                    , y hasta entonces sigue capturando como estaba. Si el ciclo no logra
+                                    publicar —pasa seguido— la confirmación se atrasa hasta el siguiente.
+                                </>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {captureLocked && !pending && (
+                <div className="svc-alert svc-alert-warn" style={{ marginTop: '0.6rem' }}>
+                    <AlertTriangle size={18} aria-hidden="true" />
+                    <div>
+                        <strong>No se puede cambiar la captura con el nodo en service mode.</strong>
+                        <div className="svc-small">
+                            {inServiceMode
+                                ? 'Durante la sesión el nodo ignora todo lo que llegue al topic de comandos salvo el pedido de salir, y al cerrarla limpia el topic — así que el comando no se demoraría, se perdería.'
+                                : 'Hay un comando de mantenimiento retenido esperando a que el nodo despierte. El topic guarda un mensaje solo, así que publicar la captura acá lo pisaría y cancelaría el service mode.'}
+                            {' '}Transferir sí funciona. Para cambiar la captura, salí de service mode y
+                            esperá al próximo ciclo normal.
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <ConfirmDialog
                 open={confirm !== null}
@@ -346,7 +551,7 @@ const LogPanel = ({ state, connected }) => {
                 }}
             >
                 {confirm === 'start'
-                    ? <>Hay una captura activa en nivel {logs.level}. Comenzar una nueva la borra y arranca de cero.</>
+                    ? <>Hay una captura activa en {levelName(logs.level)}. Comenzar una nueva la borra y arranca de cero.</>
                     : <>Al detenerse, el nodo vacía su memoria de captura.</>}
                 {' '}El nodo reportó <strong>{logs.count} eventos</strong> en su última telemetría
                 {logs.count > 0 && <> — si no los transferiste, se pierden</>}.
@@ -378,10 +583,10 @@ const LogPanel = ({ state, connected }) => {
                             className="svc-btn svc-tip"
                             style={{ marginTop: '0.6rem' }}
                             data-tip="Publica el comando de mantenimiento con el timeout por defecto de 15 min. El nodo lo levanta en su próximo despertar y queda despierto — recién ahí se puede transferir."
-                            disabled={busy || sessionArmed}
+                            disabled={busy || maintenanceArmed}
                             onClick={armServiceMode}
                         >
-                            <Wrench size={16} /> {sessionArmed ? 'Service mode ya pedido — esperando al nodo' : 'Activar service mode'}
+                            <Wrench size={16} /> {maintenanceArmed ? 'Service mode ya pedido — esperando al nodo' : 'Activar service mode'}
                         </button>
                     </div>
                 </div>
@@ -398,7 +603,10 @@ const LogPanel = ({ state, connected }) => {
                     disabled={busy || !logs.canFetch}
                     onClick={transfer}
                 >
-                    <DownloadCloud size={16} /> {busy ? 'Transfiriendo…' : 'Transferir logs desde el nodo'}
+                    {/* El label mira `transferring` y no `busy`: `busy` lo comparten
+                        todas las acciones del panel, así que arrancar una captura
+                        ponía este botón en "Transfiriendo…" sin que nadie transfiera. */}
+                    <DownloadCloud size={16} /> {transferring ? 'Transfiriendo…' : 'Transferir logs desde el nodo'}
                 </button>
                 <label className="svc-checkbox">
                     <input type="checkbox" checked={keep} onChange={(e) => setKeep(e.target.checked)} />

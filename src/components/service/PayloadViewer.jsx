@@ -3,6 +3,7 @@ import { Pause, Play, Trash2, Download, Copy } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { formatClock, formatAge } from '../../services/ServiceApi';
 import { useNow } from '../../hooks/useNow';
+import { copyText } from '../../utils/clipboard';
 
 const TOPIC_COLORS = {
     telemetry: '#4dabf7',
@@ -65,12 +66,14 @@ const PayloadViewer = ({ payloads, paused, onTogglePause, onClear, backlogUntilS
     };
 
     const copyPayload = async (payload) => {
-        try {
-            await navigator.clipboard.writeText(payload);
-            toast.success('Payload copiado');
-        } catch {
-            toast.error('No se pudo copiar');
+        // Un retenido limpiado llega como string vacío: no hay nada que copiar, y
+        // decir "no se pudo" mandaría a buscar un problema que no existe.
+        if (!payload) {
+            toast('El payload está vacío — es un retenido limpiado.', { icon: 'ℹ️' });
+            return;
         }
+        if (await copyText(payload)) toast.success('Payload copiado');
+        else toast.error('No se pudo copiar');
     };
 
     return (

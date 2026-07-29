@@ -18,6 +18,12 @@ const ServiceMode = ({ onBack }) => {
     const [session, setSession] = useState(null);
     const [error, setError] = useState(null);
 
+    // Último payload del backlog que mandó el backend al conectar. Marca dónde
+    // termina lo que ya había pasado y empieza lo que llega en vivo — sin esa
+    // frontera, abrir el dashboard después de unas horas muestra un muro de
+    // mensajes viejos que parecen recién llegados.
+    const [backlogUntilSeq, setBacklogUntilSeq] = useState(null);
+
     // Held in a ref so the SSE callbacks, which are registered once, always see the
     // current value instead of the one captured when the stream opened.
     const pausedRef = useRef(paused);
@@ -42,7 +48,10 @@ const ServiceMode = ({ onBack }) => {
             onOpen: () => { setStreamUp(true); setError(null); },
             onState: (s) => setState(s),
             onPayload: (p) => appendPayloads([p]),
-            onBacklog: (list) => appendPayloads(list),
+            onBacklog: (list) => {
+                if (list.length > 0) setBacklogUntilSeq(list[list.length - 1].seq);
+                appendPayloads(list);
+            },
             onError: () => setStreamUp(false),
         });
 
@@ -117,7 +126,8 @@ const ServiceMode = ({ onBack }) => {
                     payloads={payloads}
                     paused={paused}
                     onTogglePause={() => setPaused((p) => !p)}
-                    onClear={() => setPayloads([])}
+                    onClear={() => { setPayloads([]); setBacklogUntilSeq(null); }}
+                    backlogUntilSeq={backlogUntilSeq}
                 />
                 {/* A todo el ancho, como el wizard: los renglones de log llevan hora,
                     ciclo y una frase entera, y partidos a media columna se vuelven

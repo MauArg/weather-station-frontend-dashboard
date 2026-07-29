@@ -1,6 +1,6 @@
 import React from 'react';
 import { CheckCircle2, XCircle, Cpu, Wifi, Moon, Radio, AlertTriangle, HelpCircle, Bug, HardDrive, Info } from 'lucide-react';
-import { formatClock } from '../../services/ServiceApi';
+import { formatClock, formatAge } from '../../services/ServiceApi';
 import { useNow } from '../../hooks/useNow';
 import Tip from './Tip';
 
@@ -205,11 +205,18 @@ const NodeHealthPanel = ({ state }) => {
                             // El ícono cambia además del color, que solo no alcanza.
                             const Icon = a.expected ? Info : AlertTriangle;
                             const color = a.expected ? '#a1a1aa' : a.kind === 'gap' ? '#facc15' : '#f87171';
+                            // La antigüedad es imprescindible acá: la lista guarda las
+                            // últimas 20 sin tope de tiempo y el backend corre 24/7, así
+                            // que al volver después de una noche está llena de eventos
+                            // viejos cuyo HH:MM:SS no dice de qué día son.
+                            const age = formatAge(a.at, now);
                             return (
                                 <li key={`${a.at}-${i}`} style={a.expected ? { opacity: 0.75 } : undefined}>
                                     <Icon size={14} color={color} aria-hidden="true" />
                                     <span>
-                                        <strong>{formatClock(a.at)}</strong> — {a.previous} → {a.current}. {a.note}
+                                        <strong>{formatClock(a.at)}</strong>
+                                        {age && <span className="svc-muted"> ({age})</span>}
+                                        {' '}— {a.previous} → {a.current}. {a.note}
                                     </span>
                                 </li>
                             );

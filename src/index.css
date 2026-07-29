@@ -1263,6 +1263,29 @@ button.svc-tip:focus-visible {
     white-space: nowrap;
 }
 
+/* Frontera entre el backlog que entrega el backend al conectar y lo que llega en
+   vivo. Sin ella, abrir el dashboard después de unas horas muestra un muro de
+   mensajes viejos indistinguibles de los nuevos. */
+.svc-log-divider {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin: 0.5rem 0;
+    color: #71717a;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+}
+
+.svc-log-divider::before,
+.svc-log-divider::after {
+    content: '';
+    flex: 1 1 auto;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.14);
+}
+
 .svc-log-time {
     color: #71717a;
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;

@@ -111,6 +111,32 @@ export const formatClock = (iso) => {
     });
 };
 
+/**
+ * How long ago something happened, or null when it is recent enough that the
+ * clock alone is unambiguous.
+ *
+ * This exists because formatClock() prints HH:MM:SS with no date, and the
+ * backend is the MQTT client: it runs 24/7 and primes every new browser
+ * connection with its ring buffer. So opening the dashboard after a night away
+ * shows an hour-plus of history whose timestamps look exactly like live ones —
+ * which reads as "the session stayed open" rather than "this is a replay".
+ */
+export const formatAge = (iso, now = Date.now()) => {
+    if (!iso) return null;
+    const t = new Date(iso).getTime();
+    if (isNaN(t)) return null;
+
+    const seconds = Math.floor((now - t) / 1000);
+    // Por debajo de dos minutos el reloj ya alcanza, y un sufijo en cada renglón
+    // sería ruido sobre el tráfico que sí es en vivo.
+    if (seconds < 120) return null;
+    if (seconds < 3600) return `hace ${Math.floor(seconds / 60)} min`;
+    if (seconds < 86400) return `hace ${Math.floor(seconds / 3600)} h`;
+
+    const days = Math.floor(seconds / 86400);
+    return days === 1 ? 'hace 1 día' : `hace ${days} días`;
+};
+
 export const formatDuration = (totalSeconds) => {
     if (totalSeconds == null || totalSeconds < 0) return '—';
     const mins = Math.floor(totalSeconds / 60);

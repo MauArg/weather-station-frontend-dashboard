@@ -1,5 +1,5 @@
-import React from 'react';
-import { CheckCircle2, XCircle, Cpu, Wifi, Moon, Radio, AlertTriangle, HelpCircle, Bug, HardDrive, Info } from 'lucide-react';
+import React, { useState } from 'react';
+import { CheckCircle2, XCircle, Cpu, Wifi, Moon, Radio, AlertTriangle, HelpCircle, Bug, HardDrive, Info, Eye, EyeOff } from 'lucide-react';
 import { formatClock, formatAge } from '../../services/ServiceApi';
 import { useNow } from '../../hooks/useNow';
 import Tip from './Tip';
@@ -45,6 +45,16 @@ const NodeHealthPanel = ({ state }) => {
     // as null, and a default parameter only fires on undefined.
     const sensorCatalog = state.sensorCatalog ?? [];
     const bootAnomalies = state.bootAnomalies ?? [];
+
+    // `expected` lo agregó el backend recién; contra uno viejo llega undefined y
+    // todo cuenta como sin explicar. Es la degradación correcta —el frontend no
+    // tiene con qué afirmar lo contrario— y se corrige sola al redesplegar.
+    const expectedCount = bootAnomalies.filter((a) => a.expected).length;
+    const unexplained = bootAnomalies.length - expectedCount;
+    const [onlyUnexplained, setOnlyUnexplained] = useState(false);
+    const visibleAnomalies = bootAnomalies
+        .filter((a) => !onlyUnexplained || !a.expected)
+        .reverse();
 
     const now = useNow(1000);
     const ui = NODE_STATE_UI[node?.state] ?? NODE_STATE_UI.unknown;
@@ -195,9 +205,35 @@ const NodeHealthPanel = ({ state }) => {
             {/* Boot anomalies */}
             {bootAnomalies.length > 0 && (
                 <>
-                    <h4 className="svc-h4">Discontinuidades de boot_count</h4>
+                    {/* El conteo de "sin explicar" es lo que hace la lista legible de un
+                        vistazo. Guarda las últimas 20 sin tope de tiempo, y la mayoría
+                        son gaps rutinarios o reinicios que uno mismo pidió: sin este
+                        número hay que recorrerla entera para saber si pasó algo. */}
+                    <div className="svc-card-head" style={{ marginBottom: '0.4rem' }}>
+                        <h4 className="svc-h4">
+                            Discontinuidades de boot_count · {bootAnomalies.length}
+                            {unexplained > 0
+                                ? <span style={{ color: '#facc15' }}> · {unexplained} sin explicar</span>
+                                : <span className="svc-muted"> · todas explicadas</span>}
+                        </h4>
+                        {expectedCount > 0 && (
+                            <button
+                                className="svc-icon-btn svc-tip"
+                                data-tip="Esconde los reinicios que se explican solos —un reboot que pediste, un reflash— para dejar sólo lo que merece atención."
+                                onClick={() => setOnlyUnexplained((v) => !v)}
+                            >
+                                {onlyUnexplained ? <Eye size={14} /> : <EyeOff size={14} />}
+                                {onlyUnexplained ? `ver las ${expectedCount} esperadas` : 'ocultar esperadas'}
+                            </button>
+                        )}
+                    </div>
                     <ul className="svc-anomalies">
-                        {bootAnomalies.slice().reverse().map((a, i) => {
+                        {visibleAnomalies.length === 0 && (
+                            <li className="svc-muted svc-small">
+                                Ninguna sin explicar. Todas las discontinuidades vienen de un reboot o un reflash.
+                            </li>
+                        )}
+                        {visibleAnomalies.map((a, i) => {
                             // Las esperadas —un reboot que pediste, un reflash— se
                             // listan igual porque explican un corte en la serie, pero
                             // no como advertencia: si la alarma suena por la acción que

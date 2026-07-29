@@ -1,5 +1,8 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+// Import explícito en vez del global de Node: este archivo lo lintea la misma
+// config que el código del browser, donde `process` no existe.
+import process from 'node:process'
 
 // https://vite.dev/config/
 export default defineConfig({

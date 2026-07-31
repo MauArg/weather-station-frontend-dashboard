@@ -2,9 +2,10 @@ import React, { useEffect, useState } from 'react';
 import Dashboard from './components/Dashboard';
 import CalendarView from './components/CalendarView';
 import ServiceMode from './components/ServiceMode';
-import { Calendar as CalendarIcon, Activity, Wrench, AlertTriangle } from 'lucide-react';
+import { Calendar as CalendarIcon, Activity, Wrench, AlertTriangle, Globe } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
 import { getServiceState } from './services/ServiceApi';
+import { TZ_LABEL, TZ_TOOLTIP } from './utils/timezone';
 import './index.css';
 
 /**
@@ -54,6 +55,17 @@ function App() {
                     <h1>Weather Station<span className="highlight">UI</span></h1>
                 </div>
                 <div className="nav-actions">
+                    {/*
+                      Sits in the navbar rather than inside a view because it is
+                      true of all three, and because the ambiguity it resolves —
+                      bare HH:MM:SS with no zone — is worst on the dashboard,
+                      which is exactly where nobody would go looking for a note
+                      about timezones.
+                    */}
+                    <span className="tz-badge" title={TZ_TOOLTIP}>
+                        <Globe size={14} aria-hidden="true" />
+                        {TZ_LABEL}
+                    </span>
                     {view !== 'dashboard' && (
                         <button onClick={() => setView('dashboard')} className="nav-btn">
                             <Activity size={18} /> Live Dashboard

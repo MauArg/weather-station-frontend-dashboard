@@ -374,7 +374,10 @@ const Dashboard = () => {
                                 <YAxis yAxisId="left" width={80} domain={[0, 100]} ticks={[0, 25, 50, 75, 100]} stroke="#facc15" tickFormatter={val => `${val}%`} tickMargin={10} />
                                 <YAxis yAxisId="right" orientation="right" width={60} domain={[0, 40]} stroke="#ff6b6b" tickFormatter={val => `${val}°C`} tickMargin={10} />
                                 <Tooltip
-                                    formatter={(value, name) => [name === 'Luz' ? `${formatValue(value)} %` : `${formatValue(value)} °C`, name]}
+                                    formatter={(value, name, entry) => [
+                                        `${formatValue(value)} ${entry?.dataKey === 'luminosity' ? '%' : '°C'}`,
+                                        name,
+                                    ]}
                                     labelFormatter={(label) => label ? new Date(label).toLocaleTimeString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', hour: '2-digit', minute: '2-digit' }) : ''}
                                     contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: 'none', borderRadius: '8px' }}
                                     itemStyle={{ color: '#fff' }}
@@ -388,7 +391,7 @@ const Dashboard = () => {
                                   measured — which is exactly the artefact the night
                                   gap used to produce in Grafana.
                                 */}
-                                <Area yAxisId="left" type="monotone" dataKey="luminosity" name="Luz" fill="#facc15" stroke="#facc15" fillOpacity={0.2} connectNulls={false} />
+                                <Area yAxisId="left" type="monotone" dataKey="luminosity" name="Daylight" fill="#facc15" stroke="#facc15" fillOpacity={0.2} connectNulls={false} />
                                 <Line yAxisId="right" type="monotone" dataKey="temperature" name="Ambient Temp" stroke="#ff6b6b" strokeWidth={3} dot={false} />
                                 {midnightPoints.map(uniqueTime => (
                                     <ReferenceLine yAxisId="left" key={`mid-${uniqueTime}`} x={uniqueTime} stroke="rgba(255,255,255,0.3)" strokeDasharray="5 5" />

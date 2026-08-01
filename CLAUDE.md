@@ -24,3 +24,5 @@ La versión del dashboard es el campo **`version` de `package.json`, y no hay ot
 `components/VersionBadge.jsx` la muestra en la esquina inferior derecha junto a la del backend, que pide a `GET /api/v1/version`. Si el backend no contesta —o es viejo y no tiene el endpoint— muestra `—` en vez de desaparecer: "el backend no contestó" tiene que leerse distinto de "están en la misma versión", que es justo lo que esa línea existe para decir.
 
 Backend y frontend **se versionan por separado** y se despliegan como imágenes independientes; el firmware lleva la suya y se ve en service mode.
+
+> **Bumpear es el último paso antes de rebuildear, no el primero después.** La imagen se publica con tag mutable, así que nada fuerza que el número suba cuando cambia el bundle. Ya se pasó por alto una vez. Si la tanda tocó este repo, la versión sube.

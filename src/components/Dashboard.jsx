@@ -349,24 +349,46 @@ const Dashboard = () => {
                     </div>
                 </div>
 
-                {/* Correlation Chart: Irradiance (Solar) vs Temperature (Shows thermal lag) */}
+                {/*
+                  Correlation chart: daylight vs temperature, which is what makes
+                  the thermal lag visible — the ground keeps warming for an hour
+                  or two after the light has peaked.
+
+                  The light axis reads the photoresistor, not the panel. The panel
+                  measures the current the charger is drawing, so once the battery
+                  fills it collapses to near zero in full sun: measured on a clear
+                  31/07, solar_mW fell from 2393 to 79 mW between 14:20 and 15:20
+                  while the light barely moved. It also lags about three hours at
+                  dawn, because the panel needs real irradiance before it produces
+                  anything while the LDR sees first light straight away. Pairing
+                  either artefact with temperature would invent a thermal lag that
+                  is really just the charge controller.
+                */}
                 <div className="chart-card wide">
-                    <h3>Weather: Solar vs Thermal Lag</h3>
+                    <h3>Weather: Daylight vs Thermal Lag</h3>
                     <div className="chart-wrapper" style={{ cursor: 'crosshair' }}>
                         <ResponsiveContainer width="100%" height="100%">
                             <ComposedChart data={history} margin={{ top: 20, right: 30, left: 30, bottom: 20 }}>
                                 <CartesianGrid yAxisId="left" strokeDasharray="3 3" vertical={false} stroke="#ffffff20" />
                                 <XAxis dataKey="uniqueTime" stroke="#ffffff80" tickFormatter={(val) => val ? new Date(val).toLocaleTimeString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', hour: '2-digit', minute: '2-digit' }) : ''} tick={{ fontSize: 12 }} minTickGap={30} tickMargin={10} />
-                                <YAxis yAxisId="left" width={80} domain={[0, 6000]} stroke="#facc15" tickFormatter={val => `${val}mW`} tickMargin={10} />
+                                <YAxis yAxisId="left" width={80} domain={[0, 100]} ticks={[0, 25, 50, 75, 100]} stroke="#facc15" tickFormatter={val => `${val}%`} tickMargin={10} />
                                 <YAxis yAxisId="right" orientation="right" width={60} domain={[0, 40]} stroke="#ff6b6b" tickFormatter={val => `${val}°C`} tickMargin={10} />
                                 <Tooltip
-                                    formatter={(value) => formatValue(value)}
+                                    formatter={(value, name) => [name === 'Luz' ? `${formatValue(value)} %` : `${formatValue(value)} °C`, name]}
                                     labelFormatter={(label) => label ? new Date(label).toLocaleTimeString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', hour: '2-digit', minute: '2-digit' }) : ''}
                                     contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: 'none', borderRadius: '8px' }}
                                     itemStyle={{ color: '#fff' }}
                                     cursor={{ stroke: 'rgba(255,255,255,0.5)', strokeWidth: 1, strokeDasharray: '4 4' }}
                                 />
-                                <Area yAxisId="left" type="monotone" dataKey="solarPower" name="Solar Heat Input" fill="#facc15" stroke="#facc15" fillOpacity={0.2} />
+                                {/*
+                                  connectNulls stays off: a missing reading has to
+                                  show as a gap. The backend omits luminosity when
+                                  the sensor did not report, and bridging that would
+                                  draw a straight line through hours that were never
+                                  measured — which is exactly the artefact the night
+                                  gap used to produce in Grafana.
+                                */}
+                                <Area yAxisId="left" type="monotone" dataKey="luminosity" name="Luz" fill="#facc15" stroke="#facc15" fillOpacity={0.2} connectNulls={false} />
                                 <Line yAxisId="right" type="monotone" dataKey="temperature" name="Ambient Temp" stroke="#ff6b6b" strokeWidth={3} dot={false} />
                                 {midnightPoints.map(uniqueTime => (
                                     <ReferenceLine yAxisId="left" key={`mid-${uniqueTime}`} x={uniqueTime} stroke="rgba(255,255,255,0.3)" strokeDasharray="5 5" />

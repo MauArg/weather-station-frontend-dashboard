@@ -155,6 +155,62 @@ body {
     color: #71717a;
 }
 
+/*
+ * Variant switch on a stat card. Only the pressure card uses it, and rarely, so
+ * it stays out of the way until looked for: the chevron sits at the icon's
+ * opacity until hover, and the caption reads as a label rather than a button.
+ * Both are clickable — the caption is the larger target and the one that says
+ * what the switch does, which makes it the one most people will hit.
+ */
+.stat-header-right {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.stat-variant-btn {
+    display: flex;
+    align-items: center;
+    padding: 2px;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: #71717a;
+    cursor: pointer;
+    transition: color 0.2s, background 0.2s;
+}
+
+.stat-variant-btn:hover {
+    color: #e4e4e7;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.stat-caption {
+    display: block;
+    margin-top: 0.15rem;
+    padding: 0;
+    border: none;
+    background: transparent;
+    font: inherit;
+    font-size: 0.75rem;
+    color: #71717a;
+    text-align: left;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.stat-caption:hover {
+    color: #a1a1aa;
+}
+
+/* Keyboard users get the affordance the mouse gets on hover. */
+.stat-variant-btn:focus-visible,
+.stat-caption:focus-visible {
+    outline: 2px solid #4dabf7;
+    outline-offset: 2px;
+    color: #e4e4e7;
+}
+
 /* Charts Grid */
 .charts-grid {
     display: grid;

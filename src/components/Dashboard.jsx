@@ -20,6 +20,27 @@ const Dashboard = () => {
 
     const [activeEnergy, setActiveEnergy] = useState(null);
 
+    // Sea-level by default: ~1014 hPa is what a barometric reading means to anyone
+    // reading it, while the station's ~923 hPa only parses if you already know the
+    // sensor sits several hundred metres up. Persisted because it is a preference
+    // rather than a mode — switching to the raw figure is a rare, deliberate act,
+    // and having it silently revert on the next reload would be its own small bug.
+    const [pressureMode, setPressureMode] = useState(() => {
+        try {
+            return localStorage.getItem('pressureMode') === 'station' ? 'station' : 'qnh';
+        } catch {
+            return 'qnh'; // storage can throw when cookies are blocked
+        }
+    });
+
+    useEffect(() => {
+        try {
+            localStorage.setItem('pressureMode', pressureMode);
+        } catch {
+            // Not worth surfacing: the choice just does not survive a reload.
+        }
+    }, [pressureMode]);
+
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
@@ -89,6 +110,22 @@ const Dashboard = () => {
 
     const isCharging = currentData.energyBalance > 0;
 
+    // Only offer the switch when the node actually reported QNH. The field is left
+    // out of the payload when the BMP085 read fails, and a card that can be
+    // flipped into a blank reading is worse than one that cannot be flipped.
+    //
+    // Grouping is off for these two on purpose. Sea-level pressure crosses 1000
+    // hPa, and es-AR would render that as "1.012,53" — a thousands separator on a
+    // four-digit reading that meteorology always writes plain, and one that a
+    // quick glance can mistake for a decimal point.
+    const formatPressure = (val) =>
+        typeof val === 'number' ? val.toLocaleString('es-AR', { maximumFractionDigits: 2, useGrouping: false }) : val;
+
+    const pressureVariants = currentData.pressureQnh == null ? null : [
+        { key: 'qnh', value: formatPressure(currentData.pressureQnh), unit: 'hPa', caption: 'QNH · nivel del mar' },
+        { key: 'station', value: formatPressure(currentData.pressure), unit: 'hPa', caption: 'estación · sin reducir' },
+    ];
+
     const midnightPoints = [];
     if (history.length > 0) {
         for (let i = 1; i < history.length; i++) {
@@ -125,6 +162,9 @@ const Dashboard = () => {
                     unit="hPa"
                     icon={Gauge}
                     color="#ffd43b"
+                    variants={pressureVariants}
+                    activeVariant={pressureMode}
+                    onCycleVariant={setPressureMode}
                 />
                 <StatCard
                     title="Dew Point"

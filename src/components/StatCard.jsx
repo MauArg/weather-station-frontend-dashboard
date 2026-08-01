@@ -1,18 +1,69 @@
 import React from 'react';
+import { ChevronDown } from 'lucide-react';
 
-const StatCard = ({ title, value, unit, icon: Icon, color = "blue" }) => {
-    // Using inline styles for dynamic colors to avoid Tailwind dependency if not fully set up,
-    // but classNames for structure assuming standard CSS or Tailwind if available.
-    // The user asked for "Nice UI" so I'll assume I will add global CSS for these classes later.
+/**
+ * A single headline reading.
+ *
+ * `variants` turns the card into a switchable one: pass a list of
+ * `{ key, value, unit, caption }` and the card renders one of them plus an
+ * affordance to cycle to the next. Left out, the card behaves exactly as before
+ * — the other three on the dashboard never pass it.
+ *
+ * The switch is deliberately quiet. Only pressure needs it, and only rarely:
+ * the sea-level figure is the one anybody reads, and the station reading is for
+ * the odd occasion someone wants to see what the sensor actually measured. So
+ * it earns a caption and a small chevron, not a segmented control that would
+ * imply the two are equally likely choices.
+ *
+ * The caption carries the meaning, not the position of a switch: 923 hPa and
+ * 1014 hPa are both plausible-looking pressures, so a reader who glances at the
+ * number without noticing which mode is active would have no way to tell them
+ * apart. That is the same rule the service view follows for colour — the state
+ * always says what it is in words.
+ */
+const StatCard = ({ title, value, unit, icon: Icon, color = 'blue', variants, activeVariant, onCycleVariant }) => {
+    const switchable = Array.isArray(variants) && variants.length > 1;
+    const current = switchable
+        ? variants.find((v) => v.key === activeVariant) ?? variants[0]
+        : null;
+
+    const shown = current ?? { value, unit, caption: null };
+    const next = switchable
+        ? variants[(variants.findIndex((v) => v.key === shown.key) + 1) % variants.length]
+        : null;
+
     return (
         <div className="stat-card">
             <div className="stat-header">
                 <span className="stat-title">{title}</span>
-                {Icon && <Icon size={20} color={color} />}
+                <div className="stat-header-right">
+                    {switchable && (
+                        <button
+                            type="button"
+                            className="stat-variant-btn"
+                            onClick={() => onCycleVariant?.(next.key)}
+                            title={`Ver ${next.caption}`}
+                            aria-label={`Cambiar a ${next.caption}. Mostrando ${shown.caption}.`}
+                        >
+                            <ChevronDown size={14} aria-hidden="true" />
+                        </button>
+                    )}
+                    {Icon && <Icon size={20} color={color} />}
+                </div>
             </div>
             <div className="stat-value">
-                {value} <span className="stat-unit">{unit}</span>
+                {shown.value} <span className="stat-unit">{shown.unit}</span>
             </div>
+            {shown.caption && (
+                <button
+                    type="button"
+                    className="stat-caption"
+                    onClick={() => onCycleVariant?.(next.key)}
+                    title={`Ver ${next.caption}`}
+                >
+                    {shown.caption}
+                </button>
+            )}
         </div>
     );
 };

@@ -73,3 +73,24 @@ export const getYearlyTableData = async (yearDate) => {
     const response = await fetch(`${API_BASE_URL}/weather/history/year?year=${yearStr}`);
     return handleResponse(response);
 };
+
+/**
+ * Which build of the backend is answering.
+ *
+ * Returns null instead of throwing when it cannot be read. The version legend is
+ * a diagnostic, not a feature: an old backend that lacks this endpoint answers
+ * 404, and that must degrade to showing the dashboard's own version rather than
+ * putting an error on screen. Silence here is a real answer — it says the two
+ * halves of the deploy are out of step, which is precisely what the legend is
+ * there to reveal.
+ */
+export const getBackendVersion = async () => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/version`);
+        if (!response.ok) return null;
+        const data = await response.json();
+        return data.version ?? null;
+    } catch {
+        return null;
+    }
+};

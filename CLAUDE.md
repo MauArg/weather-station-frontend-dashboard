@@ -14,3 +14,13 @@ Dashboard en React + Vite que consume la API de `backend-service`. Ver `backend_
 - **El color nunca comunica solo**: cada estado lleva ícono y texto. El verde y el ámbar de este dashboard se separan apenas ΔE 6.8 bajo protanopia, así que el matiz por sí solo no es legible.
 
 `nginx.conf` desactiva `proxy_buffering` en `/api` — sin eso el SSE queda retenido en el buffer y el visor de payloads parece congelado.
+
+## Versionado
+
+La versión del dashboard es el campo **`version` de `package.json`, y no hay otra copia**. Bumpearla es editar ese campo o correr `npm version patch|minor|major`.
+
+`vite.config.js` la lee en build y la inyecta como la constante global `__APP_VERSION__` (declarada en `eslint.config.js` para que no sea un `no-undef`). El browser no puede leer el `package.json` en runtime, y tener el número escrito también en un `.js` sería una segunda fuente de verdad que se desincroniza en el primer release apurado.
+
+`components/VersionBadge.jsx` la muestra en la esquina inferior derecha junto a la del backend, que pide a `GET /api/v1/version`. Si el backend no contesta —o es viejo y no tiene el endpoint— muestra `—` en vez de desaparecer: "el backend no contestó" tiene que leerse distinto de "están en la misma versión", que es justo lo que esa línea existe para decir.
+
+Backend y frontend **se versionan por separado** y se despliegan como imágenes independientes; el firmware lleva la suya y se ve en service mode.

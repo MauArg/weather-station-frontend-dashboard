@@ -109,6 +109,35 @@ body {
     cursor: help;
 }
 
+/*
+ * Version legend. Fixed to the bottom-right corner, at the edge of legible on
+ * purpose — it is checked about twice a release and should never compete with
+ * the data. It brightens on hover so that when you do go looking for it, it is
+ * there.
+ *
+ * pointer-events only on the text itself, so the corner of the viewport stays
+ * clickable: a fixed element with a hit box is a nuisance on a page people
+ * scroll, and this one has nothing to click.
+ */
+.version-badge {
+    position: fixed;
+    right: 0.6rem;
+    bottom: 0.4rem;
+    z-index: 10;
+    font-size: 0.68rem;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+    color: rgba(255, 255, 255, 0.22);
+    pointer-events: auto;
+    width: fit-content;
+    cursor: default;
+    transition: color 0.25s;
+}
+
+.version-badge:hover {
+    color: rgba(255, 255, 255, 0.65);
+}
+
 /* Dashboard Grid */
 .stats-grid {
     display: grid;

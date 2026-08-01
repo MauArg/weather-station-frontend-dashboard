@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import Dashboard from './components/Dashboard';
 import CalendarView from './components/CalendarView';
 import ServiceMode from './components/ServiceMode';
+import VersionBadge from './components/VersionBadge';
 import { Calendar as CalendarIcon, Activity, Wrench, AlertTriangle, Globe } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
 import { getServiceState } from './services/ServiceApi';
@@ -102,6 +103,8 @@ function App() {
                 {view === 'calendar' && <CalendarView onBack={() => setView('dashboard')} />}
                 {view === 'service' && <ServiceMode onBack={() => setView('dashboard')} />}
             </main>
+
+            <VersionBadge />
         </div>
     );
 }

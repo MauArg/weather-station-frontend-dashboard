@@ -1,30 +1,30 @@
 /**
- * Copia texto al portapapeles, también fuera de un contexto seguro.
+ * Copies text to the clipboard, including outside a secure context.
  *
- * `navigator.clipboard` sólo existe en secure contexts: HTTPS, o localhost. El
- * dashboard se sirve por nginx en HTTP plano sobre la LAN (`http://192.168.18.250`),
- * así que en campo la API entera es `undefined` y `navigator.clipboard.writeText(…)`
- * tira un TypeError antes de intentar copiar nada. Por eso los botones de copiar
- * fallaban en la Pi y funcionaban en desarrollo: `npm run dev` sirve desde
- * localhost, que sí califica como contexto seguro.
+ * `navigator.clipboard` only exists in secure contexts: HTTPS, or localhost. The
+ * dashboard is served by nginx over plain HTTP on the LAN (`http://192.168.18.250`),
+ * so in the field the whole API is `undefined` and `navigator.clipboard.writeText(…)`
+ * throws a TypeError before it even attempts to copy anything. That's why the copy
+ * buttons failed on the Pi but worked in development: `npm run dev` serves from
+ * localhost, which does qualify as a secure context.
  *
- * El fallback es `document.execCommand('copy')`. Está deprecado, pero es lo único
- * que funciona sin TLS y sigue implementado en todos los browsers actuales. La
- * alternativa de fondo sería poner el dashboard detrás de HTTPS, que para una LAN
- * doméstica significa un certificado y un dominio para resolver un botón.
+ * The fallback is `document.execCommand('copy')`. It's deprecated, but it's the
+ * only thing that works without TLS and it's still implemented in every current
+ * browser. The real fix would be putting the dashboard behind HTTPS, which for a
+ * home LAN means a certificate and a domain just to fix a button.
  *
- * Devuelve true si se copió.
+ * Returns true if the copy succeeded.
  */
 
 const legacyCopy = (value) => {
     const el = document.createElement('textarea');
     el.value = value;
-    // readOnly y no disabled: un textarea deshabilitado no se puede seleccionar,
-    // y sin selección execCommand('copy') no copia nada.
+    // readOnly, not disabled: a disabled textarea can't be selected, and without
+    // a selection execCommand('copy') copies nothing.
     el.readOnly = true;
-    // Fuera de la vista pero participando del layout — `display:none` o
-    // `visibility:hidden` lo dejarían sin selección posible. `fixed` evita además
-    // que el scroll de la página salte al insertarlo.
+    // Off-screen but still part of the layout — `display:none` or
+    // `visibility:hidden` would leave it unselectable. `fixed` also keeps the
+    // page from jumping on scroll when it's inserted.
     el.style.position = 'fixed';
     el.style.top = '-1000px';
     el.style.opacity = '0';
@@ -36,7 +36,7 @@ const legacyCopy = (value) => {
         el.setSelectionRange(0, value.length);
         return document.execCommand('copy');
     } catch (err) {
-        console.warn('Fallback de copiado falló:', err);
+        console.warn('Copy fallback failed:', err);
         return false;
     } finally {
         el.remove();
@@ -47,16 +47,17 @@ export const copyText = async (text) => {
     const value = String(text ?? '');
     if (!value) return false;
 
-    // El guard por isSecureContext no es redundante con el feature detection: en
-    // campo corta acá sin await de por medio, y eso importa porque execCommand
-    // exige estar dentro del gesto del usuario que originó el click.
+    // The isSecureContext guard isn't redundant with feature detection: in the
+    // field it short-circuits here with no await in between, and that matters
+    // because execCommand needs to run inside the user gesture that started the
+    // click.
     if (window.isSecureContext && navigator.clipboard?.writeText) {
         try {
             await navigator.clipboard.writeText(value);
             return true;
         } catch (err) {
-            // Puede fallar igual con el permiso denegado o el documento sin foco.
-            console.warn('Clipboard API falló, probando el fallback:', err);
+            // Can still fail on a denied permission or an unfocused document.
+            console.warn('Clipboard API failed, trying fallback:', err);
         }
     }
 

@@ -24,7 +24,7 @@ export const TZ_LABEL = 'ART (UTC−3)';
 
 /** Long form, for tooltips that have room to explain the consequence. */
 export const TZ_TOOLTIP =
-    'Todas las fechas y horas se muestran en hora de Argentina (ART, UTC−3). ' +
-    'El backend las entrega en UTC y el dashboard las convierte, incluidos los ' +
-    'cortes de día: los extremos diarios y cada celda del calendario van de ' +
-    'medianoche a medianoche local, no UTC.';
+    'All dates and times are shown in Argentina time (ART, UTC−3). ' +
+    'The backend delivers them in UTC and the dashboard converts them, including ' +
+    'day cutoffs: daily extremes and every calendar cell run from local midnight ' +
+    'to midnight, not UTC.';

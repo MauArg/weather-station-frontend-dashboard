@@ -127,27 +127,28 @@ export const formatAge = (iso, now = Date.now()) => {
     if (isNaN(t)) return null;
 
     const seconds = Math.floor((now - t) / 1000);
-    // Por debajo de dos minutos el reloj ya alcanza, y un sufijo en cada renglón
-    // sería ruido sobre el tráfico que sí es en vivo.
+    // Below two minutes the clock is already enough, and a suffix on every row
+    // would be noise on top of traffic that actually is live.
     if (seconds < 120) return null;
-    if (seconds < 3600) return `hace ${Math.floor(seconds / 60)} min`;
-    if (seconds < 86400) return `hace ${Math.floor(seconds / 3600)} h`;
+    if (seconds < 3600) return `${Math.floor(seconds / 60)} min ago`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)} h ago`;
 
     const days = Math.floor(seconds / 86400);
-    return days === 1 ? 'hace 1 día' : `hace ${days} días`;
+    return days === 1 ? '1 day ago' : `${days} days ago`;
 };
 
 /**
- * Cuánto lleva corriendo algo, en horas y minutos.
+ * How long something has been running, in hours and minutes.
  *
- * Distinto de formatDuration(), que es un MM:SS para una cuenta regresiva corta:
- * acá el rango útil son horas —una captura de logs se piensa en ventanas de 2 h,
- * 8 h— y los segundos serían ruido que además obliga a refrescar cada segundo.
+ * Different from formatDuration(), which is a MM:SS for a short countdown:
+ * here the useful range is hours — a log capture is thought of in windows of
+ * 2 h, 8 h — and seconds would be noise that would also force a refresh every
+ * second.
  */
 export const formatElapsed = (totalSeconds) => {
     if (totalSeconds == null || totalSeconds < 0) return '—';
     const minutes = Math.floor(totalSeconds / 60);
-    if (minutes < 1) return 'menos de 1 min';
+    if (minutes < 1) return 'less than 1 min';
     if (minutes < 60) return `${minutes} min`;
 
     const hours = Math.floor(minutes / 60);

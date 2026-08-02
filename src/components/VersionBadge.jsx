@@ -33,7 +33,7 @@ const VersionBadge = () => {
     return (
         <div
             className="version-badge"
-            title={`Dashboard ${__APP_VERSION__} · backend ${backendLabel}.\nSe versionan por separado: cada uno tiene su propia imagen y se despliegan de forma independiente. La versión del nodo se ve en service mode.`}
+            title={`Dashboard ${__APP_VERSION__} · backend ${backendLabel}.\nVersioned separately: each one has its own image and deploys independently. The node's version is shown in service mode.`}
         >
             ui {__APP_VERSION__} · api {backendLabel}
         </div>

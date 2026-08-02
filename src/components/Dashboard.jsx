@@ -114,8 +114,8 @@ const Dashboard = () => {
     const driftPhrase = (vh) => {
         if (vh == null) return null;
         const mvh = vh * 1000;
-        if (Math.abs(mvh) < 5) return 'estable en las últimas 2 h';
-        return `${mvh > 0 ? '▲' : '▼'} ${Math.abs(mvh).toFixed(0)} mV/h en las últimas 2 h`;
+        if (Math.abs(mvh) < 5) return 'steady over the last 2 h';
+        return `${mvh > 0 ? '▲' : '▼'} ${Math.abs(mvh).toFixed(0)} mV/h over the last 2 h`;
     };
 
     // The scenario, not a number. `unknown` is a real answer here: the trend comes
@@ -124,34 +124,36 @@ const Dashboard = () => {
     // guess in the meantime would defeat the point of the change.
     const ENERGY_UI = {
         charging: {
-            label: 'Cargando', color: '#4ade80', Icon: BatteryCharging, pulse: 'pulse-animation-positive',
-            // "Cubriendo" y no "entregando más de lo que consume": este estado
-            // incluye la tensión plana, donde entra ≈ sale. Afirmar el superávit
-            // sería volver a la comparación que este medidor dejó de hacer, y
-            // además chocaría con la frase de deriva cuando dice "estable".
-            detail: 'El panel está cubriendo el consumo del sistema.',
+            label: 'Charging', color: '#4ade80', Icon: BatteryCharging, pulse: 'pulse-animation-positive',
+            // "Covering" rather than "delivering more than it consumes": this
+            // state includes the flat-voltage case, where input ≈ output.
+            // Claiming a surplus would bring back the comparison this gauge
+            // stopped making, and it would also clash with the drift phrase
+            // when it says "steady".
+            detail: "The panel is covering the system's consumption.",
         },
         full: {
-            label: 'Batería llena', color: '#4ade80', Icon: CheckCircle2, pulse: '',
-            detail: 'Nivel de carga completa. No se está cargando.',
+            label: 'Battery full', color: '#4ade80', Icon: CheckCircle2, pulse: '',
+            detail: 'Fully charged. Not currently charging.',
         },
         discharging: {
-            label: 'Descargando', color: '#a1a1aa', Icon: Moon, pulse: '',
-            detail: 'Generación no disponible por falta de sol. El sistema se alimenta desde la batería.',
+            label: 'Discharging', color: '#a1a1aa', Icon: Moon, pulse: '',
+            detail: 'No generation available — not enough sunlight. The system is running on the battery.',
         },
         deficit: {
-            label: 'Déficit', color: '#f87171', Icon: AlertTriangle, pulse: 'pulse-animation-negative',
-            detail: 'La generación solar no cubre el consumo energético actual del sistema.',
+            label: 'Deficit', color: '#f87171', Icon: AlertTriangle, pulse: 'pulse-animation-negative',
+            detail: "Solar generation isn't covering the system's current energy consumption.",
         },
         unknown: {
-            label: 'Midiendo…', color: '#71717a', Icon: HelpCircle, pulse: '',
-            detail: 'Se requiere aproximadamente una hora de datos para determinar la tendencia.',
+            label: 'Measuring…', color: '#71717a', Icon: HelpCircle, pulse: '',
+            detail: 'About an hour of data is needed to determine the trend.',
         },
     };
 
-    // Separado con "·" y no como otra oración: la frase de deriva no es una
-    // oración —empieza con un símbolo o en minúscula— y pegarla después del
-    // punto quedaba como "…no acepta más carga. estable en las últimas 2 h".
+    // Joined with "·" rather than as another sentence: the drift phrase isn't
+    // a sentence —it starts with a symbol or in lowercase— and appending it
+    // after the period read as "…not accepting more charge. steady over the
+    // last 2 h".
     const base = ENERGY_UI[currentData.energyState] ?? ENERGY_UI.unknown;
     const drift = driftPhrase(currentData.batteryDriftVH);
     const energyUi = {
@@ -171,8 +173,8 @@ const Dashboard = () => {
         typeof val === 'number' ? val.toLocaleString('es-AR', { maximumFractionDigits: 2, useGrouping: false }) : val;
 
     const pressureVariants = currentData.pressureQnh == null ? null : [
-        { key: 'qnh', value: formatPressure(currentData.pressureQnh), unit: 'hPa', caption: 'QNH · nivel del mar' },
-        { key: 'station', value: formatPressure(currentData.pressure), unit: 'hPa', caption: 'estación · valor medido por sensor' },
+        { key: 'qnh', value: formatPressure(currentData.pressureQnh), unit: 'hPa', caption: 'QNH · sea level' },
+        { key: 'station', value: formatPressure(currentData.pressure), unit: 'hPa', caption: 'station · raw sensor reading' },
     ];
 
     const midnightPoints = [];
@@ -239,7 +241,7 @@ const Dashboard = () => {
               actually are. What is gone is the subtraction of one from the other.
             */}
             <div className={`energy-centerpiece ${energyUi.pulse}`}>
-                <div className="energy-subtitle">Estado energético</div>
+                <div className="energy-subtitle">Energy status</div>
                 <div className="energy-state-value" style={{ color: energyUi.color }}>
                     <energyUi.Icon size={56} aria-hidden="true" />
                     {energyUi.label}
@@ -247,7 +249,7 @@ const Dashboard = () => {
                 <div className="energy-state-detail">{energyUi.detail}</div>
                 <div className="energy-facts">
                     <div className="energy-fact" style={{ color: '#6ee7b7' }}>
-                        <Battery size={20} aria-hidden="true" /> Batería {formatValue(currentData.batterySoc)}%
+                        <Battery size={20} aria-hidden="true" /> Battery {formatValue(currentData.batterySoc)}%
                         {currentData.batteryVolts != null && ` · ${formatValue(currentData.batteryVolts)} V`}
                     </div>
                     <div className="energy-fact" style={{ color: '#fde047' }}>
@@ -256,9 +258,9 @@ const Dashboard = () => {
                     <div
                         className="energy-fact"
                         style={{ color: '#a1a1aa', cursor: 'help' }}
-                        title="Medido mientras el nodo está despierto, que es ~3,6% de cada ciclo. No es el consumo promedio: prorrateado son unos 8 mW."
+                        title="Measured while the node is awake, which is ~3.6% of each cycle. It isn't the average consumption: duty-cycle corrected it's about 8 mW."
                     >
-                        <Zap size={20} aria-hidden="true" /> Consumo activo {formatValue(currentData.systemConsumption)} mW
+                        <Zap size={20} aria-hidden="true" /> Active consumption {formatValue(currentData.systemConsumption)} mW
                     </div>
                 </div>
             </div>

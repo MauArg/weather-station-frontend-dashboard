@@ -42,8 +42,8 @@ const StatCard = ({ title, value, unit, icon: Icon, color = 'blue', variants, ac
                             type="button"
                             className="stat-variant-btn"
                             onClick={() => onCycleVariant?.(next.key)}
-                            title={`Ver ${next.caption}`}
-                            aria-label={`Cambiar a ${next.caption}. Mostrando ${shown.caption}.`}
+                            title={`View ${next.caption}`}
+                            aria-label={`Switch to ${next.caption}. Currently showing ${shown.caption}.`}
                         >
                             <ChevronDown size={14} aria-hidden="true" />
                         </button>
@@ -59,7 +59,7 @@ const StatCard = ({ title, value, unit, icon: Icon, color = 'blue', variants, ac
                     type="button"
                     className="stat-caption"
                     onClick={() => onCycleVariant?.(next.key)}
-                    title={`Ver ${next.caption}`}
+                    title={`View ${next.caption}`}
                 >
                     {shown.caption}
                 </button>

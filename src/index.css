@@ -66,8 +66,8 @@ body {
     font-weight: 300;
 }
 
-/* Sin esto los botones quedan pegados: JSX no emite espacio entre elementos
-   hermanos que están en líneas distintas. */
+/* Without this the buttons end up stuck together: JSX doesn't emit whitespace
+   between sibling elements on separate lines. */
 .nav-actions {
     display: flex;
     align-items: center;
@@ -631,11 +631,11 @@ body {
    the two columns stay flush instead of leaving a ragged gap under the shorter
    one. The slack is absorbed by the flexible element inside each card — the
    battery sparkline and the payload log — not left as dead space. */
-/* minmax(0, 1fr) y no 1fr: el default de 1fr es minmax(auto, 1fr), y ese `auto`
-   se resuelve al ancho intrínseco del contenido. El visor de payloads usa
-   white-space: nowrap, así que una línea de ~490 caracteres estiraba la columna y
-   desbordaba la página entera con scroll horizontal. Con minmax(0, ...) la columna
-   puede achicarse y el scroll queda donde corresponde: dentro del payload. */
+/* minmax(0, 1fr), not 1fr: the default for 1fr is minmax(auto, 1fr), and that
+   `auto` resolves to the content's intrinsic width. The payload viewer uses
+   white-space: nowrap, so a ~490-character line stretched the column and
+   overflowed the whole page with horizontal scroll. With minmax(0, ...) the
+   column can shrink and the scroll stays where it belongs: inside the payload. */
 .svc-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -658,8 +658,8 @@ body {
     display: flex;
     flex-direction: column;
     gap: 0.6rem;
-    /* Permite que el contenido que no envuelve scrollee adentro en vez de
-       ensanchar la card. Ver la nota de minmax(0, 1fr) en .svc-grid. */
+    /* Lets content that doesn't wrap scroll inside instead of widening the
+       card. See the minmax(0, 1fr) note on .svc-grid. */
     min-width: 0;
 }
 
@@ -706,7 +706,7 @@ body {
     font-size: 0.85em;
 }
 
-/* Tooltip — se muestra en hover y en foco de teclado */
+/* Tooltip — shown on hover and on keyboard focus */
 .svc-tip {
     position: relative;
     cursor: help;
@@ -752,11 +752,11 @@ body {
     text-underline-offset: 3px;
 }
 
-/* El tooltip también sirve sobre un botón. Ahí no corresponde el cursor de ayuda
-   —el botón ya se ve accionable— ni el subrayado punteado del foco, que compite
-   con el estilo de foco propio del botón. Y como un botón es focusable de por sí,
-   no necesita el tabIndex que agrega el componente Tip: alcanza con la clase y
-   el data-tip directamente sobre el <button>. */
+/* The tooltip also works on a button. There the help cursor doesn't belong
+   —the button already looks actionable— nor does the dotted focus underline,
+   which competes with the button's own focus style. And since a button is
+   already focusable, it doesn't need the tabIndex the Tip component adds:
+   the class and data-tip directly on the <button> are enough. */
 button.svc-tip {
     cursor: pointer;
 }
@@ -765,7 +765,7 @@ button.svc-tip:focus-visible {
     text-decoration: none;
 }
 
-/* Cerca del borde izquierdo el tooltip centrado se saldría de la card */
+/* Near the left edge the centered tooltip would spill outside the card */
 .svc-tip-left::after {
     left: 0;
     transform: none;
@@ -915,7 +915,7 @@ button.svc-tip:focus-visible {
     width: 100%;
 }
 
-/* Último visto / próxima aparición — fila completa, dos columnas que colapsan */
+/* Last seen / next expected — full-width row, two columns that collapse */
 .svc-lastseen {
     display: flex;
     flex-wrap: wrap;
@@ -937,7 +937,7 @@ button.svc-tip:focus-visible {
     margin-left: auto;
 }
 
-/* Contador vivo: tabular-nums evita que el ancho salte con cada dígito */
+/* Live countdown: tabular-nums keeps the width from jumping with each digit */
 .svc-countdown {
     font-variant-numeric: tabular-nums;
     font-weight: 600;
@@ -1022,16 +1022,16 @@ button.svc-tip:focus-visible {
     grid-column: 1 / -1;
 }
 
-/* Tarjeta a todo el ancho de la grilla de dos columnas. La usa el panel de logs:
-   cada renglón lleva hora, número de ciclo y una frase entera, y a media columna
-   el texto se parte y deja de leerse de un vistazo. */
+/* Full-width card across the two-column grid. Used by the log panel: each row
+   carries a time, a cycle number and a whole sentence, and at half-column width
+   the text wraps and stops being readable at a glance. */
 .svc-span-2 {
     grid-column: 1 / -1;
 }
 
-/* Encabezado de una card plegable. Es un <button> a todo el ancho para que el
-   área clickeable sea toda la fila y no sólo el texto, y para que funcione con
-   teclado sin agregar handlers. */
+/* Header of a collapsible card. It's a full-width <button> so the clickable
+   area is the whole row and not just the text, and so it works with the
+   keyboard without adding handlers. */
 .svc-collapse-head {
     display: flex;
     align-items: center;
@@ -1050,7 +1050,7 @@ button.svc-tip:focus-visible {
     margin: 0;
 }
 
-/* Empuja lo que venga después al extremo derecho de la fila del encabezado. */
+/* Pushes whatever comes after it to the far right of the header row. */
 .svc-collapse-spacer {
     margin-left: auto;
 }
@@ -1142,11 +1142,11 @@ button.svc-tip:focus-visible {
     border: 1px solid;
 }
 
-/* El ícono se alinea al tope de la caja, pero el texto de al lado arranca más
-   abajo por su line-height, así que a simple vista queda desfasado hacia arriba.
-   Estos 3px lo centran ópticamente contra el primer renglón —(24px de línea −
-   18px de ícono) / 2— en vez de contra el borde de la caja. flex-shrink evita
-   que el SVG se achique cuando el texto es largo. */
+/* The icon aligns to the top of the box, but the text beside it starts lower
+   because of its line-height, so at a glance the icon looks offset upward.
+   These 3px center it optically against the first line —(24px line height −
+   18px icon) / 2— rather than against the edge of the box. flex-shrink keeps
+   the SVG from shrinking when the text is long. */
 .svc-alert > svg {
     flex-shrink: 0;
     margin-top: 3px;
@@ -1242,9 +1242,9 @@ button.svc-tip:focus-visible {
     background: #4dabf7;
 }
 
-/* Acción destructiva. No queda sólo en el color: el botón vive dentro de un
-   diálogo cuyo título e ícono ya dicen qué se pierde, y su etiqueta nombra la
-   consecuencia ("Detener y borrar"), no la acción. */
+/* Destructive action. It doesn't rely on color alone: the button lives inside
+   a dialog whose title and icon already say what's being lost, and its label
+   names the consequence ("Stop and delete"), not the action. */
 .svc-btn-danger {
     background: rgba(248, 113, 113, 0.9);
     border-color: #f87171;
@@ -1255,7 +1255,7 @@ button.svc-tip:focus-visible {
     background: #f87171;
 }
 
-/* ─── Diálogo de confirmación ──────────────────────────────────────────────── */
+/* ─── Confirmation dialog ──────────────────────────────────────────────── */
 .svc-dialog {
     max-width: 30rem;
     padding: 1.1rem 1.2rem;
@@ -1285,8 +1285,8 @@ button.svc-tip:focus-visible {
     line-height: 1.5;
 }
 
-/* Las acciones van a la derecha, con Cancelar primero: es el destino del foco
-   inicial y el que conviene que quede bajo el pulgar. */
+/* Actions sit on the right, with Cancel first: it's where the initial focus
+   lands and the one that should sit under the thumb. */
 .svc-dialog-actions {
     justify-content: flex-end;
 }
@@ -1407,9 +1407,9 @@ button.svc-tip:focus-visible {
     white-space: nowrap;
 }
 
-/* Frontera entre el backlog que entrega el backend al conectar y lo que llega en
-   vivo. Sin ella, abrir el dashboard después de unas horas muestra un muro de
-   mensajes viejos indistinguibles de los nuevos. */
+/* Boundary between the backlog the backend delivers on connect and what
+   arrives live. Without it, opening the dashboard after a few hours shows a
+   wall of old messages indistinguishable from new ones. */
 .svc-log-divider {
     display: flex;
     align-items: center;
@@ -1439,9 +1439,10 @@ button.svc-tip:focus-visible {
     font-weight: 600;
 }
 
-/* Colapsado: una sola línea que se desplaza en horizontal. Antes se recortaba y no
-   había forma de leer el resto sin expandir — y expandir cada payload para mirar un
-   campo del final es exactamente la fricción que esta vista vino a sacar. */
+/* Collapsed: a single line that scrolls horizontally. It used to get clipped
+   with no way to read the rest without expanding — and expanding every
+   payload just to look at a field near the end is exactly the friction this
+   view exists to remove. */
 .svc-log-body {
     margin: 0.15rem 0 0 0;
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -1453,7 +1454,7 @@ button.svc-tip:focus-visible {
     scrollbar-width: thin;
 }
 
-/* Expandido: JSON indentado, que sí conviene que envuelva. */
+/* Expanded: indented JSON, which should wrap. */
 .svc-log-body.open {
     white-space: pre-wrap;
     word-break: break-word;

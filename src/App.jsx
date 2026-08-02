@@ -89,12 +89,12 @@ function App() {
                 <button className="svc-banner" onClick={() => setView('service')}>
                     <AlertTriangle size={18} aria-hidden="true" />
                     <span>
-                        <strong>El nodo tiene un comando retenido: {retained.cmd || 'desconocido'}</strong>
+                        <strong>The node has a retained command: {retained.cmd || 'unknown'}</strong>
                         {retained.cmd === 'maintenance'
-                            ? ' — va a quedar despierto en service mode, drenando batería, hasta que se limpie o venza el timeout.'
-                            : ' — se va a ejecutar en el próximo wake.'}
+                            ? ' — it will stay awake in service mode, draining the battery, until it is cleared or the timeout expires.'
+                            : ' — it will run on the next wake.'}
                     </span>
-                    <span className="svc-banner-cta">Ir a service mode</span>
+                    <span className="svc-banner-cta">Go to service mode</span>
                 </button>
             )}
 

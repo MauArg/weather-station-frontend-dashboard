@@ -6,37 +6,37 @@ import Tip from './Tip';
 
 const NODE_STATE_UI = {
     service_mode: {
-        label: 'En service mode', color: '#4dabf7', Icon: Radio,
-        tip: 'El nodo está despierto con ArduinoOTA escuchando. Durante la sesión no publica telemetría, solo heartbeats cada 30 s — por eso "último visto" pasa a contarse contra el heartbeat.',
+        label: 'In service mode', color: '#4dabf7', Icon: Radio,
+        tip: 'The node is awake with ArduinoOTA listening. During the session it does not publish telemetry, only heartbeats every 30 s — that\'s why "last seen" switches to counting against the heartbeat.',
     },
     sleeping: {
-        label: 'Ciclo normal', color: '#4ade80', Icon: Moon,
-        tip: 'El nodo duerme y despierta cada 60 s para medir, publicar y volver a dormir. Entre wakes no es alcanzable por red: para flashear hay que activar service mode.',
+        label: 'Normal cycle', color: '#4ade80', Icon: Moon,
+        tip: 'The node sleeps and wakes every 60 s to measure, publish and go back to sleep. Between wakes it is not reachable over the network: flashing requires activating service mode.',
     },
     overdue: {
-        label: 'Atrasado', color: '#f87171', Icon: AlertTriangle,
-        tip: 'Pasó un ciclo completo más el margen de conexión sin que llegue telemetría. Lo habitual es que el nodo haya despertado pero no lograra conectar WiFi o MQTT en ese wake, así que se durmió sin publicar. Un ciclo suelto es normal con señal marginal; varios seguidos ya no.',
+        label: 'Overdue', color: '#f87171', Icon: AlertTriangle,
+        tip: 'A full cycle plus the connection margin has passed with no telemetry arriving. Usually the node woke up but failed to connect to WiFi or MQTT on that wake, so it went back to sleep without publishing. One isolated cycle is normal with marginal signal; several in a row is not.',
     },
     unknown: {
-        label: 'Sin datos', color: '#a1a1aa', Icon: HelpCircle,
-        tip: 'Todavía no llegó ningún mensaje del nodo desde que arrancó el backend. Si persiste más de un minuto, revisá la conexión con el broker.',
+        label: 'No data', color: '#a1a1aa', Icon: HelpCircle,
+        tip: 'No message from the node has arrived yet since the backend started. If this persists for more than a minute, check the connection to the broker.',
     },
 };
 
-// De dónde salió el último contacto. Importa mostrarlo porque cada fuente implica
-// un ritmo distinto de reaparición, y por lo tanto una cuenta regresiva distinta.
+// Where the last contact came from. Worth showing because each source implies
+// a different reappearance rhythm, and therefore a different countdown.
 const LAST_SEEN_SOURCE = {
-    telemetry: 'telemetría',
-    heartbeat: 'heartbeat de service mode',
-    service_ended: 'fin de service mode',
-    reboot: 'reinicio',
-    ping: 'respuesta a ping',
+    telemetry: 'telemetry',
+    heartbeat: 'service mode heartbeat',
+    service_ended: 'service mode ended',
+    reboot: 'reboot',
+    ping: 'ping response',
 };
 
 const sensorTip = (key) => (
     key === 'dht11_ok'
-        ? 'Campo dht11_ok del JSON. El sensor físico es un DHT22 desde 2026-07-25; el nombre se conservó para no partir la serie histórica en InfluxDB.'
-        : `Campo ${key} del JSON de telemetría.`
+        ? 'dht11_ok field in the JSON. The physical sensor has been a DHT22 since 2026-07-25; the name was kept so as not to split the historical series in InfluxDB.'
+        : `${key} field in the telemetry JSON.`
 );
 
 const NodeHealthPanel = ({ state }) => {
@@ -46,9 +46,10 @@ const NodeHealthPanel = ({ state }) => {
     const sensorCatalog = state.sensorCatalog ?? [];
     const bootAnomalies = state.bootAnomalies ?? [];
 
-    // `expected` lo agregó el backend recién; contra uno viejo llega undefined y
-    // todo cuenta como sin explicar. Es la degradación correcta —el frontend no
-    // tiene con qué afirmar lo contrario— y se corrige sola al redesplegar.
+    // `expected` was only recently added by the backend; against an old one it
+    // arrives as undefined and everything counts as unexplained. That's the
+    // correct degradation —the frontend has no way to claim otherwise— and it
+    // corrects itself on redeploy.
     const expectedCount = bootAnomalies.filter((a) => a.expected).length;
     const unexplained = bootAnomalies.length - expectedCount;
     const [onlyUnexplained, setOnlyUnexplained] = useState(false);
@@ -60,10 +61,10 @@ const NodeHealthPanel = ({ state }) => {
     const ui = NODE_STATE_UI[node?.state] ?? NODE_STATE_UI.unknown;
     const StateIcon = ui.Icon;
 
-    // Ambos contadores se derivan de instantes absolutos contra un reloj que corre,
-    // no del entero que mandó el backend: entre pushes ese número queda viejo, y el
-    // caso que más importa mostrar —el nodo que no reaparece— es justamente aquel en
-    // el que no hay pushes nuevos que lo actualicen.
+    // Both counters are derived from absolute instants against a running clock,
+    // not from the integer the backend sent: between pushes that number goes
+    // stale, and the case that matters most to show —the node that never comes
+    // back— is exactly the one with no new pushes to update it.
     const lastSeenMs = node?.lastSeenAt ? new Date(node.lastSeenAt).getTime() : null;
     const nextMs = node?.nextExpectedAt ? new Date(node.nextExpectedAt).getTime() : null;
     const secondsSince = lastSeenMs != null ? Math.round((now - lastSeenMs) / 1000) : null;
@@ -85,7 +86,7 @@ const NodeHealthPanel = ({ state }) => {
     return (
         <div className="svc-card">
             <div className="svc-card-head">
-                <h3>Estado del nodo</h3>
+                <h3>Node health</h3>
                 <Tip text={ui.tip}>
                     <span className="svc-status-pill" style={{ borderColor: ui.color, color: ui.color }}>
                         <StateIcon size={15} aria-hidden="true" /> {ui.label}
@@ -99,36 +100,36 @@ const NodeHealthPanel = ({ state }) => {
                     <span className="svc-kv-value">
                         {telemetry?.firmware || '—'}
                         {node?.firmwareIsDebug && (
-                            <Tip text="LOG_LEVEL=2: el setup() quema 2 s fijos en delay(2000) en cada wake, a 50-140 mA, sin ningún beneficio en campo. Reflashear con ota_production.">
+                            <Tip text="LOG_LEVEL=2: setup() burns a fixed 2 s in delay(2000) on every wake, at 50-140 mA, with no benefit in the field. Reflash with ota_production.">
                                 <span className="svc-badge svc-badge-warn">
-                                    <Bug size={12} aria-hidden="true" /> build de debug
+                                    <Bug size={12} aria-hidden="true" /> debug build
                                 </span>
                             </Tip>
                         )}
                     </span>
                 </div>
                 <div className="svc-kv">
-                    <Tip className="svc-tip-left" text="Contador de wakes guardado en RTC memory. Incrementa al principio del setup(), antes de la red, así que un salto significa que el nodo despertó pero no llegó a publicar. Vuelve a cero al reflashear o si se corta la alimentación.">
+                    <Tip className="svc-tip-left" text="Wake counter stored in RTC memory. It increments at the start of setup(), before networking, so a jump means the node woke up but did not get to publish. Resets to zero on reflash or on power loss.">
                         <span className="svc-kv-label"><HardDrive size={13} aria-hidden="true" /> boot_count</span>
                     </Tip>
                     <span className="svc-kv-value">{telemetry?.bootCount ?? '—'}</span>
                 </div>
                 <div className="svc-kv">
-                    <Tip className="svc-tip-left" text="Potencia de la señal WiFi vista por el nodo. Por encima de -70 dBm el enlace es sano; cerca de -80 se vuelve marginal y empiezan a aparecer wakes que no logran publicar.">
+                    <Tip className="svc-tip-left" text="WiFi signal strength as seen by the node. Above -70 dBm the link is healthy; near -80 it becomes marginal and wakes that fail to publish start showing up.">
                         <span className="svc-kv-label"><Wifi size={13} aria-hidden="true" /> RSSI</span>
                     </Tip>
                     <span className="svc-kv-value">{telemetry?.rssiDbm != null ? `${telemetry.rssiDbm} dBm` : '—'}</span>
                 </div>
             </div>
 
-            {/* Fila propia y no una celda más del grid: con la fuente y la próxima
-                aparición no entra en una columna de 150px y se partía en varias
-                líneas. La fuente importa — en service mode el nodo no publica
-                telemetría, solo heartbeats, así que mirar el reloj de la telemetría
-                mostraría una hora congelada justo cuando el nodo está más vivo. */}
+            {/* Its own row rather than another grid cell: with the source and the
+                next expected time it doesn't fit a 150px column and wrapped across
+                several lines. The source matters — in service mode the node does
+                not publish telemetry, only heartbeats, so watching the telemetry
+                clock would show a frozen time exactly when the node is most alive. */}
             <div className="svc-lastseen">
                 <div>
-                    <span className="svc-kv-label">Último visto</span>
+                    <span className="svc-kv-label">Last seen</span>
                     <span className="svc-kv-value">
                         {node?.lastSeenAt ? formatClock(node.lastSeenAt) : '—'}
                         {node?.lastSeenSource && (
@@ -137,13 +138,13 @@ const NodeHealthPanel = ({ state }) => {
                             </span>
                         )}
                         {secondsSince != null && secondsSince >= 0 && (
-                            <span className="svc-muted svc-small"> · hace {secondsSince}s</span>
+                            <span className="svc-muted svc-small"> · {secondsSince}s ago</span>
                         )}
                     </span>
                 </div>
                 <div className="svc-lastseen-next">
                     <span className="svc-kv-label">
-                        {node?.state === 'overdue' ? 'Se esperaba' : 'Próxima aparición'}
+                        {node?.state === 'overdue' ? 'Was expected' : 'Next expected'}
                     </span>
                     <span className="svc-kv-value">
                         {node?.nextExpectedAt ? `~${formatClock(node.nextExpectedAt)}` : '—'}
@@ -151,13 +152,13 @@ const NodeHealthPanel = ({ state }) => {
                             <Tip
                                 text={
                                     secondsUntil > 0
-                                        ? `Cuenta regresiva hasta el próximo mensaje esperado, cada ${node.expectedIntervalSec} s. Si llega a cero y sigue bajando, el nodo no apareció cuando debía.`
-                                        : `El nodo debería haber publicado hace ${Math.abs(secondsUntil)} s. Un atraso corto es normal —el wake tarda unos segundos en conectar—, pero si sigue creciendo, ese ciclo se perdió.`
+                                        ? `Countdown to the next expected message, every ${node.expectedIntervalSec} s. If it reaches zero and keeps dropping, the node did not show up when it should have.`
+                                        : `The node should have published ${Math.abs(secondsUntil)} s ago. A short delay is normal —the wake takes a few seconds to connect— but if it keeps growing, that cycle was lost.`
                                 }
                             >
                                 {' '}
                                 <span className={countdownClass}>
-                                    · {secondsUntil >= 0 ? `en ~${secondsUntil}s` : `~${secondsUntil}s`}
+                                    · {secondsUntil >= 0 ? `in ~${secondsUntil}s` : `~${secondsUntil}s`}
                                 </span>
                             </Tip>
                         )}
@@ -168,21 +169,21 @@ const NodeHealthPanel = ({ state }) => {
             {/* Payload budget */}
             <div className="svc-budget">
                 <div className="svc-budget-head">
-                    <Tip className="svc-tip-left" text="Bytes útiles del buffer de PubSubClient: 768 menos el header y el nombre del topic. Si el payload no entra, el publish se descarta entero y en silencio — ya pasó en las madrugadas bajo cero, cuando cada temperatura negativa suma un dígito.">
-                        <span className="svc-kv-label">Tamaño del payload de telemetría</span>
+                    <Tip className="svc-tip-left" text="Usable bytes of the PubSubClient buffer: 768 minus the header and the topic name. If the payload doesn't fit, the whole publish is silently dropped — it has already happened on sub-zero early mornings, when every negative temperature adds a digit.">
+                        <span className="svc-kv-label">Telemetry payload size</span>
                     </Tip>
                     <span className="svc-kv-value">
                         {sizeBytes} B / {payloadBudget} B
-                        <span className="svc-muted svc-small"> · {headroom} B de margen</span>
+                        <span className="svc-muted svc-small"> · {headroom} B of headroom</span>
                     </span>
                 </div>
-                <div className="svc-budget-bar" role="img" aria-label={`Payload ${sizeBytes} de ${payloadBudget} bytes`}>
+                <div className="svc-budget-bar" role="img" aria-label={`Payload ${sizeBytes} of ${payloadBudget} bytes`}>
                     <div className="svc-budget-fill" style={{ width: `${usedPct}%`, background: budgetColor }} />
                 </div>
             </div>
 
             {/* Sensor chips */}
-            <h4 className="svc-h4">Sensores</h4>
+            <h4 className="svc-h4">Sensors</h4>
             <div className="svc-chips">
                 {sensorCatalog.map(({ key, label }) => {
                     const value = telemetry?.sensors?.[key];
@@ -195,7 +196,7 @@ const NodeHealthPanel = ({ state }) => {
                             <span className="svc-chip" style={{ borderColor: `${color}55` }}>
                                 <Icon size={14} color={color} aria-hidden="true" />
                                 <span>{label}</span>
-                                <span className="svc-muted svc-small">{present ? 'OK' : missing ? 'ausente' : 'FALLA'}</span>
+                                <span className="svc-muted svc-small">{present ? 'OK' : missing ? 'missing' : 'FAILED'}</span>
                             </span>
                         </Tip>
                     );
@@ -205,46 +206,48 @@ const NodeHealthPanel = ({ state }) => {
             {/* Boot anomalies */}
             {bootAnomalies.length > 0 && (
                 <>
-                    {/* El conteo de "sin explicar" es lo que hace la lista legible de un
-                        vistazo. Guarda las últimas 20 sin tope de tiempo, y la mayoría
-                        son gaps rutinarios o reinicios que uno mismo pidió: sin este
-                        número hay que recorrerla entera para saber si pasó algo. */}
+                    {/* The "unexplained" count is what makes the list readable at a
+                        glance. It keeps the last 20 with no time limit, and most of
+                        them are routine gaps or reboots someone asked for: without
+                        this number you have to scan the whole list to know if
+                        something happened. */}
                     <div className="svc-card-head" style={{ marginBottom: '0.4rem' }}>
                         <h4 className="svc-h4">
-                            Discontinuidades de boot_count · {bootAnomalies.length}
+                            boot_count discontinuities · {bootAnomalies.length}
                             {unexplained > 0
-                                ? <span style={{ color: '#facc15' }}> · {unexplained} sin explicar</span>
-                                : <span className="svc-muted"> · todas explicadas</span>}
+                                ? <span style={{ color: '#facc15' }}> · {unexplained} unexplained</span>
+                                : <span className="svc-muted"> · all explained</span>}
                         </h4>
                         {expectedCount > 0 && (
                             <button
                                 className="svc-icon-btn svc-tip"
-                                data-tip="Esconde los reinicios que se explican solos —un reboot que pediste, un reflash— para dejar sólo lo que merece atención."
+                                data-tip="Hides reboots that explain themselves —a reboot you requested, a reflash— to leave only what deserves attention."
                                 onClick={() => setOnlyUnexplained((v) => !v)}
                             >
                                 {onlyUnexplained ? <Eye size={14} /> : <EyeOff size={14} />}
-                                {onlyUnexplained ? `ver las ${expectedCount} esperadas` : 'ocultar esperadas'}
+                                {onlyUnexplained ? `show the ${expectedCount} expected` : 'hide expected'}
                             </button>
                         )}
                     </div>
                     <ul className="svc-anomalies">
                         {visibleAnomalies.length === 0 && (
                             <li className="svc-muted svc-small">
-                                Ninguna sin explicar. Todas las discontinuidades vienen de un reboot o un reflash.
+                                None unexplained. All discontinuities come from a reboot or a reflash.
                             </li>
                         )}
                         {visibleAnomalies.map((a, i) => {
-                            // Las esperadas —un reboot que pediste, un reflash— se
-                            // listan igual porque explican un corte en la serie, pero
-                            // no como advertencia: si la alarma suena por la acción que
-                            // acabás de tomar a propósito, se aprende a ignorarla.
-                            // El ícono cambia además del color, que solo no alcanza.
+                            // Expected ones —a reboot you requested, a reflash— are
+                            // still listed because they explain a break in the
+                            // series, but not as a warning: if the alarm goes off for
+                            // an action you just took on purpose, you learn to ignore
+                            // it. The icon changes along with the color, which alone
+                            // is not enough.
                             const Icon = a.expected ? Info : AlertTriangle;
                             const color = a.expected ? '#a1a1aa' : a.kind === 'gap' ? '#facc15' : '#f87171';
-                            // La antigüedad es imprescindible acá: la lista guarda las
-                            // últimas 20 sin tope de tiempo y el backend corre 24/7, así
-                            // que al volver después de una noche está llena de eventos
-                            // viejos cuyo HH:MM:SS no dice de qué día son.
+                            // Age is essential here: the list keeps the last 20 with
+                            // no time limit and the backend runs 24/7, so coming back
+                            // after a night away it's full of old events whose
+                            // HH:MM:SS does not say which day they are from.
                             const age = formatAge(a.at, now);
                             return (
                                 <li key={`${a.at}-${i}`} style={a.expected ? { opacity: 0.75 } : undefined}>
@@ -263,7 +266,7 @@ const NodeHealthPanel = ({ state }) => {
 
             {battery?.source === 'service_heartbeat' && (
                 <p className="svc-muted svc-small svc-card-foot">
-                    El voltaje que se muestra viene del heartbeat de service mode, o sea medido con el nodo despierto y drenando.
+                    The voltage shown comes from the service mode heartbeat, i.e. measured with the node awake and draining.
                 </p>
             )}
         </div>

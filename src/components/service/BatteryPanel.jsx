@@ -10,16 +10,16 @@ import Tip from './Tip';
 // by only ΔE 6.8, which is below the level where hue is legible on its own.
 const RISK_UI = {
     safe: {
-        label: 'Seguro para flashear', color: '#4ade80', Icon: ShieldCheck,
-        tip: 'Por encima de 4.00 V. El umbral es más estricto que los tiers de energía a propósito: durante service mode el nodo queda despierto sin deep sleep que le permita recuperar tensión.',
+        label: 'Safe to flash', color: '#4ade80', Icon: ShieldCheck,
+        tip: 'Above 4.00 V. The threshold is deliberately stricter than the power tiers: during service mode the node stays awake with no deep sleep to let the voltage recover.',
     },
     caution: {
-        label: 'Precaución', color: '#facc15', Icon: AlertTriangle,
-        tip: 'Entre 3.85 y 4.00 V. Alcanza para una sesión corta, pero evitá flashes repetidos: cada uno mantiene al nodo despierto a 50-140 mA y hunde un poco más la tensión.',
+        label: 'Caution', color: '#facc15', Icon: AlertTriangle,
+        tip: 'Between 3.85 and 4.00 V. Enough for a short session, but avoid repeated flashes: each one keeps the node awake at 50-140 mA and sags the voltage a bit further.',
     },
     unsafe: {
-        label: 'No flashear', color: '#f87171', Icon: ShieldX,
-        tip: 'Por debajo de 3.85 V. El riesgo no es quedarse sin capacidad —15 min a ~100 mA son ~25 mAh de 1500— sino el sag bajo carga: el boost tira más corriente de entrada a medida que baja Vin, y eso realimenta la caída hasta el brownout a mitad de escritura.',
+        label: 'Do not flash', color: '#f87171', Icon: ShieldX,
+        tip: "Below 3.85 V. The risk isn't running out of capacity —15 min at ~100 mA is ~25 mAh out of 1500— it's sag under load: the boost converter pulls more input current as Vin falls, which feeds back into the drop until a brownout mid-write.",
     },
 };
 
@@ -32,11 +32,11 @@ const BatteryPanel = ({ battery }) => {
     const [hours, setHours] = useState(72);
     const [trendError, setTrendError] = useState(null);
 
-    // Se re-consulta con cada lectura nueva, no solo al montar. Antes el gráfico
-    // quedaba clavado en el momento en que se abrió la vista. Y durante service
-    // mode InfluxDB no recibe nada —el nodo no publica telemetría—, así que los
-    // puntos frescos salen del ring en memoria del backend, que el endpoint pega
-    // al final de la serie histórica.
+    // Re-queried on every new reading, not just on mount. It used to be frozen
+    // at the moment the view was opened. And during service mode InfluxDB
+    // receives nothing —the node doesn't publish telemetry— so fresh points
+    // come from the backend's in-memory ring, which the endpoint appends to
+    // the end of the historical series.
     const measuredAt = battery?.measuredAt;
 
     useEffect(() => {
@@ -54,8 +54,8 @@ const BatteryPanel = ({ battery }) => {
     if (!battery) {
         return (
             <div className="svc-card">
-                <h3>Batería</h3>
-                <p className="svc-muted">Sin lectura todavía — esperando el primer ciclo de telemetría.</p>
+                <h3>Battery</h3>
+                <p className="svc-muted">No reading yet — waiting for the first telemetry cycle.</p>
             </div>
         );
     }
@@ -75,9 +75,9 @@ const BatteryPanel = ({ battery }) => {
     return (
         <div className="svc-card">
             <div className="svc-card-head">
-                <h3>Batería</h3>
+                <h3>Battery</h3>
                 <span className="svc-muted svc-small">
-                    {fromHeartbeat ? 'medida bajo carga de service mode' : 'último ciclo de telemetría'}
+                    {fromHeartbeat ? 'measured under service mode load' : 'latest telemetry cycle'}
                 </span>
             </div>
 
@@ -86,8 +86,8 @@ const BatteryPanel = ({ battery }) => {
                     <Tip
                         className="svc-tip-left"
                         text={fromHeartbeat
-                            ? 'Medido con el nodo despierto en service mode, o sea bajo carga. Es el número relevante para decidir si arrancar un flash.'
-                            : 'Medido en el último ciclo de telemetría, con WiFi activo. Queda algo por debajo de la tensión en reposo, que es el lado seguro para equivocarse.'}
+                            ? 'Measured with the node awake in service mode, i.e. under load. This is the number that matters for deciding whether to start a flash.'
+                            : 'Measured on the latest telemetry cycle, with WiFi active. It reads a bit below resting voltage, which is the safe side to be wrong on.'}
                     >
                         <div className="svc-batt-volts">
                             <ChargeIcon size={28} color={battery.charging ? '#4ade80' : '#a1a1aa'} aria-hidden="true" />
@@ -97,7 +97,7 @@ const BatteryPanel = ({ battery }) => {
                     </Tip>
                     <Tip
                         className="svc-tip-left"
-                        text="El SoC sale de una curva por tramos de Li-ion, no de una recta: la descarga es muy plana entre 3.7 y 4.0 V. Los tiers vienen de componentes_y_conexiones.md y describen qué rails debería apagar el firmware — todavía no está implementado, así que acá son solo una etiqueta."
+                        text="SoC comes from a piecewise Li-ion curve, not a straight line: the discharge is very flat between 3.7 and 4.0 V. The tiers come from componentes_y_conexiones.md and describe which rails the firmware should shed — not implemented yet, so here they are just a label."
                     >
                         <div className="svc-muted svc-small">
                             {battery.socPct.toFixed(0)}% SoC · Tier {battery.tier} — {battery.tierLabel}
@@ -106,12 +106,12 @@ const BatteryPanel = ({ battery }) => {
                     {battery.solarMa != null && (
                         <Tip
                             className="svc-tip-left"
-                            text="Lectura del INA219 del panel. Por debajo de 20 mA se considera sin carga significativa: unos pocos mA son fuga o el MPPT recortando sobre una batería casi llena, no carga real."
+                            text="Reading from the panel's INA219. Below 20 mA is considered no significant charge: a few mA is leakage or the MPPT clipping on a nearly full battery, not real charging."
                         >
                             <div className="svc-muted svc-small svc-inline">
                                 <Sun size={14} aria-hidden="true" />
                                 Panel {battery.solarV?.toFixed(2)} V · {battery.solarMa.toFixed(1)} mA
-                                {battery.charging ? ' · cargando' : ' · sin carga significativa'}
+                                {battery.charging ? ' · charging' : ' · no significant charge'}
                             </div>
                         </Tip>
                     )}
@@ -129,7 +129,7 @@ const BatteryPanel = ({ battery }) => {
             </div>
 
             <div className="svc-card-head" style={{ marginTop: '1rem' }}>
-                <h4 className="svc-h4">Tendencia — un número instantáneo no distingue "se está recuperando" de "viene bajando hace tres días"</h4>
+                <h4 className="svc-h4">Trend — a single instantaneous reading can't tell "it's recovering" from "it's been dropping for three days"</h4>
                 <div className="svc-range">
                     {[24, 72, 168].map((h) => (
                         <button
@@ -144,7 +144,7 @@ const BatteryPanel = ({ battery }) => {
             </div>
 
             {trendError ? (
-                <p className="svc-muted svc-small">No se pudo leer el histórico: {trendError}</p>
+                <p className="svc-muted svc-small">Couldn't load the history: {trendError}</p>
             ) : (
                 <div className="svc-spark">
                     <ResponsiveContainer width="100%" height="100%">
@@ -181,7 +181,7 @@ const BatteryPanel = ({ battery }) => {
                                 itemStyle={{ color: '#e4e4e7' }}
                                 labelStyle={{ color: '#a1a1aa' }}
                                 cursor={{ stroke: 'rgba(255,255,255,0.4)', strokeWidth: 1, strokeDasharray: '4 4' }}
-                                formatter={(value) => [`${value.toFixed(3)} V`, 'Batería']}
+                                formatter={(value) => [`${value.toFixed(3)} V`, 'Battery']}
                                 labelFormatter={(v) => new Date(v).toLocaleString('es-AR', {
                                     timeZone: 'America/Argentina/Buenos_Aires',
                                     day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
@@ -191,18 +191,18 @@ const BatteryPanel = ({ battery }) => {
                                 y={THRESHOLD_SAFE}
                                 stroke="#4ade80"
                                 strokeDasharray="5 5"
-                                label={{ value: 'seguro 4.00V', position: 'insideTopRight', fill: '#a1a1aa', fontSize: 11 }}
+                                label={{ value: 'safe 4.00V', position: 'insideTopRight', fill: '#a1a1aa', fontSize: 11 }}
                             />
                             <ReferenceLine
                                 y={THRESHOLD_CAUTION}
                                 stroke="#f87171"
                                 strokeDasharray="5 5"
-                                label={{ value: 'riesgo 3.85V', position: 'insideBottomRight', fill: '#a1a1aa', fontSize: 11 }}
+                                label={{ value: 'risk 3.85V', position: 'insideBottomRight', fill: '#a1a1aa', fontSize: 11 }}
                             />
                             <Area
                                 type="monotone"
                                 dataKey="volts"
-                                name="Batería"
+                                name="Battery"
                                 stroke="#4dabf7"
                                 strokeWidth={2}
                                 fill="url(#battFill)"

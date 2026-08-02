@@ -1,19 +1,20 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-// Import explícito en vez del global de Node: este archivo lo lintea la misma
-// config que el código del browser, donde `process` no existe.
+// Explicit import instead of Node's global: this file is linted by the same
+// config as the browser code, where `process` doesn't exist.
 import process from 'node:process'
 import { readFileSync } from 'node:fs'
 
-// La versión del dashboard sale de package.json y de ningún otro lado, así que
-// bumpearla es editar ese campo (o `npm version patch`) y nada más. Se lee acá y
-// se inyecta como constante al bundle: el browser no puede importar el
-// package.json en runtime, y duplicar el número en un .js sería otra fuente de
-// verdad que se desincroniza en el primer release apurado.
+// The dashboard's version comes from package.json and nowhere else, so
+// bumping it is editing that field (or `npm version patch`) and nothing more.
+// It's read here and injected as a constant into the bundle: the browser
+// can't import package.json at runtime, and duplicating the number in a .js
+// file would be another source of truth that drifts out of sync on the first
+// rushed release.
 //
-// Se lee con readFileSync en vez de `import ... with { type: 'json' }` porque
-// esa sintaxis todavía depende de la versión de Node, y esto tiene que compilar
-// igual en la máquina de desarrollo y adentro del contenedor.
+// Read with readFileSync instead of `import ... with { type: 'json' }`
+// because that syntax still depends on the Node version, and this has to
+// build the same way on the development machine and inside the container.
 const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf-8'))
 
 // https://vite.dev/config/
@@ -24,11 +25,11 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      // Por defecto apunta al backend local. VITE_API_PROXY permite probar el
-      // frontend de desarrollo contra el backend ya desplegado en la Pi:
+      // Defaults to the local backend. VITE_API_PROXY makes it possible to test
+      // the development frontend against the backend already deployed on the Pi:
       //   VITE_API_PROXY=http://192.168.18.250 npm run dev
-      // Sirve para ver un cambio de UI contra datos reales del nodo sin tener
-      // que levantar InfluxDB y Mosquitto localmente.
+      // Useful for checking a UI change against real node data without having
+      // to run InfluxDB and Mosquitto locally.
       '/api': {
         target: process.env.VITE_API_PROXY || 'http://localhost:8080',
         changeOrigin: true,

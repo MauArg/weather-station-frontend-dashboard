@@ -17,8 +17,8 @@ export default defineConfig([
       ecmaVersion: 2020,
       globals: {
         ...globals.browser,
-        // Lo inyecta Vite con `define` desde package.json (ver vite.config.js).
-        // No existe en el fuente, así que sin declararlo acá es un no-undef.
+        // Injected by Vite via `define` from package.json (see vite.config.js).
+        // It doesn't exist in the source, so without declaring it here it's a no-undef.
         __APP_VERSION__: 'readonly',
       },
       parserOptions: {

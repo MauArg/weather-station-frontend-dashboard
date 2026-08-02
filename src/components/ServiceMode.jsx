@@ -18,10 +18,10 @@ const ServiceMode = ({ onBack }) => {
     const [session, setSession] = useState(null);
     const [error, setError] = useState(null);
 
-    // Último payload del backlog que mandó el backend al conectar. Marca dónde
-    // termina lo que ya había pasado y empieza lo que llega en vivo — sin esa
-    // frontera, abrir el dashboard después de unas horas muestra un muro de
-    // mensajes viejos que parecen recién llegados.
+    // Last payload of the backlog the backend sent on connect. Marks where what
+    // already happened ends and what's arriving live begins — without that
+    // boundary, opening the dashboard after a few hours shows a wall of old
+    // messages that look like they just arrived.
     const [backlogUntilSeq, setBacklogUntilSeq] = useState(null);
 
     // Held in a ref so the SSE callbacks, which are registered once, always see the
@@ -61,9 +61,9 @@ const ServiceMode = ({ onBack }) => {
     if (error && !state) {
         return (
             <div className="svc-container">
-                <button className="back-btn" onClick={onBack}><ArrowLeft size={18} /> Volver</button>
+                <button className="back-btn" onClick={onBack}><ArrowLeft size={18} /> Back</button>
                 <div className="svc-card">
-                    <h3>No se pudo cargar el estado</h3>
+                    <h3>Couldn't load state</h3>
                     <p className="svc-muted">{error}</p>
                 </div>
             </div>
@@ -74,7 +74,7 @@ const ServiceMode = ({ onBack }) => {
         return (
             <div className="svc-container" style={{ alignItems: 'center', display: 'flex', flexDirection: 'column', gap: '1rem', padding: '3rem' }}>
                 <Loader2 className="animate-spin" size={40} color="#4dabf7" />
-                <p className="svc-muted">Conectando al broker…</p>
+                <p className="svc-muted">Connecting to the broker…</p>
             </div>
         );
     }
@@ -88,18 +88,18 @@ const ServiceMode = ({ onBack }) => {
                 <div className="svc-header-meta">
                     <span className="svc-status-pill" style={{ borderColor: connected ? '#4ade80' : '#f87171', color: connected ? '#4ade80' : '#f87171' }}>
                         {connected ? <Wifi size={15} /> : <WifiOff size={15} />}
-                        {connected ? `Broker ${state.broker.address}` : 'Broker desconectado'}
+                        {connected ? `Broker ${state.broker.address}` : 'Broker disconnected'}
                     </span>
                     {state.stationIp && (
                         <span
                             className="svc-status-pill svc-pill-muted"
-                            title="IP estática del nodo — es el destino del OTA. Sale de la config del backend, no de la telemetría."
+                            title="The node's static IP — this is the OTA target. It comes from the backend config, not telemetry."
                         >
-                            <Cpu size={15} /> Nodo {state.stationIp}
+                            <Cpu size={15} /> Node {state.stationIp}
                         </span>
                     )}
                     <span className="svc-muted svc-small">
-                        estación {state.stationId} · stream {streamUp ? 'en vivo' : 'reconectando…'}
+                        station {state.stationId} · stream {streamUp ? 'live' : 'reconnecting…'}
                     </span>
                 </div>
             </div>
@@ -108,7 +108,7 @@ const ServiceMode = ({ onBack }) => {
                 <div className="svc-alert svc-alert-danger">
                     <WifiOff size={18} aria-hidden="true" />
                     <div>
-                        <strong>Sin conexión al broker MQTT.</strong>
+                        <strong>No connection to the MQTT broker.</strong>
                         <div className="svc-small">{state.broker.lastError}</div>
                     </div>
                 </div>
@@ -116,7 +116,7 @@ const ServiceMode = ({ onBack }) => {
 
             {/* Two columns pairing a tall card with a short one on each row, so the
                 cards stretch to a common height instead of leaving ragged gaps:
-                batería ↔ estado del nodo, then consola ↔ payloads. */}
+                battery ↔ node health, then command console ↔ payloads. */}
             <div className="svc-grid">
                 <OtaWizard state={state} session={session} onSession={setSession} />
                 <BatteryPanel battery={state.battery} />
@@ -129,9 +129,9 @@ const ServiceMode = ({ onBack }) => {
                     onClear={() => { setPayloads([]); setBacklogUntilSeq(null); }}
                     backlogUntilSeq={backlogUntilSeq}
                 />
-                {/* A todo el ancho, como el wizard: los renglones de log llevan hora,
-                    ciclo y una frase entera, y partidos a media columna se vuelven
-                    ilegibles. */}
+                {/* Full width, like the wizard: log rows carry a time, a cycle
+                    number and a whole sentence, and split at half-column width
+                    they become unreadable. */}
                 <LogPanel state={state} connected={connected} />
             </div>
         </div>

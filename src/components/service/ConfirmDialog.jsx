@@ -17,8 +17,8 @@ const ConfirmDialog = ({
     open,
     title,
     children,
-    confirmLabel = 'Confirmar',
-    cancelLabel = 'Cancelar',
+    confirmLabel = 'Confirm',
+    cancelLabel = 'Cancel',
     onConfirm,
     onCancel,
 }) => {
@@ -27,8 +27,8 @@ const ConfirmDialog = ({
     useEffect(() => {
         const dialog = ref.current;
         if (!dialog) return;
-        // showModal() lanza si el diálogo ya está abierto, y close() sobre uno
-        // cerrado dispara un evento de más.
+        // showModal() throws if the dialog is already open, and close() on a
+        // closed one fires an extra event.
         if (open && !dialog.open) dialog.showModal();
         if (!open && dialog.open) dialog.close();
     }, [open]);
@@ -37,8 +37,8 @@ const ConfirmDialog = ({
         <dialog
             ref={ref}
             className="svc-dialog"
-            // Escape y el click en el backdrop emiten `cancel`. Sin esto el estado
-            // de React quedaría creyendo que el diálogo sigue abierto.
+            // Escape and clicking the backdrop both emit `cancel`. Without this,
+            // React's state would be left thinking the dialog is still open.
             onCancel={(e) => { e.preventDefault(); onCancel?.(); }}
         >
             <div className="svc-dialog-head">

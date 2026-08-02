@@ -32,9 +32,9 @@ const CommandConsole = ({ connected }) => {
     return (
         <div className="svc-card">
             <div className="svc-card-head">
-                <h3>Consola de comandos</h3>
+                <h3>Command console</h3>
                 <span className="svc-muted svc-small">
-                    El nodo lee el topic retenido al despertar, así que un comando espera al próximo ciclo
+                    The node reads the retained topic on wake, so a command waits until the next cycle
                 </span>
             </div>
 
@@ -42,28 +42,28 @@ const CommandConsole = ({ connected }) => {
                 <button
                     className="svc-btn"
                     disabled={busy || !connected}
-                    onClick={() => run({ cmd: 'ping' }, 'Ping publicado')}
+                    onClick={() => run({ cmd: 'ping' }, 'Ping published')}
                 >
                     <Radio size={16} /> Ping
                 </button>
                 <button
                     className="svc-btn"
                     disabled={busy || !connected}
-                    onClick={() => run({ cmd: 'reboot' }, 'Reboot publicado')}
+                    onClick={() => run({ cmd: 'reboot' }, 'Reboot published')}
                 >
                     <RotateCcw size={16} /> Reboot
                 </button>
                 <button
                     className="svc-btn"
                     disabled={busy || !connected}
-                    onClick={() => run({ cmd: 'clear' }, 'Topic limpiado')}
+                    onClick={() => run({ cmd: 'clear' }, 'Topic cleared')}
                 >
-                    <Eraser size={16} /> Limpiar retained
+                    <Eraser size={16} /> Clear retained
                 </button>
             </div>
 
             <label className="svc-kv-label" style={{ marginTop: '0.75rem' }}>
-                <Terminal size={13} aria-hidden="true" /> JSON crudo
+                <Terminal size={13} aria-hidden="true" /> Raw JSON
             </label>
             <div className="svc-raw-row">
                 <input
@@ -76,14 +76,14 @@ const CommandConsole = ({ connected }) => {
                 <button
                     className="svc-btn"
                     disabled={busy || !connected}
-                    onClick={() => run({ cmd: 'raw', raw }, 'Payload crudo publicado')}
+                    onClick={() => run({ cmd: 'raw', raw }, 'Raw payload published')}
                 >
-                    <Send size={16} /> Publicar
+                    <Send size={16} /> Publish
                 </button>
             </div>
             <p className="svc-muted svc-small svc-card-foot">
-                Se publica con retain. El backend valida que sea JSON — parseCommand() descarta cualquier
-                cosa que no lo sea, y el nodo seguiría su ciclo normal sin avisar.
+                Published with retain. The backend validates that it's JSON — parseCommand() discards
+                anything that isn't, and the node would just continue its normal cycle without any warning.
             </p>
         </div>
     );

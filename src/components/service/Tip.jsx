@@ -4,8 +4,8 @@ import React from 'react';
  * Hover/focus explanation for a piece of jargon.
  *
  * This view is full of terms whose meaning lives in the firmware, not on screen —
- * "atrasado" against which interval, why 4.00 V is the flashing threshold, that
- * dht11_ok is really a DHT22. Rendered via a CSS pseudo-element rather than the
+ * "running late" against which interval, why 4.00 V is the flashing threshold,
+ * that dht11_ok is really a DHT22. Rendered via a CSS pseudo-element rather than the
  * native title attribute so it matches the dashboard and appears without the
  * browser's delay.
  *

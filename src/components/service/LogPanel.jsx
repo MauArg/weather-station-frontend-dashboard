@@ -46,27 +46,28 @@ import {
 const LEVELS = [
     {
         value: 1,
-        label: 'Anomalías',
+        label: 'Anomalies',
         entriesPerCycle: 0.7,
-        blurb: 'Sólo los fallos: WiFi, MQTT y publish. Un ciclo sano no escribe nada.',
+        blurb: 'Only failures: WiFi, MQTT and publish. A healthy cycle writes nothing.',
     },
     {
         value: 2,
-        label: 'Resumen',
+        label: 'Summary',
         entriesPerCycle: 1.7,
-        blurb: 'Un renglón por etapa del ciclo, más las anomalías. Es el que responde “¿WiFi o MQTT?”.',
+        blurb: 'One line per cycle stage, plus anomalies. This is the one that answers "WiFi or MQTT?".',
     },
     {
         value: 3,
-        label: 'Verboso',
+        label: 'Verbose',
         entriesPerCycle: 5,
-        blurb: 'Cada intento de WiFi por separado. Para cuando el nivel 2 no alcanza.',
+        blurb: 'Every WiFi attempt individually. For when level 2 is not enough.',
     },
 ];
 
-// Intervalo observable entre ciclos. El nodo duerme SLEEP_INTERVAL_SEC = 60, pero
-// cada wake gasta además WiFi, MQTT, la espera del retenido y los sensores antes
-// de publicar. Medido contra InfluxDB da 60-67 s con mediana de 64.
+// Observed interval between cycles. The node sleeps SLEEP_INTERVAL_SEC = 60, but
+// each wake also spends time on WiFi, MQTT, waiting on the retained topic and
+// sensors before publishing. Measured against InfluxDB this comes out to 60-67 s
+// with a median of 64.
 const CYCLE_SEC = 64;
 
 const formatWindow = (ringEntries, entriesPerCycle) => {
@@ -76,27 +77,27 @@ const formatWindow = (ringEntries, entriesPerCycle) => {
     return `~${hours.toFixed(1)} h`;
 };
 
-// El número y el nombre juntos, siempre en el mismo orden. El nivel es lo que
-// viaja en el comando y en el firmware; el nombre es lo único que se entiende de
-// un vistazo. Nombrar uno solo obliga a traducir mentalmente entre la pantalla y
-// el `level` que se ve en los payloads.
+// The number and the name together, always in the same order. The level is what
+// travels in the command and in the firmware; the name is the only part that is
+// understood at a glance. Naming only one forces a mental translation between the
+// screen and the `level` seen in the payloads.
 const levelName = (value) => {
     const level = LEVELS.find((l) => l.value === value);
-    return level ? `nivel ${value} (${level.label})` : `nivel ${value}`;
+    return level ? `level ${value} (${level.label})` : `level ${value}`;
 };
 
-// Cuánto puede tardar el nodo en levantar un comando retenido antes de que valga
-// la pena sospechar: tres ciclos y monedas. Un ciclo suele alcanzar, pero el
-// payload de confirmación viaja por el mismo camino que pierde el 42% de la
-// telemetría, así que un par de ciclos sin novedades no prueban nada.
+// How long the node can take to pick up a retained command before it's worth
+// suspecting something: three cycles and change. One cycle is usually enough, but
+// the confirmation payload travels the same path that loses 42% of telemetry, so
+// a couple of quiet cycles don't prove anything.
 const PENDING_TIMEOUT_MS = 4 * 60 * 1000;
 
 /**
- * Hace cuánto corre la captura que hay ahora en el nodo.
+ * How long the capture currently on the node has been running.
  *
- * Componente aparte por el tick: lleva su propio reloj para que el minuto que
- * pasa no re-renderice la lista de eventos transferidos, que puede tener cientos
- * de renglones. 15 s alcanza porque se muestra en minutos y horas.
+ * A separate component because of the tick: it keeps its own clock so that the
+ * passing minute doesn't re-render the list of transferred events, which can have
+ * hundreds of rows. 15 s is enough because it's shown in minutes and hours.
  */
 const CaptureUptime = ({ since, exact }) => {
     const now = useNow(15000);
@@ -104,17 +105,18 @@ const CaptureUptime = ({ since, exact }) => {
     if (isNaN(started)) return null;
 
     const elapsed = formatElapsed(Math.floor((now - started) / 1000));
-    // El "≥" no es cosmético: sin haber visto arrancar la captura, el número es un
-    // piso y no una medición. Ver LogState.ActiveSinceExact en el backend.
+    // The "≥" is not cosmetic: without having seen the capture start, the number
+    // is a floor, not a measurement. See LogState.ActiveSinceExact in the backend.
     return exact ? elapsed : `≥ ${elapsed}`;
 };
 
 const LogPanel = ({ state, connected }) => {
-    // El backend viejo no manda `logs` en el snapshot. Puede pasar de verdad: el
-    // frontend y el backend se despliegan como dos imágenes distintas, así que hay
-    // una ventana en la que uno está actualizado y el otro no. Sin este guard el
-    // panel se vería roto —captura "apagada" que no se puede iniciar, botón muerto
-    // sin motivo— y parecería un bug del nodo en vez de un deploy a medias.
+    // An old backend does not send `logs` in the snapshot. This can genuinely
+    // happen: the frontend and backend deploy as two separate images, so there's
+    // a window where one is updated and the other isn't. Without this guard the
+    // panel would look broken —a capture "off" that can't be started, a dead
+    // button for no reason— and would look like a node bug instead of a half
+    // deploy.
     const supported = state?.logs !== undefined;
     const logs = state?.logs ?? {};
 
@@ -127,18 +129,18 @@ const LogPanel = ({ state, connected }) => {
     const [codeFilter, setCodeFilter] = useState('all');
     const [text, setText] = useState('');
 
-    // 'stop' | 'start' | null. Las dos acciones vacían la memoria del nodo, así
-    // que las dos se confirman — guardar sólo una dejaría el otro camino abierto,
-    // y peor, haría creer que ese otro es inofensivo.
+    // 'stop' | 'start' | null. Both actions empty the node's memory, so both get
+    // confirmed — guarding only one would leave the other path open, and worse,
+    // would suggest that the other one is harmless.
     const [confirm, setConfirm] = useState(null);
 
-    // Comando de captura publicado, esperando que el nodo lo aplique. Ver el
-    // efecto de más abajo.
+    // Capture command published, waiting for the node to apply it. See the
+    // effect further down.
     const [pending, setPending] = useState(null);
 
-    // El comando retenido lleva un solo mensaje, así que hay que mirar cuál es y
-    // no sólo si hay alguno: session.armed del backend se prende con cualquiera,
-    // incluido el log_on que acabamos de publicar nosotros.
+    // The retained topic carries a single message, so what matters is which one
+    // it is, not just whether one exists: the backend's session.armed turns on
+    // for any of them, including the log_on we just published ourselves.
     const inServiceMode = state?.node?.state === 'service_mode';
     const maintenanceArmed = Boolean(
         state?.retainedCmd?.present && state.retainedCmd.cmd === 'maintenance'
@@ -148,42 +150,45 @@ const LogPanel = ({ state, connected }) => {
     );
     const telemetryAt = state?.telemetry?.receivedAt ?? null;
 
-    // El selector muestra lo que vas a aplicar, pero tiene que arrancar en lo que
-    // el nodo está haciendo de verdad. Mostrar "Resumen" seleccionado mientras el
-    // nodo captura en "Verboso" es la clase de desajuste que hace desconfiar de
-    // toda la pantalla. Se sincroniza cuando el nodo reporta un nivel distinto, y
-    // después respeta lo que elijas a mano.
+    // The selector shows what you are about to apply, but it has to start from
+    // what the node is actually doing. Showing "Summary" selected while the node
+    // is capturing at "Verbose" is the kind of mismatch that makes the whole
+    // screen feel untrustworthy. It syncs whenever the node reports a different
+    // level, and after that it respects whatever you pick by hand.
     const nodeLevel = logs.active ? logs.level : 0;
-    // Arranca en 0 y no en nodeLevel: inicializarlo con el valor del primer render
-    // hace que la comparación de abajo sea falsa justo esa primera vez, que es
-    // cuando más importa — el panel se abre con una captura ya corriendo.
+    // Starts at 0, not at nodeLevel: initializing it with the first render's
+    // value makes the comparison below false exactly on that first time, which is
+    // when it matters most — the panel opens with a capture already running.
     const prevNodeLevel = useRef(0);
     useEffect(() => {
         if (nodeLevel && nodeLevel !== prevNodeLevel.current) setLevel(nodeLevel);
         prevNodeLevel.current = nodeLevel;
     }, [nodeLevel]);
 
-    // ── Espera del comando de captura ─────────────────────────────────────────
+    // ── Waiting for the capture command ───────────────────────────────────────
     //
-    // Publicar el comando no cambia nada en el nodo: queda retenido hasta que
-    // despierte, lo lea y lo aplique, o sea hasta un ciclo entero. El POST vuelve
-    // en milisegundos, así que sin esto el click no movía nada en pantalla —el
-    // chip seguía diciendo lo mismo— y se leía como que el botón no funcionaba.
+    // Publishing the command changes nothing on the node: it stays retained until
+    // the node wakes up, reads it and applies it, i.e. up to a full cycle. The
+    // POST returns in milliseconds, so without this the click moved nothing on
+    // screen —the chip kept saying the same thing— and read as if the button
+    // didn't work.
     //
-    // La confirmación pide tres cosas a la vez, y las tres hacen falta:
+    // Confirmation requires three things at once, and all three are needed:
     //
-    //  - `applied`: el nodo reporta el estado que le pedimos.
-    //  - `fresh`: lo reporta en una telemetría posterior al click, no en la que ya
-    //    estaba en pantalla cuando se apretó el botón.
-    //  - `moved`: algo cambió de verdad. Sin esto, volver a arrancar una captura en
-    //    el mismo nivel que ya corría se daría por aplicada con la primera
-    //    telemetría que llegue, aunque el nodo todavía no haya leído el comando.
+    //  - `applied`: the node reports the state we asked for.
+    //  - `fresh`: it reports it in a telemetry cycle after the click, not the one
+    //    that was already on screen when the button was pressed.
+    //  - `moved`: something actually changed. Without this, restarting a capture
+    //    at the same level that was already running would be taken as applied on
+    //    the very first telemetry that arrives, even if the node hasn't read the
+    //    command yet.
     //
-    // `moved` mira tres señales porque ninguna sola cubre todos los casos: el nodo
-    // limpia el retenido al consumirlo (pero ese publish puede perderse, como el
-    // 42% de los otros), el nivel cambia (pero no si se re-arranca en el mismo), y
-    // el contador retrocede (logging_configure() vacía el ring, y el contador nunca
-    // baja solo: satura en la capacidad cuando empieza a pisar lo viejo).
+    // `moved` watches three signals because none alone covers every case: the
+    // node clears the retained topic when it consumes it (but that publish can be
+    // lost, like 42% of the others), the level changes (but not if it's restarted
+    // at the same one), and the counter goes backward (logging_configure() empties
+    // the ring, and the counter never drops on its own: it saturates at capacity
+    // once it starts overwriting old entries).
     useEffect(() => {
         if (!pending) return undefined;
 
@@ -204,38 +209,39 @@ const LogPanel = ({ state, connected }) => {
         if (applied && fresh && moved) {
             setPending(null);
             toast.success(pending.kind === 'stop'
-                ? 'El nodo detuvo la captura y vació su memoria.'
-                : `El nodo está capturando en ${levelName(pending.level)}.`);
+                ? 'The node stopped the capture and cleared its memory.'
+                : `The node is capturing at ${levelName(pending.level)}.`);
             return undefined;
         }
 
-        // Se agotó la espera. No se deshace nada: el comando sigue retenido y el
-        // nodo lo va a aplicar cuando logre leerlo. Lo único que se suelta es la UI,
-        // que si no quedaría bloqueada indefinidamente por un nodo que no aparece.
+        // The wait ran out. Nothing is undone: the command stays retained and the
+        // node will apply it whenever it manages to read it. The only thing that
+        // gets released is the UI, which would otherwise stay blocked indefinitely
+        // by a node that never shows up.
         const id = setTimeout(() => {
             setPending(null);
             toast.error(
-                'El nodo no confirmó el cambio de captura. El comando sigue retenido: ' +
-                'si el nodo aparece, lo va a aplicar — mirá el chip de estado en un par de ciclos.'
+                'The node did not confirm the capture change. The command is still retained: ' +
+                'if the node shows up, it will apply it — check the status chip in a couple of cycles.'
             );
         }, Math.max(0, pending.deadline - Date.now()));
         return () => clearTimeout(id);
     }, [pending, logs.active, logs.level, logs.count, retainedIsLogCmd, telemetryAt]);
 
-    // Recupera la última captura transferida por el backend, para que recargar la
-    // página no cueste otra sesión de service mode.
+    // Retrieves the last capture the backend transferred, so reloading the page
+    // doesn't cost another service mode session.
     useEffect(() => {
         let cancelled = false;
         getLastLogCapture()
             .then((c) => !cancelled && c && setCapture(c))
-            .catch(() => { /* sin captura previa: estado inicial normal */ });
+            .catch(() => { /* no previous capture: normal initial state */ });
         return () => { cancelled = true; };
     }, []);
 
     const setCaptureLevel = async (lvl) => {
         setBusy(true);
-        // Foto de lo que el nodo reportaba antes de publicar. Es contra esto que se
-        // decide después si el nodo aplicó el comando o todavía no lo leyó.
+        // Snapshot of what the node was reporting before publishing. This is what
+        // later decides whether the node applied the command or hasn't read it yet.
         const before = { active: logs.active, level: logs.level, count: logs.count };
         try {
             const res = await sendServiceCommand({ cmd: 'log_on', level: lvl, entries: 0 });
@@ -247,13 +253,13 @@ const LogPanel = ({ state, connected }) => {
                 sawRetained: false,
                 deadline: Date.now() + PENDING_TIMEOUT_MS,
             });
-            // "Publicado" y no "iniciada": en este punto lo único que pasó es que el
-            // mensaje quedó en el broker. Decir que la captura arrancó era la mentira
-            // que hacía parecer que después no pasaba nada.
+            // "Published", not "started": at this point all that happened is that
+            // the message landed on the broker. Saying the capture had started was
+            // the lie that made it look like nothing happened afterward.
             toast.success(
                 (lvl === 0
-                    ? 'Comando de detener captura publicado'
-                    : `Comando de captura en ${levelName(lvl)} publicado`)
+                    ? 'Stop capture command published'
+                    : `Capture command at ${levelName(lvl)} published`)
                 + (res.note ? ` — ${res.note}` : '')
             );
         } catch (err) {
@@ -271,8 +277,8 @@ const LogPanel = ({ state, connected }) => {
             setCapture(c);
             setCodeFilter('all');
             const n = c.entries?.length ?? 0;
-            if (n === 0) toast('El nodo no tenía eventos capturados.', { icon: 'ℹ️' });
-            else toast.success(`${n} eventos transferidos${c.cleared ? ' — el nodo ya los borró' : ''}`);
+            if (n === 0) toast('The node had no captured events.', { icon: 'ℹ️' });
+            else toast.success(`${n} events transferred${c.cleared ? ' — the node already cleared them' : ''}`);
         } catch (err) {
             toast.error(err.message);
         } finally {
@@ -300,25 +306,26 @@ const LogPanel = ({ state, connected }) => {
     const ring = logs.ringEntries || 768;
     const fillPct = logs.active && ring ? Math.min(100, (logs.count / ring) * 100) : 0;
 
-    // La transferencia necesita al nodo despierto y suscripto, o sea en service
-    // mode. Es la parte del flujo que no se explicaba sola: el estado decía
-    // "capturando" y el botón estaba muerto, sin decir qué hacer al respecto.
+    // Transferring needs the node awake and subscribed, i.e. in service mode.
+    // This is the part of the flow that didn't explain itself: the status said
+    // "capturing" and the button was dead, without saying what to do about it.
     const needsServiceMode = !logs.canFetch && !inServiceMode && connected && !logs.fetching;
 
-    // Al revés que transferir, cambiar la captura NO se puede hacer con el nodo en
-    // service mode, y no es una cuestión de esperar más: el comando se pierde.
-    // El loop de service_mode.cpp sólo reacciona al retenido cuando llega vacío
-    // —ese es el "salí de service mode"— y descarta cualquier otro payload; después,
-    // al cerrar la sesión, serviceMode_exit() limpia el topic y se lleva puesto el
-    // log_on que estaba esperando. Y como el topic retenido guarda un solo mensaje,
-    // publicarlo pisa el `maintenance` que sostiene la sesión de OTA.
+    // Unlike transferring, changing the capture CANNOT be done with the node in
+    // service mode, and it's not a matter of waiting longer: the command gets
+    // lost. The service_mode.cpp loop only reacts to the retained topic when it
+    // arrives empty —that's the "I left service mode" signal— and discards any
+    // other payload; then, on closing the session, serviceMode_exit() clears the
+    // topic and takes the waiting log_on down with it. And since the retained
+    // topic holds only one message, publishing here overwrites the `maintenance`
+    // message that is holding the OTA session open.
     const captureLocked = inServiceMode || maintenanceArmed;
 
     const armServiceMode = async () => {
         setBusy(true);
         try {
             const res = await sendServiceCommand({ cmd: 'maintenance', timeoutMin: 15 });
-            toast.success(`Service mode pedido${res.note ? ` — ${res.note}` : ''}`);
+            toast.success(`Service mode requested${res.note ? ` — ${res.note}` : ''}`);
         } catch (err) {
             toast.error(err.message);
         } finally {
@@ -326,20 +333,21 @@ const LogPanel = ({ state, connected }) => {
         }
     };
 
-    // Se muestra plegado o desplegado, pero nunca oculto: si quedó una captura
-    // corriendo hace semanas, tiene que verse sin abrir nada. Por el mismo motivo
-    // el tiempo corriendo va acá y no sólo en el cuerpo: "¿ya pasaron las 2 h que
-    // quería capturar?" se tiene que contestar sin abrir el panel.
+    // Shown collapsed or expanded, but never hidden: if a capture has been
+    // running for weeks, it has to be visible without opening anything. For the
+    // same reason the running time goes here and not only in the body: "has it
+    // already been the 2 h I wanted to capture?" has to be answerable without
+    // opening the panel.
     const stateChip = logs.active ? (
         <span className="svc-chip" style={{ borderColor: '#4ade80', color: '#4ade80' }}>
-            <Play size={13} aria-hidden="true" /> Capturando · {levelName(logs.level)} · {logs.count}/{ring}
+            <Play size={13} aria-hidden="true" /> Capturing · {levelName(logs.level)} · {logs.count}/{ring}
             {logs.activeSince && (
                 <> · <CaptureUptime since={logs.activeSince} exact={logs.activeSinceExact} /></>
             )}
         </span>
     ) : (
         <span className="svc-chip svc-badge-muted">
-            <Square size={13} aria-hidden="true" /> Captura detenida
+            <Square size={13} aria-hidden="true" /> Capture stopped
         </span>
     );
 
@@ -350,10 +358,10 @@ const LogPanel = ({ state, connected }) => {
             aria-expanded={open}
         >
             {open ? <ChevronDown size={17} aria-hidden="true" /> : <ChevronRight size={17} aria-hidden="true" />}
-            <h3><ScrollText size={17} aria-hidden="true" /> Logs del nodo</h3>
+            <h3><ScrollText size={17} aria-hidden="true" /> Node logs</h3>
             {supported && stateChip}
             <span className="svc-muted svc-small svc-collapse-spacer">
-                {open ? 'ocultar' : 'mostrar'}
+                {open ? 'hide' : 'show'}
             </span>
         </button>
     );
@@ -366,11 +374,11 @@ const LogPanel = ({ state, connected }) => {
                     <div className="svc-alert svc-alert-info" style={{ marginTop: '0.75rem' }}>
                         <AlertTriangle size={18} aria-hidden="true" />
                         <div>
-                            <strong>El backend todavía no expone el sistema de logs.</strong>
+                            <strong>The backend does not expose the logging system yet.</strong>
                             <div className="svc-small">
-                                Este panel necesita el campo <code>logs</code> en el snapshot de estado.
-                                Rebuildeá y redesplegá la imagen del backend; el firmware del nodo además
-                                tiene que estar en 1.3.0 o superior.
+                                This panel needs the <code>logs</code> field in the state snapshot.
+                                Rebuild and redeploy the backend image; the node's firmware also needs
+                                to be on 1.3.0 or newer.
                             </div>
                         </div>
                     </div>
@@ -388,17 +396,17 @@ const LogPanel = ({ state, connected }) => {
             {head}
 
             <p className="svc-muted svc-small" style={{ marginTop: '0.5rem' }}>
-                Capturar corre durante los ciclos normales y no cuesta energía. Transferir es lo
-                único que necesita al nodo despierto, y por eso va en un paso aparte.
+                Capturing runs during normal cycles and costs no energy. Transferring is the only
+                part that needs the node awake, which is why it's a separate step.
             </p>
 
             {logs.dictKnown && (
                 <div className="svc-chips" style={{ marginTop: '0.5rem' }}>
                     <Tip
                         className="svc-chip svc-badge-muted"
-                        text="El backend ya tiene cacheado el diccionario código→texto de esta versión de firmware, así que no hace falta pedírselo al nodo en la próxima transferencia."
+                        text="The backend already has the code→text dictionary for this firmware version cached, so there's no need to ask the node for it on the next transfer."
                     >
-                        diccionario en caché
+                        dictionary cached
                     </Tip>
                 </div>
             )}
@@ -406,11 +414,11 @@ const LogPanel = ({ state, connected }) => {
             {logs.active && (
                 <div className="svc-budget" style={{ marginTop: '0.5rem' }}>
                     <div className="svc-budget-head">
-                        <span className="svc-small">Memoria de captura: {logs.count} / {ring} eventos</span>
+                        <span className="svc-small">Capture memory: {logs.count} / {ring} events</span>
                         <span className="svc-muted svc-small">
                             {fillPct >= 100
-                                ? 'llena — ya está reemplazando los eventos más viejos'
-                                : `${Math.round(fillPct)}% ocupada`}
+                                ? 'full — already overwriting the oldest events'
+                                : `${Math.round(fillPct)}% full`}
                         </span>
                     </div>
                     <div className="svc-budget-bar">
@@ -423,12 +431,12 @@ const LogPanel = ({ state, connected }) => {
                         <p className="svc-muted svc-small" style={{ marginTop: '0.4rem' }}>
                             <Clock size={13} aria-hidden="true" />{' '}
                             {logs.activeSinceExact ? (
-                                <Tip text="Cuándo arrancó la ventana que el nodo tiene guardada ahora. Se reinicia al cambiar de nivel y al transferir, porque en los dos casos el nodo vacía su memoria. Lo deriva el backend mirando la telemetría —el nodo no tiene reloj—, así que tiene la precisión de un ciclo.">
-                                    Capturando desde las {formatClock(logs.activeSince)}
+                                <Tip text="When the window the node currently has stored started. It resets on a level change and on transfer, because in both cases the node empties its memory. The backend derives it by watching telemetry —the node has no clock— so it has the precision of one cycle.">
+                                    Capturing since {formatClock(logs.activeSince)}
                                 </Tip>
                             ) : (
-                                <Tip text="El backend encontró la captura ya corriendo —se reinició después de que arrancó—, así que no sabe cuándo empezó de verdad. El número es un piso: puede llevar mucho más.">
-                                    Corriendo desde antes de las {formatClock(logs.activeSince)}
+                                <Tip text="The backend found the capture already running —it restarted after the capture started— so it doesn't know when it really began. The number is a floor: it could have been running for much longer.">
+                                    Running since before {formatClock(logs.activeSince)}
                                 </Tip>
                             )}
                             {' — '}
@@ -438,15 +446,15 @@ const LogPanel = ({ state, connected }) => {
                 </div>
             )}
 
-            {/* ── Paso 1 ───────────────────────────────────────────────────── */}
-            <h4 className="svc-h4" style={{ marginTop: '1rem' }}>1 · Capturar en el nodo</h4>
-            <label className="svc-kv-label" style={{ marginTop: '0.4rem' }}>Nivel de captura</label>
+            {/* ── Step 1 ───────────────────────────────────────────────────── */}
+            <h4 className="svc-h4" style={{ marginTop: '1rem' }}>1 · Capture on the node</h4>
+            <label className="svc-kv-label" style={{ marginTop: '0.4rem' }}>Capture level</label>
             <div className="svc-toolbar">
                 {LEVELS.map((l) => (
                     <button
                         key={l.value}
                         className={`svc-range-btn svc-tip ${level === l.value ? 'active' : ''}`}
-                        data-tip={`Nivel ${l.value}. ${l.blurb} Dura ${formatWindow(ring, l.entriesPerCycle)} antes de empezar a reemplazar los eventos más viejos.`}
+                        data-tip={`Level ${l.value}. ${l.blurb} Lasts ${formatWindow(ring, l.entriesPerCycle)} before it starts overwriting the oldest events.`}
                         onClick={() => setLevel(l.value)}
                     >
                         {l.label} (N{l.value}) · {formatWindow(ring, l.entriesPerCycle)}
@@ -454,66 +462,67 @@ const LogPanel = ({ state, connected }) => {
                 ))}
             </div>
             <p className="svc-muted svc-small" style={{ marginTop: '0.4rem' }}>
-                Nivel {level}: {LEVELS.find((l) => l.value === level)?.blurb}{' '}
-                La ventana estimada asume ciclos de {CYCLE_SEC} s. La memoria de captura vive en la RTC
-                memory del ESP32 y no se puede agrandar: más detalle es menos horas.
+                Level {level}: {LEVELS.find((l) => l.value === level)?.blurb}{' '}
+                The estimated window assumes {CYCLE_SEC} s cycles. Capture memory lives in the ESP32's
+                RTC memory and cannot be grown: more detail means fewer hours.
             </p>
 
             {logs.active && logs.level !== level && (
                 <p className="svc-small" style={{ marginTop: '0.35rem', color: '#fde68a' }}>
-                    El nodo está capturando en {levelName(logs.level)}. Comenzar de nuevo lo cambia a{' '}
-                    {levelName(level)} y descarta lo capturado hasta ahora.
+                    The node is capturing at {levelName(logs.level)}. Starting again switches it to{' '}
+                    {levelName(level)} and discards what has been captured so far.
                 </p>
             )}
 
             <div className="svc-btn-row" style={{ marginTop: '0.6rem' }}>
                 <button
                     className="svc-btn svc-btn-primary svc-tip"
-                    data-tip="Publica el comando en el topic retenido. El nodo lo levanta al despertar (hasta un ciclo de demora) y arranca de cero: lo que hubiera capturado antes se descarta."
+                    data-tip="Publishes the command on the retained topic. The node picks it up on waking (up to one cycle of delay) and starts from zero: anything captured before is discarded."
                     disabled={busy || !connected || pending !== null || captureLocked}
                     onClick={() => (logs.active ? setConfirm('start') : setCaptureLevel(level))}
                 >
                     {pending?.kind === 'start'
-                        ? <><Loader2 size={16} className="animate-spin" /> Comenzando captura…</>
-                        : <><Play size={16} /> Comenzar captura</>}
+                        ? <><Loader2 size={16} className="animate-spin" /> Starting capture…</>
+                        : <><Play size={16} /> Start capture</>}
                 </button>
                 <button
                     className="svc-btn svc-tip"
-                    data-tip="Detiene la captura y vacía la memoria del nodo. Si quedaron eventos sin transferir, se pierden — conviene transferir primero."
+                    data-tip="Stops the capture and empties the node's memory. Any events not yet transferred are lost — transfer first if that matters."
                     disabled={busy || !connected || !logs.active || pending !== null || captureLocked}
                     onClick={() => setConfirm('stop')}
                 >
                     {pending?.kind === 'stop'
-                        ? <><Loader2 size={16} className="animate-spin" /> Deteniendo captura…</>
-                        : <><Square size={16} /> Detener captura</>}
+                        ? <><Loader2 size={16} className="animate-spin" /> Stopping capture…</>
+                        : <><Square size={16} /> Stop capture</>}
                 </button>
             </div>
 
-            {/* La espera es el estado normal de este paso, no una excepción: el nodo
-                duerme 60 s de cada 64 y sólo mira el topic retenido al despertar. */}
+            {/* Waiting is the normal state for this step, not an exception: the node
+                sleeps 60 s out of every 64 and only checks the retained topic on
+                waking. */}
             {pending && (
                 <div className="svc-alert svc-alert-info" style={{ marginTop: '0.6rem' }}>
                     <Loader2 size={18} className="animate-spin" aria-hidden="true" />
                     <div>
                         <strong>
                             {pending.kind === 'stop'
-                                ? 'Deteniendo la captura'
-                                : `Comenzando la captura en ${levelName(pending.level)}`}
-                            {' '}— esperando al nodo.
+                                ? 'Stopping the capture'
+                                : `Starting the capture at ${levelName(pending.level)}`}
+                            {' '}— waiting on the node.
                         </strong>
                         <div className="svc-small">
                             {pending.sawRetained && !retainedIsLogCmd ? (
-                                <>El nodo levantó el comando y lo está aplicando. Falta la telemetría que
-                                lo confirme, que sale en este mismo ciclo.</>
+                                <>The node picked up the command and is applying it. The telemetry that
+                                confirms it is still needed, which comes in this same cycle.</>
                             ) : (
                                 <>
-                                    El comando quedó retenido en el broker. El nodo lo lee recién al
-                                    despertar
+                                    The command stayed retained on the broker. The node only reads it on
+                                    waking
                                     {state?.node?.nextWakeInSec > 0
-                                        ? `, en ~${state.node.nextWakeInSec} s`
+                                        ? `, in ~${state.node.nextWakeInSec} s`
                                         : ''}
-                                    , y hasta entonces sigue capturando como estaba. Si el ciclo no logra
-                                    publicar —pasa seguido— la confirmación se atrasa hasta el siguiente.
+                                    , and until then it keeps capturing as it was. If the cycle fails to
+                                    publish —which happens often— confirmation is delayed until the next one.
                                 </>
                             )}
                         </div>
@@ -525,13 +534,13 @@ const LogPanel = ({ state, connected }) => {
                 <div className="svc-alert svc-alert-warn" style={{ marginTop: '0.6rem' }}>
                     <AlertTriangle size={18} aria-hidden="true" />
                     <div>
-                        <strong>No se puede cambiar la captura con el nodo en service mode.</strong>
+                        <strong>Capture cannot be changed while the node is in service mode.</strong>
                         <div className="svc-small">
                             {inServiceMode
-                                ? 'Durante la sesión el nodo ignora todo lo que llegue al topic de comandos salvo el pedido de salir, y al cerrarla limpia el topic — así que el comando no se demoraría, se perdería.'
-                                : 'Hay un comando de mantenimiento retenido esperando a que el nodo despierte. El topic guarda un mensaje solo, así que publicar la captura acá lo pisaría y cancelaría el service mode.'}
-                            {' '}Transferir sí funciona. Para cambiar la captura, salí de service mode y
-                            esperá al próximo ciclo normal.
+                                ? 'During the session the node ignores everything that arrives on the command topic except the request to exit, and closing the session clears the topic — so the command would not be delayed, it would be lost.'
+                                : 'There is a retained maintenance command waiting for the node to wake up. The topic holds only one message, so publishing the capture command here would overwrite it and cancel service mode.'}
+                            {' '}Transferring still works. To change the capture, exit service mode and
+                            wait for the next normal cycle.
                         </div>
                     </div>
                 </div>
@@ -540,9 +549,9 @@ const LogPanel = ({ state, connected }) => {
             <ConfirmDialog
                 open={confirm !== null}
                 title={confirm === 'start'
-                    ? 'Comenzar descarta la captura en curso'
-                    : 'Detener vacía la memoria del nodo'}
-                confirmLabel={confirm === 'start' ? 'Descartar y comenzar' : 'Detener y borrar'}
+                    ? 'Starting discards the capture in progress'
+                    : "Stopping empties the node's memory"}
+                confirmLabel={confirm === 'start' ? 'Discard and start' : 'Stop and delete'}
                 onCancel={() => setConfirm(null)}
                 onConfirm={() => {
                     const kind = confirm;
@@ -551,42 +560,42 @@ const LogPanel = ({ state, connected }) => {
                 }}
             >
                 {confirm === 'start'
-                    ? <>Hay una captura activa en {levelName(logs.level)}. Comenzar una nueva la borra y arranca de cero.</>
-                    : <>Al detenerse, el nodo vacía su memoria de captura.</>}
-                {' '}El nodo reportó <strong>{logs.count} eventos</strong> en su última telemetría
-                {logs.count > 0 && <> — si no los transferiste, se pierden</>}.
-                {' '}El número puede estar hasta un ciclo atrasado, así que podría haber más.
+                    ? <>There is an active capture at {levelName(logs.level)}. Starting a new one erases it and starts from zero.</>
+                    : <>On stopping, the node empties its capture memory.</>}
+                {' '}The node reported <strong>{logs.count} events</strong> in its last telemetry
+                {logs.count > 0 && <> — if you haven't transferred them, they will be lost</>}.
+                {' '}The number can be up to one cycle behind, so there could be more.
                 {logs.count > 0 && (
-                    <> Si te interesan, cancelá y usá <em>Transferir logs desde el nodo</em> primero
-                    {confirm === 'stop' && <> (deja la memoria vacía y la captura detenida, que es lo mismo que buscabas)</>}.</>
+                    <> If they matter, cancel and use <em>Transfer logs from the node</em> first
+                    {confirm === 'stop' && <> (this leaves the memory empty and the capture stopped, which is the same thing you were after)</>}.</>
                 )}
             </ConfirmDialog>
 
-            {/* ── Paso 2 ───────────────────────────────────────────────────── */}
-            <h4 className="svc-h4" style={{ marginTop: '1.2rem' }}>2 · Transferir al backend</h4>
+            {/* ── Step 2 ───────────────────────────────────────────────────── */}
+            <h4 className="svc-h4" style={{ marginTop: '1.2rem' }}>2 · Transfer to the backend</h4>
 
-            {/* El requisito va ANTES del botón y con la acción adentro. Antes esta
-                explicación colgaba debajo de todo, así que se leía como si fuera la
-                respuesta a "Comenzar captura" — el botón de arriba— en vez del
-                requisito del de abajo. */}
+            {/* The requirement goes BEFORE the button and with the action inside it.
+                This explanation used to hang below everything, so it read like the
+                answer to "Start capture" — the button above— instead of the
+                requirement for the one below. */}
             {needsServiceMode && (
                 <div className="svc-alert svc-alert-info" style={{ marginTop: '0.4rem' }}>
                     <Info size={18} aria-hidden="true" />
                     <div>
-                        <strong>Primero hay que despertar al nodo.</strong>
+                        <strong>The node needs to be woken up first.</strong>
                         <div className="svc-small">
-                            Fuera de una sesión de service mode el nodo duerme 60 s de cada 70 y no
-                            escucha el topic de pedidos, así que no puede responder una transferencia.
-                            La captura mientras tanto sigue corriendo sin problema.
+                            Outside a service mode session the node sleeps 60 s out of every 70 and
+                            doesn't listen to the request topic, so it can't respond to a transfer.
+                            The capture keeps running fine in the meantime.
                         </div>
                         <button
                             className="svc-btn svc-tip"
                             style={{ marginTop: '0.6rem' }}
-                            data-tip="Publica el comando de mantenimiento con el timeout por defecto de 15 min. El nodo lo levanta en su próximo despertar y queda despierto — recién ahí se puede transferir."
+                            data-tip="Publishes the maintenance command with the default 15 min timeout. The node picks it up on its next wake and stays awake — only then can it be transferred."
                             disabled={busy || maintenanceArmed}
                             onClick={armServiceMode}
                         >
-                            <Wrench size={16} /> {maintenanceArmed ? 'Service mode ya pedido — esperando al nodo' : 'Activar service mode'}
+                            <Wrench size={16} /> {maintenanceArmed ? 'Service mode already requested — waiting on the node' : 'Activate service mode'}
                         </button>
                     </div>
                 </div>
@@ -599,19 +608,19 @@ const LogPanel = ({ state, connected }) => {
             <div className="svc-btn-row" style={{ marginTop: '0.6rem' }}>
                 <button
                     className="svc-btn svc-btn-primary svc-tip"
-                    data-tip="Trae los eventos capturados página por página. El nodo sólo los borra después de que el backend confirma que llegaron todos, así que una transferencia cortada no cuesta la captura."
+                    data-tip="Fetches the captured events page by page. The node only clears them after the backend confirms they all arrived, so an interrupted transfer doesn't cost the capture."
                     disabled={busy || !logs.canFetch}
                     onClick={transfer}
                 >
-                    {/* El label mira `transferring` y no `busy`: `busy` lo comparten
-                        todas las acciones del panel, así que arrancar una captura
-                        ponía este botón en "Transfiriendo…" sin que nadie transfiera. */}
-                    <DownloadCloud size={16} /> {transferring ? 'Transfiriendo…' : 'Transferir logs desde el nodo'}
+                    {/* The label watches `transferring`, not `busy`: `busy` is shared
+                        by every action on the panel, so starting a capture would put
+                        this button in "Transferring…" while nothing was transferring. */}
+                    <DownloadCloud size={16} /> {transferring ? 'Transferring…' : 'Transfer logs from the node'}
                 </button>
                 <label className="svc-checkbox">
                     <input type="checkbox" checked={keep} onChange={(e) => setKeep(e.target.checked)} />
-                    <Tip text="Trae una copia sin detener la captura ni vaciar la memoria del nodo, para investigaciones que siguen corriendo. Por defecto la transferencia vacía y detiene.">
-                        mantener captura activa
+                    <Tip text="Fetches a copy without stopping the capture or emptying the node's memory, for investigations that are still ongoing. By default the transfer empties and stops it.">
+                        keep capture running
                     </Tip>
                 </label>
             </div>
@@ -619,24 +628,24 @@ const LogPanel = ({ state, connected }) => {
                 <div className="svc-alert svc-alert-warn" style={{ marginTop: '0.6rem' }}>
                     <AlertTriangle size={18} aria-hidden="true" />
                     <div>
-                        <strong>La última transferencia falló.</strong>
+                        <strong>The last transfer failed.</strong>
                         <div className="svc-small">{logs.lastError}</div>
                     </div>
                 </div>
             )}
 
-            {/* ── Captura transferida ──────────────────────────────────────── */}
+            {/* ── Transferred capture ──────────────────────────────────────── */}
             {capture && (
                 <>
                     <div className="svc-card-head" style={{ marginTop: '1.2rem' }}>
                         <h4 className="svc-h4">
-                            3 · Revisar · {capture.count || capture.entries?.length || 0} eventos
+                            3 · Review · {capture.count || capture.entries?.length || 0} events
                             {capture.firmware ? ` · ${capture.firmware}` : ''}
                         </h4>
                         <div className="svc-toolbar">
                             <a
                                 className="svc-icon-btn svc-tip"
-                                data-tip="Descarga la captura como JSON, con el diccionario de códigos y las anclas de tiempo adentro. Se lee aunque el firmware avance y renumere los códigos."
+                                data-tip="Downloads the capture as JSON, with the code dictionary and time anchors included. Stays readable even after the firmware moves on and renumbers the codes."
                                 href={LOG_EXPORT_JSON_URL}
                                 download
                             >
@@ -644,7 +653,7 @@ const LogPanel = ({ state, connected }) => {
                             </a>
                             <a
                                 className="svc-icon-btn svc-tip"
-                                data-tip="Igual que el JSON pero un evento por línea, con una primera línea de cabecera. Mismo formato que el export del visor de payloads."
+                                data-tip="Same as the JSON but one event per line, with a header line first. Same format as the payload viewer's export."
                                 href={LOG_EXPORT_NDJSON_URL}
                                 download
                             >
@@ -653,23 +662,23 @@ const LogPanel = ({ state, connected }) => {
                         </div>
                     </div>
                     <p className="svc-muted svc-small">
-                        Transferida {formatClock(capture.fetchedAt)}.{' '}
+                        Transferred {formatClock(capture.fetchedAt)}.{' '}
                         {capture.cleared
                             ? (capture.kept
-                                ? 'La memoria del nodo se vació pero la captura sigue activa.'
-                                : 'El nodo vació su memoria y detuvo la captura.')
-                            : 'El nodo no confirmó el borrado: la captura sigue ocupando su memoria.'}
+                                ? "The node's memory was cleared but the capture is still active."
+                                : 'The node cleared its memory and stopped the capture.')
+                            : 'The node did not confirm the clear: the capture is still occupying its memory.'}
                     </p>
 
                     {capture.dropped > 0 && (
                         <div className="svc-alert svc-alert-warn" style={{ marginTop: '0.5rem' }}>
                             <AlertTriangle size={18} aria-hidden="true" />
                             <div>
-                                <strong>Faltan los eventos más viejos.</strong>
+                                <strong>The oldest events are missing.</strong>
                                 <div className="svc-small">
-                                    La memoria del nodo se llenó y reemplazó {capture.dropped} eventos por otros
-                                    más nuevos, así que la captura no llega hasta el principio de la ventana y
-                                    puede no cubrir lo que buscabas. Para la próxima, un nivel más magro dura más.
+                                    The node's memory filled up and overwrote {capture.dropped} events with newer
+                                    ones, so the capture doesn't reach back to the start of the window and may
+                                    not cover what you were looking for. Next time, a leaner level lasts longer.
                                 </div>
                             </div>
                         </div>
@@ -686,7 +695,7 @@ const LogPanel = ({ state, connected }) => {
                                     className={`svc-range-btn ${codeFilter === 'all' ? 'active' : ''}`}
                                     onClick={() => setCodeFilter('all')}
                                 >
-                                    todos
+                                    all
                                 </button>
                                 {codeNames.map((n) => (
                                     <button
@@ -704,7 +713,7 @@ const LogPanel = ({ state, connected }) => {
                                     className="svc-input"
                                     value={text}
                                     onChange={(e) => setText(e.target.value)}
-                                    placeholder="Filtrar por texto — p. ej. rssi, timeout, mqtt"
+                                    placeholder="Filter by text — e.g. rssi, timeout, mqtt"
                                     spellCheck={false}
                                 />
                                 <span className="svc-muted svc-small" style={{ alignSelf: 'center' }}>
@@ -714,7 +723,7 @@ const LogPanel = ({ state, connected }) => {
 
                             <div className="svc-log" style={{ marginTop: '0.5rem' }}>
                                 {filtered.length === 0 && (
-                                    <p className="svc-muted svc-small">Ningún evento coincide con el filtro.</p>
+                                    <p className="svc-muted svc-small">No events match the filter.</p>
                                 )}
                                 {filtered.map((e, i) => (
                                     <div key={i} className="svc-log-row">
@@ -722,7 +731,7 @@ const LogPanel = ({ state, connected }) => {
                                             <span className="svc-log-time">
                                                 {e.at ? formatClock(e.at) : '—'}
                                                 {e.at && !e.atAnchored && (
-                                                    <Tip text="Hora estimada: este ciclo no publicó telemetría, así que se interpoló desde el ciclo con hora real más cercano usando el tiempo despierto medido. El timer de deep sleep tiene ±5%, así que la desviación crece con la distancia.">
+                                                    <Tip text="Estimated time: this cycle did not publish telemetry, so it was interpolated from the nearest cycle with a real timestamp using the measured awake time. The deep sleep timer has ±5% drift, so the deviation grows with distance.">
                                                         {' '}≈
                                                     </Tip>
                                                 )}

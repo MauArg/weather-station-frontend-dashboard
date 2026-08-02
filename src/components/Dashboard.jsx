@@ -125,23 +125,27 @@ const Dashboard = () => {
     const ENERGY_UI = {
         charging: {
             label: 'Cargando', color: '#4ade80', Icon: BatteryCharging, pulse: 'pulse-animation-positive',
-            detail: 'El panel está entregando y la batería no pierde terreno.',
+            // "Cubriendo" y no "entregando más de lo que consume": este estado
+            // incluye la tensión plana, donde entra ≈ sale. Afirmar el superávit
+            // sería volver a la comparación que este medidor dejó de hacer, y
+            // además chocaría con la frase de deriva cuando dice "estable".
+            detail: 'El panel está cubriendo el consumo del sistema.',
         },
         full: {
             label: 'Batería llena', color: '#4ade80', Icon: CheckCircle2, pulse: '',
-            detail: 'El cargador soltó el panel: la batería ya no acepta más carga.',
+            detail: 'Nivel de carga completa. No se está cargando.',
         },
         discharging: {
             label: 'Descargando', color: '#a1a1aa', Icon: Moon, pulse: '',
-            detail: 'Sin luz utilizable — corriendo de la batería, que es lo esperado de noche.',
+            detail: 'Generación no disponible por falta de sol. El sistema se alimenta desde la batería.',
         },
         deficit: {
             label: 'Déficit', color: '#f87171', Icon: AlertTriangle, pulse: 'pulse-animation-negative',
-            detail: 'Hay sol y el cargador está pidiendo, pero la batería igual viene bajando.',
+            detail: 'La generación solar no cubre el consumo energético actual del sistema.',
         },
         unknown: {
             label: 'Midiendo…', color: '#71717a', Icon: HelpCircle, pulse: '',
-            detail: 'Hace falta alrededor de una hora de telemetría para determinar la tendencia.',
+            detail: 'Se requiere aproximadamente una hora de datos para determinar la tendencia.',
         },
     };
 
@@ -168,7 +172,7 @@ const Dashboard = () => {
 
     const pressureVariants = currentData.pressureQnh == null ? null : [
         { key: 'qnh', value: formatPressure(currentData.pressureQnh), unit: 'hPa', caption: 'QNH · nivel del mar' },
-        { key: 'station', value: formatPressure(currentData.pressure), unit: 'hPa', caption: 'estación · sin reducir' },
+        { key: 'station', value: formatPressure(currentData.pressure), unit: 'hPa', caption: 'estación · valor medido por sensor' },
     ];
 
     const midnightPoints = [];

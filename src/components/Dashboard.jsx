@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ComposedChart } from 'recharts';
-import { Thermometer, Droplets, Gauge, CloudRain, Clock, Battery, Sun, Zap, ArrowUpCircle, ArrowDownCircle, Loader2 } from 'lucide-react';
+import { Thermometer, Droplets, Gauge, CloudRain, Clock, Battery, BatteryCharging, CheckCircle2, Moon, AlertTriangle, HelpCircle, Sun, Zap, Loader2 } from 'lucide-react';
 import StatCard from './StatCard';
 import { getRealTimeData, getDailyStats, getRecentHistory } from '../services/ApiService';
 import toast from 'react-hot-toast';
@@ -108,7 +108,52 @@ const Dashboard = () => {
         );
     }
 
-    const isCharging = currentData.energyBalance > 0;
+    // How the pack's voltage is trending, phrased for someone who is not going to
+    // do the arithmetic. Below ~5 mV/h the trend is inside the estimator's own
+    // noise, so it is reported as holding rather than as a direction.
+    const driftPhrase = (vh) => {
+        if (vh == null) return null;
+        const mvh = vh * 1000;
+        if (Math.abs(mvh) < 5) return 'estable en las últimas 2 h';
+        return `${mvh > 0 ? '▲' : '▼'} ${Math.abs(mvh).toFixed(0)} mV/h en las últimas 2 h`;
+    };
+
+    // The scenario, not a number. `unknown` is a real answer here: the trend comes
+    // from the bridge's in-memory ring, which starts empty when the backend
+    // restarts and needs about an hour before it can say anything. Showing a
+    // guess in the meantime would defeat the point of the change.
+    const ENERGY_UI = {
+        charging: {
+            label: 'Cargando', color: '#4ade80', Icon: BatteryCharging, pulse: 'pulse-animation-positive',
+            detail: 'El panel está entregando y la batería no pierde terreno.',
+        },
+        full: {
+            label: 'Batería llena', color: '#4ade80', Icon: CheckCircle2, pulse: '',
+            detail: 'El cargador soltó el panel: la batería ya no acepta más carga.',
+        },
+        discharging: {
+            label: 'Descargando', color: '#a1a1aa', Icon: Moon, pulse: '',
+            detail: 'Sin luz utilizable — corriendo de la batería, que es lo esperado de noche.',
+        },
+        deficit: {
+            label: 'Déficit', color: '#f87171', Icon: AlertTriangle, pulse: 'pulse-animation-negative',
+            detail: 'Hay sol y el cargador está pidiendo, pero la batería igual viene bajando.',
+        },
+        unknown: {
+            label: 'Midiendo…', color: '#71717a', Icon: HelpCircle, pulse: '',
+            detail: 'Hace falta alrededor de una hora de telemetría para determinar la tendencia.',
+        },
+    };
+
+    // Separado con "·" y no como otra oración: la frase de deriva no es una
+    // oración —empieza con un símbolo o en minúscula— y pegarla después del
+    // punto quedaba como "…no acepta más carga. estable en las últimas 2 h".
+    const base = ENERGY_UI[currentData.energyState] ?? ENERGY_UI.unknown;
+    const drift = driftPhrase(currentData.batteryDriftVH);
+    const energyUi = {
+        ...base,
+        detail: drift ? `${base.detail.replace(/\.$/, '')} · ${drift}` : base.detail,
+    };
 
     // Only offer the switch when the node actually reported QNH. The field is left
     // out of the payload when the BMP085 read fails, and a card that can be
@@ -175,22 +220,41 @@ const Dashboard = () => {
                 />
             </div>
 
-            {/* Energy Centerpiece */}
-            <div className={`energy-centerpiece ${isCharging ? 'pulse-animation-positive' : 'pulse-animation-negative'}`}>
-                <div className="energy-subtitle">Instant Energy Balance</div>
-                <div className={`energy-balance-value ${isCharging ? 'energy-balance-positive' : 'energy-balance-negative'}`}>
-                    {isCharging ? <ArrowUpCircle size={64} /> : <ArrowDownCircle size={64} />}
-                    {Math.abs(currentData.energyBalance).toFixed(0)} <span style={{ fontSize: '2rem', marginTop: '1rem' }}>mW</span>
+            {/*
+              Energy centrepiece.
+
+              Headlines the *scenario*, not a power figure. The old version showed
+              solarPower - systemConsumption, and those are not in the same units:
+              the panel figure is continuous while the consumption one is measured
+              during the ~3.6% of each cycle the node is awake. Over five days that
+              subtraction read as a deficit through 56% of well-lit daytime, and
+              none of those survived duty-correcting the consumption. The battery
+              disagreed the whole time — its day-to-day drift was flat.
+
+              The two power figures are still here, below, labelled as what they
+              actually are. What is gone is the subtraction of one from the other.
+            */}
+            <div className={`energy-centerpiece ${energyUi.pulse}`}>
+                <div className="energy-subtitle">Estado energético</div>
+                <div className="energy-state-value" style={{ color: energyUi.color }}>
+                    <energyUi.Icon size={56} aria-hidden="true" />
+                    {energyUi.label}
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'center', gap: '3rem', marginTop: '1rem' }}>
-                    <div style={{ color: '#fde047', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600 }}>
-                        <Sun size={20} /> Production: {formatValue(currentData.solarPower)} mW
+                <div className="energy-state-detail">{energyUi.detail}</div>
+                <div className="energy-facts">
+                    <div className="energy-fact" style={{ color: '#6ee7b7' }}>
+                        <Battery size={20} aria-hidden="true" /> Batería {formatValue(currentData.batterySoc)}%
+                        {currentData.batteryVolts != null && ` · ${formatValue(currentData.batteryVolts)} V`}
                     </div>
-                    <div style={{ color: '#a1a1aa', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600 }}>
-                        <Zap size={20} /> Consumption: {formatValue(currentData.systemConsumption)} mW
+                    <div className="energy-fact" style={{ color: '#fde047' }}>
+                        <Sun size={20} aria-hidden="true" /> Panel {formatValue(currentData.solarPower)} mW
                     </div>
-                    <div style={{ color: '#6ee7b7', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600 }}>
-                        <Battery size={20} /> Battery SOC: {formatValue(currentData.batterySoc)}%
+                    <div
+                        className="energy-fact"
+                        style={{ color: '#a1a1aa', cursor: 'help' }}
+                        title="Medido mientras el nodo está despierto, que es ~3,6% de cada ciclo. No es el consumo promedio: prorrateado son unos 8 mW."
+                    >
+                        <Zap size={20} aria-hidden="true" /> Consumo activo {formatValue(currentData.systemConsumption)} mW
                     </div>
                 </div>
             </div>

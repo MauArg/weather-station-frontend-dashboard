@@ -556,6 +556,49 @@ body {
     font-weight: 600;
 }
 
+/*
+ * Energy state headline. Smaller than the old 5rem number it replaces: a word
+ * carries at a glance what a four-digit figure needed to be shouted to convey,
+ * and the sentence under it is now doing the real work.
+ *
+ * The icon is not decoration. Green here means charging and red means deficit,
+ * and those two separate by only ΔE 6.8 under protanopia on this palette — the
+ * same reason the service view never lets colour communicate alone.
+ */
+.energy-state-value {
+    font-size: 2.6rem;
+    font-weight: 700;
+    line-height: 1;
+    margin: 1rem 0 0.6rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    text-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+.energy-state-detail {
+    color: #a1a1aa;
+    font-size: 0.95rem;
+    max-width: 46rem;
+    margin: 0 auto;
+}
+
+.energy-facts {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 1rem 3rem;
+    margin-top: 1.5rem;
+}
+
+.energy-fact {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
    Service mode
    Status colour never carries meaning on its own here: every state also ships an

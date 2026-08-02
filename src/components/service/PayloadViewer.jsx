@@ -14,7 +14,7 @@ const TOPIC_COLORS = {
 const shortTopic = (topic) => topic.split('/').pop();
 
 const prettyPayload = (payload) => {
-    if (!payload) return '(vacío — retained limpiado)';
+    if (!payload) return '(empty — retained cleared)';
     try {
         return JSON.stringify(JSON.parse(payload), null, 2);
     } catch {
@@ -28,8 +28,8 @@ const PayloadViewer = ({ payloads, paused, onTogglePause, onClear, backlogUntilS
     const [autoScroll, setAutoScroll] = useState(true);
     const listRef = useRef(null);
 
-    // Cada 15 s alcanza: las edades se muestran en minutos y horas, y un tick por
-    // segundo re-renderizaría cientos de renglones para nada.
+    // Every 15 s is enough: ages are shown in minutes and hours, and a tick every
+    // second would re-render hundreds of rows for nothing.
     const now = useNow(15000);
 
     const filtered = useMemo(() => {
@@ -66,20 +66,21 @@ const PayloadViewer = ({ payloads, paused, onTogglePause, onClear, backlogUntilS
     };
 
     const copyPayload = async (payload) => {
-        // Un retenido limpiado llega como string vacío: no hay nada que copiar, y
-        // decir "no se pudo" mandaría a buscar un problema que no existe.
+        // A cleared retained message arrives as an empty string: there's nothing
+        // to copy, and saying "couldn't copy" would send you looking for a
+        // problem that doesn't exist.
         if (!payload) {
-            toast('El payload está vacío — es un retenido limpiado.', { icon: 'ℹ️' });
+            toast('The payload is empty — it is a cleared retained message.', { icon: 'ℹ️' });
             return;
         }
-        if (await copyText(payload)) toast.success('Payload copiado');
-        else toast.error('No se pudo copiar');
+        if (await copyText(payload)) toast.success('Payload copied');
+        else toast.error('Could not copy');
     };
 
     return (
         <div className="svc-card">
             <div className="svc-card-head">
-                <h3>Payloads del broker</h3>
+                <h3>Broker payloads</h3>
                 <div className="svc-toolbar">
                     {['all', 'telemetry', 'status', 'cmd'].map((f) => (
                         <button
@@ -87,18 +88,18 @@ const PayloadViewer = ({ payloads, paused, onTogglePause, onClear, backlogUntilS
                             onClick={() => setFilter(f)}
                             className={`svc-range-btn ${filter === f ? 'active' : ''}`}
                         >
-                            {f === 'all' ? 'todos' : f}
+                            {f === 'all' ? 'all' : f}
                         </button>
                     ))}
-                    <button onClick={onTogglePause} className="svc-icon-btn" title={paused ? 'Reanudar' : 'Pausar'}>
+                    <button onClick={onTogglePause} className="svc-icon-btn" title={paused ? 'Resume' : 'Pause'}>
                         {paused ? <Play size={15} /> : <Pause size={15} />}
-                        {paused ? 'Reanudar' : 'Pausar'}
+                        {paused ? 'Resume' : 'Pause'}
                     </button>
-                    <button onClick={exportNdjson} className="svc-icon-btn" title="Exportar a NDJSON">
+                    <button onClick={exportNdjson} className="svc-icon-btn" title="Export to NDJSON">
                         <Download size={15} /> NDJSON
                     </button>
-                    <button onClick={onClear} className="svc-icon-btn" title="Limpiar la vista">
-                        <Trash2 size={15} /> Limpiar
+                    <button onClick={onClear} className="svc-icon-btn" title="Clear the view">
+                        <Trash2 size={15} /> Clear
                     </button>
                 </div>
             </div>
@@ -111,13 +112,13 @@ const PayloadViewer = ({ payloads, paused, onTogglePause, onClear, backlogUntilS
             <div className="svc-log" ref={listRef}>
                 {filtered.length === 0 && (
                     <p className="svc-muted svc-small">
-                        Sin mensajes todavía. El nodo publica telemetría cada 60 s.
+                        No messages yet. The node publishes telemetry every 60 s.
                     </p>
                 )}
                 {filtered.length > 0 && backlogUntilSeq != null && filtered[0].seq <= backlogUntilSeq && (
                     <p className="svc-muted svc-small">
-                        Al conectar, el backend entrega lo que tenía guardado. Él es el cliente MQTT y
-                        corre siempre, con o sin browser abierto.
+                        On connect, the backend delivers what it had stored. It's the MQTT client and
+                        always runs, with or without a browser open.
                     </p>
                 )}
                 {filtered.map((p) => {
@@ -130,8 +131,8 @@ const PayloadViewer = ({ payloads, paused, onTogglePause, onClear, backlogUntilS
                             <div className="svc-log-row">
                                 <div className="svc-log-head" onClick={() => toggleExpanded(p.seq)}>
                                     <span className="svc-log-time">{formatClock(p.receivedAt)}</span>
-                                    {/* Sin esto, un payload de anoche se ve igual que uno de recién:
-                                        formatClock imprime HH:MM:SS y nada más. */}
+                                    {/* Without this, a payload from last night looks the same as one
+                                        from just now: formatClock only prints HH:MM:SS. */}
                                     {age && <span className="svc-muted svc-small">{age}</span>}
                                     <span className="svc-log-topic" style={{ color }}>{p.topic}</span>
                                     {p.retained && <span className="svc-badge svc-badge-muted">retained</span>}
@@ -139,18 +140,18 @@ const PayloadViewer = ({ payloads, paused, onTogglePause, onClear, backlogUntilS
                                     <button
                                         className="svc-icon-btn svc-icon-btn-bare"
                                         onClick={(e) => { e.stopPropagation(); copyPayload(p.payload); }}
-                                        title="Copiar payload"
+                                        title="Copy payload"
                                     >
                                         <Copy size={13} />
                                     </button>
                                 </div>
                                 <pre className={`svc-log-body ${isOpen ? 'open' : ''}`}>
-                                    {isOpen ? prettyPayload(p.payload) : (p.payload || '(vacío — retained limpiado)')}
+                                    {isOpen ? prettyPayload(p.payload) : (p.payload || '(empty — retained cleared)')}
                                 </pre>
                             </div>
                             {p.seq === backlogUntilSeq && (
                                 <div className="svc-log-divider">
-                                    lo de arriba ya había pasado — el backend lo guardó mientras no había nadie mirando
+                                    everything above already happened — the backend stored it while no one was watching
                                 </div>
                             )}
                         </React.Fragment>

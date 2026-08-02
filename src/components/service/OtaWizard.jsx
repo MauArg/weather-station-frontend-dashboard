@@ -8,8 +8,8 @@ import { useNow } from '../../hooks/useNow';
 import { copyText } from '../../utils/clipboard';
 
 const OTA_ENVS = [
-    { id: 'ota_production', label: 'Producción', hint: 'LOG_LEVEL=0 — el que va a campo' },
-    { id: 'ota_development', label: 'Desarrollo', hint: 'LOG_LEVEL=2 — paga 2 s de delay por wake' },
+    { id: 'ota_production', label: 'Production', hint: 'LOG_LEVEL=0 — the one that goes to the field' },
+    { id: 'ota_development', label: 'Development', hint: 'LOG_LEVEL=2 — costs 2 s of delay per wake' },
 ];
 
 /**
@@ -45,15 +45,15 @@ const OtaWizard = ({ state, session, onSession }) => {
     const step = deriveStep(state, session);
     const battery = state.battery;
     // "No reading yet" is not the same claim as "the reading is dangerous", and
-    // defaulting the former to the latter produced a red "Batería en V" gate on a
+    // defaulting the former to the latter produced a red "Battery at V" gate on a
     // cold start. Unknown gets its own neutral state and does not block: the first
     // telemetry cycle lands within 60 s and will raise the real gate if warranted.
     const risk = battery?.flashRisk ?? 'unknown';
     const connected = state.broker?.connected;
     const restarts = state.session?.starts ?? 0;
 
-    // El tick de 1 s hace que la cuenta se mueva entre los heartbeats de 30 s del
-    // nodo. Cada heartbeat vuelve a fijar el ancla, así que no acumula deriva.
+    // The 1 s tick is what makes the countdown move between the node's 30 s
+    // heartbeats. Each heartbeat re-anchors it, so it doesn't accumulate drift.
     const remainingSec = useMemo(() => {
         if (step !== 'ready' && step !== 'flashed') return null;
         if (!state.status?.remainingSec) return null;
@@ -72,7 +72,7 @@ const OtaWizard = ({ state, session, onSession }) => {
                 firmwareAtArm: state.telemetry?.firmware ?? null,
                 timeoutMin,
             });
-            toast.success(`Service mode activado${res.note ? ` — ${res.note}` : ''}`);
+            toast.success(`Service mode activated${res.note ? ` — ${res.note}` : ''}`);
         } catch (err) {
             toast.error(err.message);
         } finally {
@@ -85,7 +85,7 @@ const OtaWizard = ({ state, session, onSession }) => {
         try {
             await sendServiceCommand({ cmd: 'clear' });
             onSession(null);
-            toast.success('Service mode desactivado — el nodo vuelve al ciclo normal');
+            toast.success('Service mode deactivated — the node returns to its normal cycle');
         } catch (err) {
             toast.error(err.message);
         } finally {
@@ -94,44 +94,44 @@ const OtaWizard = ({ state, session, onSession }) => {
     };
 
     const copyCommand = async () => {
-        if (await copyText(pioCommand)) toast.success('Comando copiado');
-        else toast.error('No se pudo copiar');
+        if (await copyText(pioCommand)) toast.success('Command copied');
+        else toast.error('Could not copy');
     };
 
     return (
         <div className="svc-card svc-wizard">
             <div className="svc-card-head">
-                <h3>Sesión de OTA</h3>
+                <h3>OTA session</h3>
                 <ol className="svc-steps">
                     {[
-                        ['idle', 'Activar'],
-                        ['armed', 'Esperar wake'],
-                        ['ready', 'Flashear'],
-                        ['flashed', 'Verificar'],
+                        ['idle', 'Arm'],
+                        ['armed', 'Wait for wake'],
+                        ['ready', 'Flash'],
+                        ['flashed', 'Verify'],
                     ].map(([id, label]) => (
                         <li key={id} className={`svc-step ${step === id ? 'active' : ''}`}>{label}</li>
                     ))}
                 </ol>
             </div>
 
-            {/* ── Paso 1 — armar ────────────────────────────────────────────── */}
+            {/* ── Step 1 — arm ────────────────────────────────────────────── */}
             {step === 'idle' && (
                 <>
                     <p className="svc-muted">
-                        Publica <code>{'{"cmd":"maintenance"}'}</code> retenido. El nodo lo toma en su próximo wake,
-                        levanta ArduinoOTA y avisa por el topic de status — no hace falta hacerle ping.
+                        Publishes <code>{'{"cmd":"maintenance"}'}</code> retained. The node picks it up on its next wake,
+                        brings up ArduinoOTA and announces it on the status topic — no need to ping it.
                     </p>
 
                     <div className="svc-field">
-                        <label className="svc-kv-label"><Clock size={13} aria-hidden="true" /> Timeout de la sesión: <strong>{timeoutMin} min</strong></label>
+                        <label className="svc-kv-label"><Clock size={13} aria-hidden="true" /> Session timeout: <strong>{timeoutMin} min</strong></label>
                         <input
                             type="range" min={1} max={60} value={timeoutMin}
                             onChange={(e) => setTimeoutMin(Number(e.target.value))}
                             className="svc-slider"
                         />
                         <span className="svc-muted svc-small">
-                            El firmware recorta a 60 min (SERVICE_MODE_MAX_TIMEOUT_MIN). Durante la sesión el nodo
-                            queda despierto a 50-140 mA sin deep sleep.
+                            The firmware caps this at 60 min (SERVICE_MODE_MAX_TIMEOUT_MIN). During the session the
+                            node stays awake at 50-140 mA with no deep sleep.
                         </span>
                     </div>
 
@@ -139,11 +139,11 @@ const OtaWizard = ({ state, session, onSession }) => {
                         <div className="svc-alert svc-alert-danger">
                             <ShieldX size={18} aria-hidden="true" />
                             <div>
-                                <strong>Batería en {battery?.volts?.toFixed(3)} V — no conviene flashear.</strong>
+                                <strong>Battery at {battery?.volts?.toFixed(3)} V — flashing is not advisable.</strong>
                                 <div className="svc-small">{battery?.riskNote}</div>
                                 <label className="svc-checkbox" style={{ marginTop: '0.5rem' }}>
                                     <input type="checkbox" checked={overrideRisk} onChange={(e) => setOverrideRisk(e.target.checked)} />
-                                    Entiendo el riesgo, activar igual
+                                    I understand the risk, arm anyway
                                 </label>
                             </div>
                         </div>
@@ -152,7 +152,7 @@ const OtaWizard = ({ state, session, onSession }) => {
                         <div className="svc-alert svc-alert-warn">
                             <AlertTriangle size={18} aria-hidden="true" />
                             <div>
-                                <strong>Batería en {battery?.volts?.toFixed(3)} V.</strong>
+                                <strong>Battery at {battery?.volts?.toFixed(3)} V.</strong>
                                 <div className="svc-small">{battery?.riskNote}</div>
                             </div>
                         </div>
@@ -161,8 +161,8 @@ const OtaWizard = ({ state, session, onSession }) => {
                         <div className="svc-alert svc-alert-info">
                             <HelpCircle size={18} aria-hidden="true" />
                             <div className="svc-small">
-                                Todavía sin lectura de batería — llega con el primer ciclo de telemetría, en
-                                hasta 60 s. Si conviene esperar, el aviso aparece solo.
+                                No battery reading yet — it arrives with the first telemetry cycle, within
+                                60 s. If it's better to wait, the warning will show up on its own.
                             </div>
                         </div>
                     )}
@@ -173,54 +173,54 @@ const OtaWizard = ({ state, session, onSession }) => {
                         onClick={arm}
                     >
                         {busy ? <Loader2 size={16} className="animate-spin" /> : <Wrench size={16} />}
-                        Activar service mode
+                        Activate service mode
                     </button>
-                    {!connected && <p className="svc-muted svc-small">Sin conexión al broker MQTT.</p>}
+                    {!connected && <p className="svc-muted svc-small">No connection to the MQTT broker.</p>}
                 </>
             )}
 
-            {/* ── Paso 2 — esperando el wake ────────────────────────────────── */}
+            {/* ── Step 2 — waiting for the wake ────────────────────────────────── */}
             {step === 'armed' && (
                 <>
                     <div className="svc-waiting">
                         <Loader2 size={32} className="animate-spin" color="#4dabf7" />
                         <div>
-                            <strong>Esperando que el nodo despierte</strong>
+                            <strong>Waiting for the node to wake up</strong>
                             <div className="svc-muted svc-small">
                                 {state.node?.nextWakeInSec > 0
-                                    ? `Próximo wake estimado en ~${state.node.nextWakeInSec}s`
-                                    : 'El nodo debería estar despertando ahora'}
-                                {' · '}el comando queda retenido hasta que lo lea
+                                    ? `Next wake estimated in ~${state.node.nextWakeInSec}s`
+                                    : 'The node should be waking up right now'}
+                                {' · '}the command stays retained until it reads it
                             </div>
                         </div>
                     </div>
                     <p className="svc-muted svc-small">
-                        Esto reemplaza la ventana de <code>ping</code>: el nodo publica <code>service_mode_active</code> cuando
-                        ArduinoOTA está levantado, que es la señal real de que se puede flashear.
+                        This replaces the old <code>ping</code> window: the node publishes <code>service_mode_active</code> when
+                        ArduinoOTA is up, which is the real signal that it's ready to flash.
                     </p>
                     <button className="svc-btn" disabled={busy} onClick={disarm}>
-                        <Power size={16} /> Cancelar
+                        <Power size={16} /> Cancel
                     </button>
                 </>
             )}
 
-            {/* ── Paso 3 — listo para flashear ──────────────────────────────── */}
+            {/* ── Step 3 — ready to flash ──────────────────────────────── */}
             {(step === 'ready' || step === 'flashed') && (
                 <>
                     <div className={`svc-ready ${step === 'flashed' ? 'done' : ''}`}>
                         <CheckCircle2 size={28} color={step === 'flashed' ? '#4ade80' : '#4dabf7'} aria-hidden="true" />
                         <div>
                             <strong>
-                                {step === 'flashed' ? 'Flasheado y verificado' : 'Nodo listo — ArduinoOTA escuchando'}
+                                {step === 'flashed' ? 'Flashed and verified' : 'Node ready — ArduinoOTA listening'}
                             </strong>
                             <div className="svc-muted svc-small">
-                                {remainingSec != null && <>Quedan <strong>{formatDuration(remainingSec)}</strong> de sesión · </>}
-                                corriendo <strong>{state.status?.firmware || '—'}</strong>
+                                {remainingSec != null && <><strong>{formatDuration(remainingSec)}</strong> left in the session · </>}
+                                running <strong>{state.status?.firmware || '—'}</strong>
                                 {step === 'flashed' && session?.firmwareAtArm && (
-                                    <> (antes {session.firmwareAtArm})</>
+                                    <> (was {session.firmwareAtArm})</>
                                 )}
                                 {state.session?.deadline && (
-                                    <> · corte del backend {formatClock(state.session.deadline)}</>
+                                    <> · backend cutoff {formatClock(state.session.deadline)}</>
                                 )}
                             </div>
                         </div>
@@ -230,12 +230,13 @@ const OtaWizard = ({ state, session, onSession }) => {
                         <div className="svc-alert svc-alert-warn">
                             <RefreshCw size={18} aria-hidden="true" />
                             <div>
-                                <strong>El nodo reinició la sesión {restarts} veces.</strong>
+                                <strong>The node restarted the session {restarts} times.</strong>
                                 <div className="svc-small">
-                                    Pierde MQTT en medio, duerme sin poder limpiar el comando retenido, y al
-                                    despertar lo vuelve a leer. Con firmware ≤ 1.1.0 cada reinicio estrena el
-                                    timeout entero. El backend igual corta a las {state.session?.timeoutMin} min
-                                    desde que se armó — si el flash no entra en esa ventana, volvé a activar.
+                                    It loses MQTT partway through, goes to sleep unable to clear the retained
+                                    command, and reads it again on waking. With firmware ≤ 1.1.0 each restart
+                                    gets a brand new full timeout. The backend still cuts it off at
+                                    {state.session?.timeoutMin} min from when it was armed — if the flash doesn't
+                                    fit in that window, arm it again.
                                 </div>
                             </div>
                         </div>
@@ -244,7 +245,7 @@ const OtaWizard = ({ state, session, onSession }) => {
                     {step === 'ready' && (
                         <>
                             <div className="svc-field">
-                                <label className="svc-kv-label">Entorno de PlatformIO</label>
+                                <label className="svc-kv-label">PlatformIO environment</label>
                                 <div className="svc-btn-row">
                                     {OTA_ENVS.map((e) => (
                                         <button
@@ -261,8 +262,8 @@ const OtaWizard = ({ state, session, onSession }) => {
                                     <div className="svc-alert svc-alert-warn" style={{ marginTop: '0.5rem' }}>
                                         <AlertTriangle size={18} aria-hidden="true" />
                                         <div className="svc-small">
-                                            El build de desarrollo quema 2 s fijos en <code>delay(2000)</code> en cada wake,
-                                            a 50-140 mA. No dejarlo en campo más de lo necesario.
+                                            The development build burns a fixed 2 s in <code>delay(2000)</code> on every wake,
+                                            at 50-140 mA. Don't leave it in the field longer than necessary.
                                         </div>
                                     </div>
                                 )}
@@ -271,20 +272,20 @@ const OtaWizard = ({ state, session, onSession }) => {
                             <div className="svc-cmdline">
                                 <Terminal size={16} aria-hidden="true" />
                                 <code>{pioCommand}</code>
-                                <button className="svc-icon-btn" onClick={copyCommand}><Copy size={14} /> Copiar</button>
+                                <button className="svc-icon-btn" onClick={copyCommand}><Copy size={14} /> Copy</button>
                             </div>
                             <p className="svc-muted svc-small">
-                                Corrélo desde <code>weather-station-station-iot/</code>. Cuando termine, el nodo reinicia,
-                                vuelve a entrar en service mode solo (queda marcado en RTC memory) y publica su versión
-                                nueva — ahí esta vista lo verifica sola.
+                                Run it from <code>weather-station-station-iot/</code>. When it's done, the node reboots,
+                                re-enters service mode on its own (it's flagged in RTC memory) and publishes its new
+                                version — that's when this view verifies it automatically.
                             </p>
                         </>
                     )}
 
                     {step === 'flashed' && (
                         <p className="svc-muted svc-small">
-                            La versión cambió, así que el OTA entró bien. Desactivá para que vuelva al ciclo normal:
-                            si no, sigue despierto hasta que se agote el timeout.
+                            The version changed, so the OTA went through. Deactivate so it returns to its normal
+                            cycle: otherwise it stays awake until the timeout runs out.
                         </p>
                     )}
 
@@ -294,7 +295,7 @@ const OtaWizard = ({ state, session, onSession }) => {
                         onClick={disarm}
                     >
                         {busy ? <Loader2 size={16} className="animate-spin" /> : <Power size={16} />}
-                        Desactivar service mode
+                        Deactivate service mode
                         {step === 'flashed' && <ArrowRight size={16} />}
                     </button>
                 </>

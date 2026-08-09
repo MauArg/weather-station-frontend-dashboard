@@ -6,6 +6,7 @@ import NodeHealthPanel from './service/NodeHealthPanel';
 import PayloadViewer from './service/PayloadViewer';
 import CommandConsole from './service/CommandConsole';
 import LogPanel from './service/LogPanel';
+import LivePanel from './service/LivePanel';
 import { openServiceStream, getServiceState } from '../services/ServiceApi';
 
 const MAX_PAYLOADS = 500;
@@ -129,9 +130,13 @@ const ServiceMode = ({ onBack }) => {
                     onClear={() => { setPayloads([]); setBacklogUntilSeq(null); }}
                     backlogUntilSeq={backlogUntilSeq}
                 />
-                {/* Full width, like the wizard: log rows carry a time, a cycle
-                    number and a whole sentence, and split at half-column width
-                    they become unreadable. */}
+                {/* Both full width, like the wizard, and both below the paired
+                    cards on purpose. Live mode and the log panel are occasional
+                    controls, and giving either one a half column would leave the
+                    four cards above it unpaired — which is the ragged edge the
+                    pairing exists to avoid. Log rows also carry a time, a cycle
+                    number and a whole sentence, unreadable at half width. */}
+                <LivePanel state={state} connected={connected} />
                 <LogPanel state={state} connected={connected} />
             </div>
         </div>

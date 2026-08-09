@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { getBackendVersion } from '../services/ApiService';
 
 /**
@@ -20,6 +21,7 @@ import { getBackendVersion } from '../services/ApiService';
  * on a line whose whole job is telling you what is deployed.
  */
 const VersionBadge = () => {
+    const { t } = useTranslation();
     const [backend, setBackend] = useState(undefined); // undefined = still asking
 
     useEffect(() => {
@@ -33,7 +35,7 @@ const VersionBadge = () => {
     return (
         <div
             className="version-badge"
-            title={`Dashboard ${__APP_VERSION__} · backend ${backendLabel}.\nVersioned separately: each one has its own image and deploys independently. The node's version is shown in service mode.`}
+            title={t('version.tooltip', { ui: __APP_VERSION__, api: backendLabel })}
         >
             ui {__APP_VERSION__} · api {backendLabel}
         </div>

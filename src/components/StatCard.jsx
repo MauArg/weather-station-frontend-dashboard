@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { ChevronDown } from 'lucide-react';
 
 /**
@@ -22,6 +23,7 @@ import { ChevronDown } from 'lucide-react';
  * always says what it is in words.
  */
 const StatCard = ({ title, value, unit, icon: Icon, color = 'blue', variants, activeVariant, onCycleVariant }) => {
+    const { t } = useTranslation();
     const switchable = Array.isArray(variants) && variants.length > 1;
     const current = switchable
         ? variants.find((v) => v.key === activeVariant) ?? variants[0]
@@ -42,8 +44,8 @@ const StatCard = ({ title, value, unit, icon: Icon, color = 'blue', variants, ac
                             type="button"
                             className="stat-variant-btn"
                             onClick={() => onCycleVariant?.(next.key)}
-                            title={`View ${next.caption}`}
-                            aria-label={`Switch to ${next.caption}. Currently showing ${shown.caption}.`}
+                            title={t('statCard.view', { caption: next.caption })}
+                            aria-label={t('statCard.switchTo', { next: next.caption, current: shown.caption })}
                         >
                             <ChevronDown size={14} aria-hidden="true" />
                         </button>
@@ -59,7 +61,7 @@ const StatCard = ({ title, value, unit, icon: Icon, color = 'blue', variants, ac
                     type="button"
                     className="stat-caption"
                     onClick={() => onCycleVariant?.(next.key)}
-                    title={`View ${next.caption}`}
+                    title={t('statCard.view', { caption: next.caption })}
                 >
                     {shown.caption}
                 </button>

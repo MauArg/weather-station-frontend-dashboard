@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import Dashboard from './components/Dashboard';
 import CalendarView from './components/CalendarView';
 import ServiceMode from './components/ServiceMode';
 import VersionBadge from './components/VersionBadge';
+import LanguageToggle from './components/LanguageToggle';
 import { Calendar as CalendarIcon, Activity, Wrench, AlertTriangle, Globe } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
 import { getServiceState } from './services/ServiceApi';
-import { TZ_LABEL, TZ_TOOLTIP } from './utils/timezone';
 import './index.css';
 
 /**
@@ -42,6 +43,7 @@ const useRetainedCommandWatch = (enabled) => {
 };
 
 function App() {
+    const { t } = useTranslation();
     const [view, setView] = useState('dashboard'); // 'dashboard' | 'calendar' | 'service'
 
     // In the service view the SSE stream already carries this state live.
@@ -57,29 +59,35 @@ function App() {
                 </div>
                 <div className="nav-actions">
                     {/*
-                      Sits in the navbar rather than inside a view because it is
-                      true of all three, and because the ambiguity it resolves —
-                      bare HH:MM:SS with no zone — is worst on the dashboard,
-                      which is exactly where nobody would go looking for a note
-                      about timezones.
+                      The timezone badge sits in the navbar rather than inside a
+                      view because it is true of all three, and because the
+                      ambiguity it resolves — bare HH:MM:SS with no zone — is
+                      worst on the dashboard, which is exactly where nobody would
+                      go looking for a note about timezones.
+
+                      It stays put when the language changes: the label names a
+                      real zone the data is in, not a preference, so both
+                      languages read the same clock. The tooltip is what
+                      translates.
                     */}
-                    <span className="tz-badge" title={TZ_TOOLTIP}>
+                    <span className="tz-badge" title={t('timezone.tooltip')}>
                         <Globe size={14} aria-hidden="true" />
-                        {TZ_LABEL}
+                        {t('timezone.label')}
                     </span>
+                    <LanguageToggle />
                     {view !== 'dashboard' && (
                         <button onClick={() => setView('dashboard')} className="nav-btn">
-                            <Activity size={18} /> Live Dashboard
+                            <Activity size={18} /> {t('nav.dashboard')}
                         </button>
                     )}
                     {view !== 'calendar' && (
                         <button onClick={() => setView('calendar')} className="nav-btn">
-                            <CalendarIcon size={18} /> History
+                            <CalendarIcon size={18} /> {t('nav.history')}
                         </button>
                     )}
                     {view !== 'service' && (
                         <button onClick={() => setView('service')} className="nav-btn">
-                            <Wrench size={18} /> Service mode
+                            <Wrench size={18} /> {t('nav.service')}
                         </button>
                     )}
                 </div>
@@ -89,12 +97,12 @@ function App() {
                 <button className="svc-banner" onClick={() => setView('service')}>
                     <AlertTriangle size={18} aria-hidden="true" />
                     <span>
-                        <strong>The node has a retained command: {retained.cmd || 'unknown'}</strong>
+                        <strong>{t('retainedBanner.title', { cmd: retained.cmd || t('unknown') })}</strong>
                         {retained.cmd === 'maintenance'
-                            ? ' — it will stay awake in service mode, draining the battery, until it is cleared or the timeout expires.'
-                            : ' — it will run on the next wake.'}
+                            ? t('retainedBanner.maintenance')
+                            : t('retainedBanner.other')}
                     </span>
-                    <span className="svc-banner-cta">Go to service mode</span>
+                    <span className="svc-banner-cta">{t('retainedBanner.cta')}</span>
                 </button>
             )}
 

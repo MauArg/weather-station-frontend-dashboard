@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { BatteryCharging, Battery, ShieldCheck, AlertTriangle, ShieldX, Sun } from 'lucide-react';
 import { getBatteryTrend } from '../../services/ServiceApi';
+import { formatDayTime } from '../../utils/timezone';
 import Tip from './Tip';
 
 // Flash-risk presentation. Colour alone never carries the meaning: every state
@@ -164,10 +165,7 @@ const BatteryPanel = ({ battery }) => {
                                 stroke="#ffffff66"
                                 tick={{ fontSize: 11 }}
                                 minTickGap={40}
-                                tickFormatter={(v) => new Date(v).toLocaleString('es-AR', {
-                                    timeZone: 'America/Argentina/Buenos_Aires',
-                                    day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
-                                })}
+                                tickFormatter={formatDayTime}
                             />
                             <YAxis
                                 domain={domain}
@@ -182,10 +180,7 @@ const BatteryPanel = ({ battery }) => {
                                 labelStyle={{ color: '#a1a1aa' }}
                                 cursor={{ stroke: 'rgba(255,255,255,0.4)', strokeWidth: 1, strokeDasharray: '4 4' }}
                                 formatter={(value) => [`${value.toFixed(3)} V`, 'Battery']}
-                                labelFormatter={(v) => new Date(v).toLocaleString('es-AR', {
-                                    timeZone: 'America/Argentina/Buenos_Aires',
-                                    day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
-                                })}
+                                labelFormatter={formatDayTime}
                             />
                             <ReferenceLine
                                 y={THRESHOLD_SAFE}

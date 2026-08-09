@@ -1,3 +1,5 @@
+import { formatTime } from '../utils/timezone';
+
 const API_BASE_URL = '/api/v1';
 
 const handleResponse = async (response) => {
@@ -8,11 +10,14 @@ const handleResponse = async (response) => {
     return response.json();
 };
 
+// The two guards stay here rather than moving into formatTime, because this call
+// site wants different fallbacks than a chart axis does: null for a missing value
+// (the caller then leaves the field untouched) and the raw string for an
+// unparseable one, which would be a backend bug worth seeing rather than hiding.
 const convertToLocalTime = (isoString) => {
     if (!isoString) return null;
-    const date = new Date(isoString);
-    if (isNaN(date)) return isoString;
-    return date.toLocaleTimeString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', hour: '2-digit', minute: '2-digit' });
+    if (isNaN(new Date(isoString))) return isoString;
+    return formatTime(isoString);
 };
 
 export const getRealTimeData = async () => {

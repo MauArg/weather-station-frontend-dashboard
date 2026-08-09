@@ -99,17 +99,11 @@ export const getBatteryTrend = async (hours = 72) => {
     return response.json();
 };
 
-export const formatClock = (iso) => {
-    if (!iso) return '—';
-    const date = new Date(iso);
-    if (isNaN(date)) return '—';
-    return date.toLocaleTimeString('es-AR', {
-        timeZone: 'America/Argentina/Buenos_Aires',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-    });
-};
+// Re-exported rather than defined here: the formatting rules live in one place
+// now, but every service component imports the clock from this module. The
+// imports get pointed at utils/timezone when those components are migrated, and
+// this line goes with them.
+export { formatClock } from '../utils/timezone';
 
 /**
  * How long ago something happened, or null when it is recent enough that the

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Radio, Play, Square, FlaskConical, AlertTriangle } from 'lucide-react';
-import { sendServiceCommand } from '../../services/ServiceApi';
+import { sendServiceCommand, formatAge } from '../../services/ServiceApi';
+import { useNow } from '../../hooks/useNow';
 import Tip from './Tip';
 
 // Mirrors models.LiveIntervalSec / LiveSessionMin in the backend, and the caps in
@@ -29,6 +30,7 @@ const fmtDuration = (sec) => {
 };
 
 const LivePanel = ({ state, connected }) => {
+    const now = useNow(15000);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState(null);
     const [note, setNote] = useState(null);
@@ -47,7 +49,18 @@ const LivePanel = ({ state, connected }) => {
     // A node that is asleep when the command is published takes up to a full wake
     // cycle to pick it up, so "armed" and "running" have to be separate states or
     // the panel would claim a session that has not begun.
-    const isRunning = telemetry?.fields?.live_seq != null;
+    // live_seq keeps travelling in the *last* telemetry after a session ends,
+    // because telemetry is only replaced when the next payload arrives — a full
+    // sleep cycle later. Without this the panel would claim "running", with a
+    // frozen Published count, for up to a minute after the node stopped. The
+    // node publishes live_mode_ended at exit, before that final sleep, so a
+    // newer ended-status is what settles it.
+    const endedAt = status?.state === 'live_mode_ended' ? status.receivedAt : null;
+    const endedAfterTelemetry =
+        endedAt != null &&
+        (!telemetry?.receivedAt || new Date(endedAt) >= new Date(telemetry.receivedAt));
+
+    const isRunning = telemetry?.fields?.live_seq != null && !endedAfterTelemetry;
     const isArmed = retained?.present && retained?.cmd === 'live';
     const otherCommand = retained?.present && retained?.cmd !== 'live';
 
@@ -56,7 +69,11 @@ const LivePanel = ({ state, connected }) => {
     const remainingSec = inLiveStatus ? status?.remainingSec : null;
     const seq = telemetry?.fields?.live_seq;
 
-    const lastEnded = status?.state === 'live_mode_ended' ? status : null;
+    const lastEnded = endedAt ? status : null;
+    // Same reason the payload viewer and the anomaly list carry one: this line
+    // survives until the next status message, which can be days, and "last
+    // session ended because…" with no age reads as if it just happened.
+    const lastEndedAge = lastEnded ? formatAge(lastEnded.receivedAt, now) : null;
 
     const run = async (body, describe) => {
         setBusy(true);
@@ -119,7 +136,8 @@ const LivePanel = ({ state, connected }) => {
 
             {!isRunning && lastEnded && (
                 <p className="svc-small svc-muted">
-                    Last session ended because {EXIT_REASON[lastEnded.reason] || lastEnded.reason || 'of an unreported reason'}.
+                    Last session{lastEndedAge ? ` (${lastEndedAge})` : ''} ended because{' '}
+                    {EXIT_REASON[lastEnded.reason] || lastEnded.reason || 'of an unreported reason'}.
                     {(lastEnded.reason === 'no_sun' || lastEnded.reason === 'low_battery') && (
                         <> The node judged conditions from its own sensors, so automatic arming stands down for an hour.</>
                     )}
@@ -148,13 +166,13 @@ const LivePanel = ({ state, connected }) => {
                     <Play size={16} aria-hidden="true" /> Start ({SESSION_MIN} min)
                 </button>
 
+                {/* Its own button rather than a checkbox: forcing skips a safety
+                    floor, and that should take a deliberate, differently-labelled
+                    action instead of a state someone can leave ticked. */}
                 <button
-                    className="svc-btn"
+                    className="svc-btn svc-tip"
                     disabled={!connected || busy || isArmed || isRunning || otherCommand}
                     onClick={() => start(true)}
-                    // Its own button rather than a checkbox: forcing skips a safety
-                    // floor, and that should take a deliberate, differently-labelled
-                    // action instead of a state someone can leave ticked.
                     data-tip={`Skips only the node's panel-voltage floor, so the mode can be exercised without sun. The node caps a forced session at ${FORCED_CAP_MIN} min, and the pack floor, the budget and the broker floor all still apply.`}
                 >
                     <FlaskConical size={16} aria-hidden="true" /> Force (test)

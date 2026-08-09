@@ -1,15 +1,27 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { format, addYears, subYears } from 'date-fns';
+import { es, enUS } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight, X, Loader2 } from 'lucide-react';
 import { getYearlyTableData, getHistoricData } from '../services/ApiService';
+import { formatNumber } from '../utils/timezone';
 import toast from 'react-hot-toast';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
+// The only place date-fns renders words rather than digits. Its locale follows
+// the UI language —month names are words— while everything numeric in this view
+// still goes through the fixed es-AR formatters.
+const DATE_FNS_LOCALES = { en: enUS, es };
+
 const CalendarView = ({ onBack }) => {
-    const formatTemp = (val) => {
-        if (typeof val !== 'number') return val;
-        return val.toFixed(1).replace('.', ',');
-    };
+    const { t, i18n } = useTranslation('calendar');
+    const dateLocale = DATE_FNS_LOCALES[i18n.resolvedLanguage] ?? enUS;
+    const monthNames = t('months', { returnObjects: true });
+
+    // One decimal, with this locale's comma. It used to be toFixed(1) followed by
+    // a hand-rolled '.' → ',' swap, which produced the same string only because
+    // no temperature reaches four digits.
+    const formatTemp = (val) => formatNumber(val, { digits: 1, minDigits: 1 });
 
     const [currentDate, setCurrentDate] = useState(new Date());
     const [yearData, setYearData] = useState([]); // Array of 12 month objects
@@ -28,13 +40,17 @@ const CalendarView = ({ onBack }) => {
                 if (isMounted) setYearData(data);
             } catch (error) {
                 console.error(error);
-                if (isMounted) toast.error("Failed to load calendar data");
+                if (isMounted) toast.error(t('toast.loadCalendarFailed'));
             } finally {
                 if (isMounted) setIsLoadingYear(false);
             }
         };
         loadYearData();
         return () => { isMounted = false; };
+        // `t` stays out of the deps for the same reason as in Dashboard: it is
+        // only read in the error branch, and including it would refetch the whole
+        // year on a language change.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentDate]);
 
     useEffect(() => {
@@ -47,13 +63,14 @@ const CalendarView = ({ onBack }) => {
                 if (isMounted) setHistoryData(data);
             } catch (error) {
                 console.error(error);
-                if (isMounted) toast.error("Failed to load history data");
+                if (isMounted) toast.error(t('toast.loadHistoryFailed'));
             } finally {
                 if (isMounted) setIsLoadingHistory(false);
             }
         };
         loadHistory();
         return () => { isMounted = false; };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedDay]);
 
     const getStyle = (temp) => {
@@ -94,32 +111,29 @@ const CalendarView = ({ onBack }) => {
         return (
             <div className="history-view">
                 <div className="history-header">
-                    <button onClick={() => setSelectedDay(null)} className="back-btn"><ChevronLeft /> Back to Calendar</button>
-                    <h2>History for {format(selectedDay, 'MMMM d, yyyy')}</h2>
+                    <button onClick={() => setSelectedDay(null)} className="back-btn"><ChevronLeft /> {t('backToCalendar')}</button>
+                    <h2>{t('historyFor', { date: format(selectedDay, t('longDateFormat'), { locale: dateLocale }) })}</h2>
                 </div>
                 {isLoadingHistory || !historyData ? (
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '4rem', gap: '1rem' }}>
                         <Loader2 className="animate-spin" size={48} color="#4dabf7" />
-                        <p>Loading History...</p>
+                        <p>{t('loadingHistory')}</p>
                     </div>
                 ) : (
                 <div className="charts-grid">
                     <div className="chart-card wide">
-                        <h3>Temperature History</h3>
+                        <h3>{t('chart.temperatureHistory')}</h3>
                         <div className="chart-wrapper">
                             <ResponsiveContainer width="100%" height="100%">
                                 <AreaChart data={historyData}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ffffff20" />
                                     <XAxis dataKey="time" stroke="#ffffff80" />
                                     <YAxis stroke="#ffffff80" />
-                                    <Tooltip 
-                                        formatter={(value) => {
-                                            if (typeof value !== 'number') return value;
-                                            return value.toLocaleString('es-AR', { maximumFractionDigits: 2 });
-                                        }}
-                                        contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: 'none' }} 
+                                    <Tooltip
+                                        formatter={(value) => formatNumber(value)}
+                                        contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: 'none' }}
                                     />
-                                    <Area type="monotone" dataKey="temperature" stroke="#ff6b6b" fill="#ff6b6b80" />
+                                    <Area type="monotone" dataKey="temperature" name={t('series.temperature')} stroke="#ff6b6b" fill="#ff6b6b80" />
                                 </AreaChart>
                             </ResponsiveContainer>
                         </div>
@@ -134,7 +148,7 @@ const CalendarView = ({ onBack }) => {
         return (
             <div className="calendar-container full-width" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '400px', gap: '1rem' }}>
                 <Loader2 className="animate-spin" size={48} color="#4dabf7" />
-                <p>Loading Calendar Data...</p>
+                <p>{t('loading')}</p>
             </div>
         );
     }
@@ -142,7 +156,7 @@ const CalendarView = ({ onBack }) => {
     return (
         <div className="calendar-container full-width">
             <div className="calendar-header">
-                <button onClick={onBack} className="close-btn"><X /> Close</button>
+                <button onClick={onBack} className="close-btn"><X /> {t('close')}</button>
                 <div className="year-nav">
                     <button onClick={prevYear}><ChevronLeft /></button>
                     <h2>{format(currentDate, 'yyyy')}</h2>
@@ -154,16 +168,22 @@ const CalendarView = ({ onBack }) => {
                 <table className="calendar-table">
                     <thead>
                         <tr>
-                            <th rowSpan="2" className="sticky-col">Day</th>
-                            {yearData.map((m, i) => (
-                                <th key={i} colSpan="2" className="month-header">{m.monthName}</th>
+                            <th rowSpan="2" className="sticky-col">{t('column.day')}</th>
+                            {/* The month name comes from the column's position, not
+                                from the payload's `monthName`. The backend builds
+                                that array as twelve fixed English abbreviations in
+                                calendar order, so the index already carries the
+                                whole meaning — and a label the API hardcodes is one
+                                the language switch could never reach. */}
+                            {yearData.map((_, i) => (
+                                <th key={i} colSpan="2" className="month-header">{monthNames[i]}</th>
                             ))}
                         </tr>
                         <tr>
                             {yearData.map((_, i) => (
                                 <React.Fragment key={i}>
-                                    <th className="sub-header">Max</th>
-                                    <th className="sub-header">Min</th>
+                                    <th className="sub-header">{t('column.max')}</th>
+                                    <th className="sub-header">{t('column.min')}</th>
                                 </React.Fragment>
                             ))}
                         </tr>
@@ -189,7 +209,7 @@ const CalendarView = ({ onBack }) => {
                                                 className="data-cell"
                                                 style={getStyle(dayData.maxTemp)}
                                                 onClick={() => handleCellClick(dayData)}
-                                                title={`Max: ${dayData.maxTemp}°C`}
+                                                title={t('cell.max', { temp: dayData.maxTemp })}
                                             >
                                                 {formatTemp(dayData.maxTemp)}
                                             </td>
@@ -197,7 +217,7 @@ const CalendarView = ({ onBack }) => {
                                                 className="data-cell"
                                                 style={getStyle(dayData.minTemp)}
                                                 onClick={() => handleCellClick(dayData)}
-                                                title={`Min: ${dayData.minTemp}°C`}
+                                                title={t('cell.min', { temp: dayData.minTemp })}
                                             >
                                                 {formatTemp(dayData.minTemp)}
                                             </td>

@@ -1,0 +1,28 @@
+{
+  "loading": "Cargando datos del calendario…",
+  "loadingHistory": "Cargando historial…",
+  "toast": {
+    "loadCalendarFailed": "No se pudieron cargar los datos del calendario",
+    "loadHistoryFailed": "No se pudieron cargar los datos del historial"
+  },
+  "close": "Cerrar",
+  "backToCalendar": "Volver al calendario",
+  "historyFor": "Historial del {{date}}",
+  "chart": {
+    "temperatureHistory": "Historial de temperatura"
+  },
+  "series": {
+    "temperature": "Temperatura"
+  },
+  "column": {
+    "day": "Día",
+    "max": "Máx",
+    "min": "Mín"
+  },
+  "cell": {
+    "max": "Máx: {{temp}}°C",
+    "min": "Mín: {{temp}}°C"
+  },
+  "months": ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"],
+  "longDateFormat": "d 'de' MMMM 'de' yyyy"
+}

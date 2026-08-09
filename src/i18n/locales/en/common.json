@@ -1,0 +1,30 @@
+{
+  "nav": {
+    "dashboard": "Live Dashboard",
+    "history": "History",
+    "service": "Service mode"
+  },
+  "language": {
+    "switch": "Switch language",
+    "toEnglish": "Switch to English",
+    "toSpanish": "Cambiar a español"
+  },
+  "timezone": {
+    "label": "ART (UTC−3)",
+    "tooltip": "All dates and times are shown in Argentina time (ART, UTC−3). The backend delivers them in UTC and the dashboard converts them, including day cutoffs: daily extremes and every calendar cell run from local midnight to midnight, not UTC."
+  },
+  "retainedBanner": {
+    "title": "The node has a retained command: {{cmd}}",
+    "maintenance": " — it will stay awake in service mode, draining the battery, until it is cleared or the timeout expires.",
+    "other": " — it will run on the next wake.",
+    "cta": "Go to service mode"
+  },
+  "version": {
+    "tooltip": "Dashboard {{ui}} · backend {{api}}.\nVersioned separately: each one has its own image and deploys independently. The node's version is shown in service mode."
+  },
+  "statCard": {
+    "view": "View {{caption}}",
+    "switchTo": "Switch to {{next}}. Currently showing {{current}}."
+  },
+  "unknown": "unknown"
+}

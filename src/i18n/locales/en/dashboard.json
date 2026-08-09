@@ -1,0 +1,72 @@
+{
+  "loading": "Loading Weather Station…",
+  "toast": {
+    "loadFailed": "Failed to load dashboard data"
+  },
+  "card": {
+    "temperature": "Temperature",
+    "humidity": "Humidity",
+    "pressure": "Pressure",
+    "dewPoint": "Dew Point"
+  },
+  "pressure": {
+    "qnh": "QNH · sea level",
+    "station": "station · raw sensor reading"
+  },
+  "energy": {
+    "title": "Energy status",
+    "battery": "Battery",
+    "panel": "Panel",
+    "activeConsumption": "Active consumption",
+    "activeConsumptionTip": "Measured while the node is awake, which is ~3.6% of each cycle. It isn't the average consumption: duty-cycle corrected it's about 8 mW.",
+    "state": {
+      "charging": {
+        "label": "Charging",
+        "detail": "The panel is covering the system's consumption."
+      },
+      "full": {
+        "label": "Battery full",
+        "detail": "Fully charged. Not currently charging."
+      },
+      "discharging": {
+        "label": "Discharging",
+        "detail": "No generation available — not enough sunlight. The system is running on the battery."
+      },
+      "deficit": {
+        "label": "Deficit",
+        "detail": "Solar generation isn't covering the system's current energy consumption."
+      },
+      "unknown": {
+        "label": "Measuring…",
+        "detail": "About an hour of data is needed to determine the trend."
+      }
+    }
+  },
+  "drift": {
+    "steady": "steady over the last 2 h",
+    "rising": "▲ {{mvh}} mV/h over the last 2 h",
+    "falling": "▼ {{mvh}} mV/h over the last 2 h"
+  },
+  "section": {
+    "liveData": "Live Data"
+  },
+  "chart": {
+    "temperature": "Real-time Temperature",
+    "humidity": "Real-time Humidity",
+    "energy": "Solar Engine & Consumption",
+    "thermalLag": "Weather: Daylight vs Thermal Lag"
+  },
+  "series": {
+    "temperature": "Temperature",
+    "humidity": "Humidity",
+    "solar": "Solar Prod.",
+    "consumption": "Consumption",
+    "daylight": "Daylight",
+    "ambientTemp": "Ambient Temp"
+  },
+  "extremes": {
+    "maxTemp": "Max Temp",
+    "minTemp": "Min Temp",
+    "at": "at {{time}}"
+  }
+}

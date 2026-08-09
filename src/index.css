@@ -94,6 +94,47 @@ body {
 }
 
 /*
+ * Language toggle. A segmented pair rather than a nav-btn, because the two
+ * options are one setting with two states, not two separate destinations — the
+ * shared border is what says so. Deliberately quieter than the nav buttons: it
+ * is set once and then never touched again, unlike the view switches beside it.
+ */
+.lang-toggle {
+    display: flex;
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.lang-btn {
+    padding: 0.5rem 0.7rem;
+    border: none;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+    transition: background 0.3s, color 0.3s;
+}
+
+.lang-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+/*
+ * The active segment carries a filled background as well as full-strength text.
+ * Same rule the service view follows for status colour: the contrast between
+ * 60% and 100% white alone is not a reliable signal, so the fill is what
+ * actually communicates which one is selected.
+ */
+.lang-btn.active {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
+/*
  * Timezone badge. Reads as a label, not a control: no border, no hover lift, and
  * a lighter weight than the buttons beside it. It states a fact about the whole
  * page, and looking clickable would only invite trying to change it.

@@ -1,0 +1,72 @@
+{
+  "loading": "Cargando Weather Station…",
+  "toast": {
+    "loadFailed": "No se pudieron cargar los datos del dashboard"
+  },
+  "card": {
+    "temperature": "Temperatura",
+    "humidity": "Humedad",
+    "pressure": "Presión",
+    "dewPoint": "Punto de rocío"
+  },
+  "pressure": {
+    "qnh": "QNH · nivel del mar",
+    "station": "estación · lectura cruda del sensor"
+  },
+  "energy": {
+    "title": "Estado energético",
+    "battery": "Batería",
+    "panel": "Panel",
+    "activeConsumption": "Consumo activo",
+    "activeConsumptionTip": "Medido mientras el nodo está despierto, que es ~3,6% de cada ciclo. No es el consumo promedio: prorrateado por ciclo de trabajo da alrededor de 8 mW.",
+    "state": {
+      "charging": {
+        "label": "Cargando",
+        "detail": "El panel está cubriendo el consumo del sistema."
+      },
+      "full": {
+        "label": "Batería llena",
+        "detail": "Carga completa. No está cargando en este momento."
+      },
+      "discharging": {
+        "label": "Descargando",
+        "detail": "No hay generación disponible — no hay suficiente luz solar. El sistema está funcionando a batería."
+      },
+      "deficit": {
+        "label": "Déficit",
+        "detail": "La generación solar no está cubriendo el consumo actual del sistema."
+      },
+      "unknown": {
+        "label": "Midiendo…",
+        "detail": "Hace falta alrededor de una hora de datos para determinar la tendencia."
+      }
+    }
+  },
+  "drift": {
+    "steady": "estable en las últimas 2 h",
+    "rising": "▲ {{mvh}} mV/h en las últimas 2 h",
+    "falling": "▼ {{mvh}} mV/h en las últimas 2 h"
+  },
+  "section": {
+    "liveData": "Datos en vivo"
+  },
+  "chart": {
+    "temperature": "Temperatura en tiempo real",
+    "humidity": "Humedad en tiempo real",
+    "energy": "Generación solar y consumo",
+    "thermalLag": "Clima: luz diurna vs. retardo térmico"
+  },
+  "series": {
+    "temperature": "Temperatura",
+    "humidity": "Humedad",
+    "solar": "Prod. solar",
+    "consumption": "Consumo",
+    "daylight": "Luz diurna",
+    "ambientTemp": "Temp. ambiente"
+  },
+  "extremes": {
+    "maxTemp": "Temp. máx.",
+    "minTemp": "Temp. mín.",
+    "at": "a las {{time}}"
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "loading": "Loading Calendar Data…",
+  "loadingHistory": "Loading History…",
+  "toast": {
+    "loadCalendarFailed": "Failed to load calendar data",
+    "loadHistoryFailed": "Failed to load history data"
+  },
+  "close": "Close",
+  "backToCalendar": "Back to Calendar",
+  "historyFor": "History for {{date}}",
+  "chart": {
+    "temperatureHistory": "Temperature History"
+  },
+  "series": {
+    "temperature": "Temperature"
+  },
+  "column": {
+    "day": "Day",
+    "max": "Max",
+    "min": "Min"
+  },
+  "cell": {
+    "max": "Max: {{temp}}°C",
+    "min": "Min: {{temp}}°C"
+  },
+  "months": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+  "longDateFormat": "MMMM d, yyyy"
+}

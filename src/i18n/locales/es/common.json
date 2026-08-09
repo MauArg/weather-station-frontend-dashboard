@@ -1,0 +1,30 @@
+{
+  "nav": {
+    "dashboard": "Dashboard en vivo",
+    "history": "Historial",
+    "service": "Service mode"
+  },
+  "language": {
+    "switch": "Cambiar idioma",
+    "toEnglish": "Switch to English",
+    "toSpanish": "Cambiar a español"
+  },
+  "timezone": {
+    "label": "ART (UTC−3)",
+    "tooltip": "Todas las fechas y horas se muestran en hora de Argentina (ART, UTC−3). El backend las entrega en UTC y el dashboard las convierte, incluidos los cortes de día: los extremos diarios y cada celda del calendario van de medianoche local a medianoche local, no UTC."
+  },
+  "retainedBanner": {
+    "title": "El nodo tiene un comando retenido: {{cmd}}",
+    "maintenance": " — va a quedarse despierto en service mode, consumiendo batería, hasta que se limpie o venza el timeout.",
+    "other": " — se va a ejecutar en el próximo despertar.",
+    "cta": "Ir a service mode"
+  },
+  "version": {
+    "tooltip": "Dashboard {{ui}} · backend {{api}}.\nSe versionan por separado: cada uno tiene su propia imagen y se despliega de forma independiente. La versión del nodo se ve en service mode."
+  },
+  "statCard": {
+    "view": "Ver {{caption}}",
+    "switchTo": "Cambiar a {{next}}. Mostrando {{current}}."
+  },
+  "unknown": "desconocido"
+}

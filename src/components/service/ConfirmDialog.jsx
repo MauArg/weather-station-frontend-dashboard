@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { AlertTriangle } from 'lucide-react';
 
 /**
@@ -17,11 +18,12 @@ const ConfirmDialog = ({
     open,
     title,
     children,
-    confirmLabel = 'Confirm',
-    cancelLabel = 'Cancel',
+    confirmLabel,
+    cancelLabel,
     onConfirm,
     onCancel,
 }) => {
+    const { t } = useTranslation();
     const ref = useRef(null);
 
     useEffect(() => {
@@ -47,11 +49,15 @@ const ConfirmDialog = ({
             </div>
             <div className="svc-dialog-body svc-small">{children}</div>
             <div className="svc-btn-row svc-dialog-actions">
+                {/* The defaults moved out of the parameter list: a default
+                    parameter is evaluated once per render but written once in
+                    source, and a literal there would be one more English string
+                    outside the dictionary. */}
                 <button className="svc-btn" autoFocus onClick={onCancel}>
-                    {cancelLabel}
+                    {cancelLabel ?? t('cancel')}
                 </button>
                 <button className="svc-btn svc-btn-danger" onClick={onConfirm}>
-                    {confirmLabel}
+                    {confirmLabel ?? t('confirm')}
                 </button>
             </div>
         </dialog>

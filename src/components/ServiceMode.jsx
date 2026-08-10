@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Loader2, Wifi, WifiOff, ArrowLeft, Cpu } from 'lucide-react';
 import OtaWizard from './service/OtaWizard';
 import BatteryPanel from './service/BatteryPanel';
@@ -12,6 +13,7 @@ import { openServiceStream, getServiceState } from '../services/ServiceApi';
 const MAX_PAYLOADS = 500;
 
 const ServiceMode = ({ onBack }) => {
+    const { t } = useTranslation('service');
     const [state, setState] = useState(null);
     const [payloads, setPayloads] = useState([]);
     const [paused, setPaused] = useState(false);
@@ -62,9 +64,9 @@ const ServiceMode = ({ onBack }) => {
     if (error && !state) {
         return (
             <div className="svc-container">
-                <button className="back-btn" onClick={onBack}><ArrowLeft size={18} /> Back</button>
+                <button className="back-btn" onClick={onBack}><ArrowLeft size={18} /> {t('shell.back')}</button>
                 <div className="svc-card">
-                    <h3>Couldn't load state</h3>
+                    <h3>{t('shell.couldntLoadState')}</h3>
                     <p className="svc-muted">{error}</p>
                 </div>
             </div>
@@ -75,7 +77,7 @@ const ServiceMode = ({ onBack }) => {
         return (
             <div className="svc-container" style={{ alignItems: 'center', display: 'flex', flexDirection: 'column', gap: '1rem', padding: '3rem' }}>
                 <Loader2 className="animate-spin" size={40} color="#4dabf7" />
-                <p className="svc-muted">Connecting to the broker…</p>
+                <p className="svc-muted">{t('shell.connecting')}</p>
             </div>
         );
     }
@@ -85,22 +87,24 @@ const ServiceMode = ({ onBack }) => {
     return (
         <div className="svc-container">
             <div className="svc-header">
-                <button className="back-btn" onClick={onBack}><ArrowLeft size={18} /> Dashboard</button>
+                <button className="back-btn" onClick={onBack}><ArrowLeft size={18} /> {t('shell.dashboard')}</button>
                 <div className="svc-header-meta">
                     <span className="svc-status-pill" style={{ borderColor: connected ? '#4ade80' : '#f87171', color: connected ? '#4ade80' : '#f87171' }}>
                         {connected ? <Wifi size={15} /> : <WifiOff size={15} />}
-                        {connected ? `Broker ${state.broker.address}` : 'Broker disconnected'}
+                        {connected
+                            ? t('shell.brokerConnected', { address: state.broker.address })
+                            : t('shell.brokerDisconnected')}
                     </span>
                     {state.stationIp && (
-                        <span
-                            className="svc-status-pill svc-pill-muted"
-                            title="The node's static IP — this is the OTA target. It comes from the backend config, not telemetry."
-                        >
-                            <Cpu size={15} /> Node {state.stationIp}
+                        <span className="svc-status-pill svc-pill-muted" title={t('shell.nodeIpTip')}>
+                            <Cpu size={15} /> {t('shell.node')} {state.stationIp}
                         </span>
                     )}
                     <span className="svc-muted svc-small">
-                        station {state.stationId} · stream {streamUp ? 'live' : 'reconnecting…'}
+                        {t('shell.stationLine', {
+                            id: state.stationId,
+                            stream: streamUp ? t('shell.streamLive') : t('shell.streamReconnecting'),
+                        })}
                     </span>
                 </div>
             </div>
@@ -109,7 +113,7 @@ const ServiceMode = ({ onBack }) => {
                 <div className="svc-alert svc-alert-danger">
                     <WifiOff size={18} aria-hidden="true" />
                     <div>
-                        <strong>No connection to the MQTT broker.</strong>
+                        <strong>{t('shell.noBrokerTitle')}</strong>
                         <div className="svc-small">{state.broker.lastError}</div>
                     </div>
                 </div>

@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Send, Radio, RotateCcw, Eraser, Terminal } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { sendServiceCommand } from '../../services/ServiceApi';
+import { apiNote } from '../../i18n/apiText';
 
 /**
  * Direct access to the command topic.
@@ -14,6 +16,7 @@ import { sendServiceCommand } from '../../services/ServiceApi';
  * experiment deliberately.
  */
 const CommandConsole = ({ connected }) => {
+    const { t } = useTranslation('service');
     const [raw, setRaw] = useState('{"cmd":"ping"}');
     const [busy, setBusy] = useState(false);
 
@@ -21,7 +24,8 @@ const CommandConsole = ({ connected }) => {
         setBusy(true);
         try {
             const res = await sendServiceCommand(body);
-            toast.success(`${description}${res.note ? ` — ${res.note}` : ''}`);
+            const note = apiNote(t, 'note', res.noteCode, res.note);
+            toast.success(`${description}${note ? ` — ${note}` : ''}`);
         } catch (err) {
             toast.error(err.message);
         } finally {
@@ -32,38 +36,36 @@ const CommandConsole = ({ connected }) => {
     return (
         <div className="svc-card">
             <div className="svc-card-head">
-                <h3>Command console</h3>
-                <span className="svc-muted svc-small">
-                    The node reads the retained topic on wake, so a command waits until the next cycle
-                </span>
+                <h3>{t('console.title')}</h3>
+                <span className="svc-muted svc-small">{t('console.subtitle')}</span>
             </div>
 
             <div className="svc-btn-row">
                 <button
                     className="svc-btn"
                     disabled={busy || !connected}
-                    onClick={() => run({ cmd: 'ping' }, 'Ping published')}
+                    onClick={() => run({ cmd: 'ping' }, t('console.toast.ping'))}
                 >
-                    <Radio size={16} /> Ping
+                    <Radio size={16} /> {t('console.ping')}
                 </button>
                 <button
                     className="svc-btn"
                     disabled={busy || !connected}
-                    onClick={() => run({ cmd: 'reboot' }, 'Reboot published')}
+                    onClick={() => run({ cmd: 'reboot' }, t('console.toast.reboot'))}
                 >
-                    <RotateCcw size={16} /> Reboot
+                    <RotateCcw size={16} /> {t('console.reboot')}
                 </button>
                 <button
                     className="svc-btn"
                     disabled={busy || !connected}
-                    onClick={() => run({ cmd: 'clear' }, 'Topic cleared')}
+                    onClick={() => run({ cmd: 'clear' }, t('console.toast.cleared'))}
                 >
-                    <Eraser size={16} /> Clear retained
+                    <Eraser size={16} /> {t('console.clearRetained')}
                 </button>
             </div>
 
             <label className="svc-kv-label" style={{ marginTop: '0.75rem' }}>
-                <Terminal size={13} aria-hidden="true" /> Raw JSON
+                <Terminal size={13} aria-hidden="true" /> {t('console.rawJson')}
             </label>
             <div className="svc-raw-row">
                 <input
@@ -76,15 +78,12 @@ const CommandConsole = ({ connected }) => {
                 <button
                     className="svc-btn"
                     disabled={busy || !connected}
-                    onClick={() => run({ cmd: 'raw', raw }, 'Raw payload published')}
+                    onClick={() => run({ cmd: 'raw', raw }, t('console.toast.raw'))}
                 >
-                    <Send size={16} /> Publish
+                    <Send size={16} /> {t('console.publish')}
                 </button>
             </div>
-            <p className="svc-muted svc-small svc-card-foot">
-                Published with retain. The backend validates that it's JSON — parseCommand() discards
-                anything that isn't, and the node would just continue its normal cycle without any warning.
-            </p>
+            <p className="svc-muted svc-small svc-card-foot">{t('console.footer')}</p>
         </div>
     );
 };

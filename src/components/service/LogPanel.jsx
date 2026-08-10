@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Trans, useTranslation } from 'react-i18next';
 import {
     ScrollText, Download, Play, Square, DownloadCloud, AlertTriangle, Search,
     ChevronRight, ChevronDown, Info, Wrench, Loader2, Clock,
@@ -6,6 +7,7 @@ import {
 import toast from 'react-hot-toast';
 import Tip from './Tip';
 import ConfirmDialog from './ConfirmDialog';
+import { apiNote, apiText } from '../../i18n/apiText';
 import { useNow } from '../../hooks/useNow';
 import {
     sendServiceCommand,
@@ -42,26 +44,12 @@ import {
 
 // Entries per wake cycle at each level, used only to estimate how long a capture
 // will last. They are rough averages measured against the firmware's own
-// instrumentation, not a contract.
+// instrumentation, not a contract. The name and the one-line description of each
+// level live in the dictionary, keyed by the same number.
 const LEVELS = [
-    {
-        value: 1,
-        label: 'Anomalies',
-        entriesPerCycle: 0.7,
-        blurb: 'Only failures: WiFi, MQTT and publish. A healthy cycle writes nothing.',
-    },
-    {
-        value: 2,
-        label: 'Summary',
-        entriesPerCycle: 1.7,
-        blurb: 'One line per cycle stage, plus anomalies. This is the one that answers "WiFi or MQTT?".',
-    },
-    {
-        value: 3,
-        label: 'Verbose',
-        entriesPerCycle: 5,
-        blurb: 'Every WiFi attempt individually. For when level 2 is not enough.',
-    },
+    { value: 1, entriesPerCycle: 0.7 },
+    { value: 2, entriesPerCycle: 1.7 },
+    { value: 3, entriesPerCycle: 5 },
 ];
 
 // Observed interval between cycles. The node sleeps SLEEP_INTERVAL_SEC = 60, but
@@ -70,21 +58,22 @@ const LEVELS = [
 // with a median of 64.
 const CYCLE_SEC = 64;
 
-const formatWindow = (ringEntries, entriesPerCycle) => {
+const formatWindow = (t, ringEntries, entriesPerCycle) => {
     if (!ringEntries || !entriesPerCycle) return '—';
     const hours = (ringEntries / entriesPerCycle) * CYCLE_SEC / 3600;
-    if (hours < 1) return `~${Math.round(hours * 60)} min`;
-    return `~${hours.toFixed(1)} h`;
+    return hours < 1
+        ? t('log.windowMinutes', { count: Math.round(hours * 60) })
+        : t('log.windowHours', { count: hours.toFixed(1) });
 };
 
 // The number and the name together, always in the same order. The level is what
 // travels in the command and in the firmware; the name is the only part that is
 // understood at a glance. Naming only one forces a mental translation between the
 // screen and the `level` seen in the payloads.
-const levelName = (value) => {
-    const level = LEVELS.find((l) => l.value === value);
-    return level ? `level ${value} (${level.label})` : `level ${value}`;
-};
+const levelName = (t, value) =>
+    LEVELS.some((l) => l.value === value)
+        ? t('log.levelNamed', { level: value, label: t(`log.level.${value}`) })
+        : t('log.levelBare', { level: value });
 
 // How long the node can take to pick up a retained command before it's worth
 // suspecting something: three cycles and change. One cycle is usually enough, but
@@ -111,6 +100,8 @@ const CaptureUptime = ({ since, exact }) => {
 };
 
 const LogPanel = ({ state, connected }) => {
+    const { t } = useTranslation('service');
+
     // An old backend does not send `logs` in the snapshot. This can genuinely
     // happen: the frontend and backend deploy as two separate images, so there's
     // a window where one is updated and the other isn't. Without this guard the
@@ -209,8 +200,8 @@ const LogPanel = ({ state, connected }) => {
         if (applied && fresh && moved) {
             setPending(null);
             toast.success(pending.kind === 'stop'
-                ? 'The node stopped the capture and cleared its memory.'
-                : `The node is capturing at ${levelName(pending.level)}.`);
+                ? t('log.toast.stopped')
+                : t('log.toast.capturingAt', { level: levelName(t, pending.level) }));
             return undefined;
         }
 
@@ -220,12 +211,13 @@ const LogPanel = ({ state, connected }) => {
         // by a node that never shows up.
         const id = setTimeout(() => {
             setPending(null);
-            toast.error(
-                'The node did not confirm the capture change. The command is still retained: ' +
-                'if the node shows up, it will apply it — check the status chip in a couple of cycles.'
-            );
+            toast.error(t('log.toast.notConfirmed'));
         }, Math.max(0, pending.deadline - Date.now()));
         return () => clearTimeout(id);
+        // `t` is out of the deps deliberately: including it would re-arm the
+        // timeout on a language change, restarting a wait that is anchored to an
+        // absolute deadline.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [pending, logs.active, logs.level, logs.count, retainedIsLogCmd, telemetryAt]);
 
     // Retrieves the last capture the backend transferred, so reloading the page
@@ -256,11 +248,12 @@ const LogPanel = ({ state, connected }) => {
             // "Published", not "started": at this point all that happened is that
             // the message landed on the broker. Saying the capture had started was
             // the lie that made it look like nothing happened afterward.
+            const note = apiNote(t, 'note', res.noteCode, res.note);
             toast.success(
                 (lvl === 0
-                    ? 'Stop capture command published'
-                    : `Capture command at ${levelName(lvl)} published`)
-                + (res.note ? ` — ${res.note}` : '')
+                    ? t('log.toast.stopPublished')
+                    : t('log.toast.startPublished', { level: levelName(t, lvl) }))
+                + (note ? ` — ${note}` : '')
             );
         } catch (err) {
             toast.error(err.message);
@@ -277,8 +270,13 @@ const LogPanel = ({ state, connected }) => {
             setCapture(c);
             setCodeFilter('all');
             const n = c.entries?.length ?? 0;
-            if (n === 0) toast('The node had no captured events.', { icon: 'ℹ️' });
-            else toast.success(`${n} events transferred${c.cleared ? ' — the node already cleared them' : ''}`);
+            if (n === 0) toast(t('log.toast.noEvents'), { icon: 'ℹ️' });
+            else {
+                toast.success(
+                    t('log.toast.transferred', { count: n })
+                    + (c.cleared ? t('log.toast.transferredCleared') : '')
+                );
+            }
         } catch (err) {
             toast.error(err.message);
         } finally {
@@ -325,7 +323,8 @@ const LogPanel = ({ state, connected }) => {
         setBusy(true);
         try {
             const res = await sendServiceCommand({ cmd: 'maintenance', timeoutMin: 15 });
-            toast.success(`Service mode requested${res.note ? ` — ${res.note}` : ''}`);
+            const note = apiNote(t, 'note', res.noteCode, res.note);
+            toast.success(`${t('log.toast.serviceRequested')}${note ? ` — ${note}` : ''}`);
         } catch (err) {
             toast.error(err.message);
         } finally {
@@ -340,14 +339,15 @@ const LogPanel = ({ state, connected }) => {
     // opening the panel.
     const stateChip = logs.active ? (
         <span className="svc-chip" style={{ borderColor: '#4ade80', color: '#4ade80' }}>
-            <Play size={13} aria-hidden="true" /> Capturing · {levelName(logs.level)} · {logs.count}/{ring}
+            <Play size={13} aria-hidden="true" />{' '}
+            {t('log.chipCapturing', { level: levelName(t, logs.level), count: logs.count, ring })}
             {logs.activeSince && (
                 <> · <CaptureUptime since={logs.activeSince} exact={logs.activeSinceExact} /></>
             )}
         </span>
     ) : (
         <span className="svc-chip svc-badge-muted">
-            <Square size={13} aria-hidden="true" /> Capture stopped
+            <Square size={13} aria-hidden="true" /> {t('log.chipStopped')}
         </span>
     );
 
@@ -358,10 +358,10 @@ const LogPanel = ({ state, connected }) => {
             aria-expanded={open}
         >
             {open ? <ChevronDown size={17} aria-hidden="true" /> : <ChevronRight size={17} aria-hidden="true" />}
-            <h3><ScrollText size={17} aria-hidden="true" /> Node logs</h3>
+            <h3><ScrollText size={17} aria-hidden="true" /> {t('log.title')}</h3>
             {supported && stateChip}
             <span className="svc-muted svc-small svc-collapse-spacer">
-                {open ? 'hide' : 'show'}
+                {open ? t('log.hide') : t('log.show')}
             </span>
         </button>
     );
@@ -374,12 +374,8 @@ const LogPanel = ({ state, connected }) => {
                     <div className="svc-alert svc-alert-info" style={{ marginTop: '0.75rem' }}>
                         <AlertTriangle size={18} aria-hidden="true" />
                         <div>
-                            <strong>The backend does not expose the logging system yet.</strong>
-                            <div className="svc-small">
-                                This panel needs the <code>logs</code> field in the state snapshot.
-                                Rebuild and redeploy the backend image; the node's firmware also needs
-                                to be on 1.3.0 or newer.
-                            </div>
+                            <strong>{t('log.unsupportedTitle')}</strong>
+                            <div className="svc-small"><Trans t={t} i18nKey="log.unsupportedBody" /></div>
                         </div>
                     </div>
                 )}
@@ -395,18 +391,12 @@ const LogPanel = ({ state, connected }) => {
         <div className="svc-card svc-span-2">
             {head}
 
-            <p className="svc-muted svc-small" style={{ marginTop: '0.5rem' }}>
-                Capturing runs during normal cycles and costs no energy. Transferring is the only
-                part that needs the node awake, which is why it's a separate step.
-            </p>
+            <p className="svc-muted svc-small" style={{ marginTop: '0.5rem' }}>{t('log.intro')}</p>
 
             {logs.dictKnown && (
                 <div className="svc-chips" style={{ marginTop: '0.5rem' }}>
-                    <Tip
-                        className="svc-chip svc-badge-muted"
-                        text="The backend already has the code→text dictionary for this firmware version cached, so there's no need to ask the node for it on the next transfer."
-                    >
-                        dictionary cached
+                    <Tip className="svc-chip svc-badge-muted" text={t('log.dictCachedTip')}>
+                        {t('log.dictCached')}
                     </Tip>
                 </div>
             )}
@@ -414,11 +404,11 @@ const LogPanel = ({ state, connected }) => {
             {logs.active && (
                 <div className="svc-budget" style={{ marginTop: '0.5rem' }}>
                     <div className="svc-budget-head">
-                        <span className="svc-small">Capture memory: {logs.count} / {ring} events</span>
+                        <span className="svc-small">{t('log.memory', { count: logs.count, ring })}</span>
                         <span className="svc-muted svc-small">
                             {fillPct >= 100
-                                ? 'full — already overwriting the oldest events'
-                                : `${Math.round(fillPct)}% full`}
+                                ? t('log.memoryFull')
+                                : t('log.memoryPct', { pct: Math.round(fillPct) })}
                         </span>
                     </div>
                     <div className="svc-budget-bar">
@@ -431,12 +421,12 @@ const LogPanel = ({ state, connected }) => {
                         <p className="svc-muted svc-small" style={{ marginTop: '0.4rem' }}>
                             <Clock size={13} aria-hidden="true" />{' '}
                             {logs.activeSinceExact ? (
-                                <Tip text="When the window the node currently has stored started. It resets on a level change and on transfer, because in both cases the node empties its memory. The backend derives it by watching telemetry —the node has no clock— so it has the precision of one cycle.">
-                                    Capturing since {formatClock(logs.activeSince)}
+                                <Tip text={t('log.capturingSinceTip')}>
+                                    {t('log.capturingSince', { time: formatClock(logs.activeSince) })}
                                 </Tip>
                             ) : (
-                                <Tip text="The backend found the capture already running —it restarted after the capture started— so it doesn't know when it really began. The number is a floor: it could have been running for much longer.">
-                                    Running since before {formatClock(logs.activeSince)}
+                                <Tip text={t('log.runningSinceBeforeTip')}>
+                                    {t('log.runningSinceBefore', { time: formatClock(logs.activeSince) })}
                                 </Tip>
                             )}
                             {' — '}
@@ -447,53 +437,64 @@ const LogPanel = ({ state, connected }) => {
             )}
 
             {/* ── Step 1 ───────────────────────────────────────────────────── */}
-            <h4 className="svc-h4" style={{ marginTop: '1rem' }}>1 · Capture on the node</h4>
-            <label className="svc-kv-label" style={{ marginTop: '0.4rem' }}>Capture level</label>
+            <h4 className="svc-h4" style={{ marginTop: '1rem' }}>{t('log.step1')}</h4>
+            <label className="svc-kv-label" style={{ marginTop: '0.4rem' }}>{t('log.captureLevel')}</label>
             <div className="svc-toolbar">
-                {LEVELS.map((l) => (
-                    <button
-                        key={l.value}
-                        className={`svc-range-btn svc-tip ${level === l.value ? 'active' : ''}`}
-                        data-tip={`Level ${l.value}. ${l.blurb} Lasts ${formatWindow(ring, l.entriesPerCycle)} before it starts overwriting the oldest events.`}
-                        onClick={() => setLevel(l.value)}
-                    >
-                        {l.label} (N{l.value}) · {formatWindow(ring, l.entriesPerCycle)}
-                    </button>
-                ))}
+                {LEVELS.map((l) => {
+                    const window = formatWindow(t, ring, l.entriesPerCycle);
+                    return (
+                        <button
+                            key={l.value}
+                            className={`svc-range-btn svc-tip ${level === l.value ? 'active' : ''}`}
+                            data-tip={t('log.levelButtonTip', {
+                                level: l.value,
+                                blurb: t(`log.level.${l.value}blurb`),
+                                window,
+                            })}
+                            onClick={() => setLevel(l.value)}
+                        >
+                            {t('log.levelButton', { label: t(`log.level.${l.value}`), level: l.value, window })}
+                        </button>
+                    );
+                })}
             </div>
             <p className="svc-muted svc-small" style={{ marginTop: '0.4rem' }}>
-                Level {level}: {LEVELS.find((l) => l.value === level)?.blurb}{' '}
-                The estimated window assumes {CYCLE_SEC} s cycles. Capture memory lives in the ESP32's
-                RTC memory and cannot be grown: more detail means fewer hours.
+                {t('log.levelHint', {
+                    level,
+                    blurb: t(`log.level.${level}blurb`),
+                    sec: CYCLE_SEC,
+                })}
             </p>
 
             {logs.active && logs.level !== level && (
                 <p className="svc-small" style={{ marginTop: '0.35rem', color: '#fde68a' }}>
-                    The node is capturing at {levelName(logs.level)}. Starting again switches it to{' '}
-                    {levelName(level)} and discards what has been captured so far.
+                    {t('log.levelMismatch', {
+                        current: levelName(t, logs.level),
+                        next: levelName(t, level),
+                    })}
                 </p>
             )}
 
             <div className="svc-btn-row" style={{ marginTop: '0.6rem' }}>
                 <button
                     className="svc-btn svc-btn-primary svc-tip"
-                    data-tip="Publishes the command on the retained topic. The node picks it up on waking (up to one cycle of delay) and starts from zero: anything captured before is discarded."
+                    data-tip={t('log.startTip')}
                     disabled={busy || !connected || pending !== null || captureLocked}
                     onClick={() => (logs.active ? setConfirm('start') : setCaptureLevel(level))}
                 >
                     {pending?.kind === 'start'
-                        ? <><Loader2 size={16} className="animate-spin" /> Starting capture…</>
-                        : <><Play size={16} /> Start capture</>}
+                        ? <><Loader2 size={16} className="animate-spin" /> {t('log.starting')}</>
+                        : <><Play size={16} /> {t('log.start')}</>}
                 </button>
                 <button
                     className="svc-btn svc-tip"
-                    data-tip="Stops the capture and empties the node's memory. Any events not yet transferred are lost — transfer first if that matters."
+                    data-tip={t('log.stopTip')}
                     disabled={busy || !connected || !logs.active || pending !== null || captureLocked}
                     onClick={() => setConfirm('stop')}
                 >
                     {pending?.kind === 'stop'
-                        ? <><Loader2 size={16} className="animate-spin" /> Stopping capture…</>
-                        : <><Square size={16} /> Stop capture</>}
+                        ? <><Loader2 size={16} className="animate-spin" /> {t('log.stopping')}</>
+                        : <><Square size={16} /> {t('log.stop')}</>}
                 </button>
             </div>
 
@@ -506,25 +507,18 @@ const LogPanel = ({ state, connected }) => {
                     <div>
                         <strong>
                             {pending.kind === 'stop'
-                                ? 'Stopping the capture'
-                                : `Starting the capture at ${levelName(pending.level)}`}
-                            {' '}— waiting on the node.
+                                ? t('log.pendingStop')
+                                : t('log.pendingStart', { level: levelName(t, pending.level) })}
+                            {t('log.pendingSuffix')}
                         </strong>
                         <div className="svc-small">
-                            {pending.sawRetained && !retainedIsLogCmd ? (
-                                <>The node picked up the command and is applying it. The telemetry that
-                                confirms it is still needed, which comes in this same cycle.</>
-                            ) : (
-                                <>
-                                    The command stayed retained on the broker. The node only reads it on
-                                    waking
-                                    {state?.node?.nextWakeInSec > 0
-                                        ? `, in ~${state.node.nextWakeInSec} s`
-                                        : ''}
-                                    , and until then it keeps capturing as it was. If the cycle fails to
-                                    publish —which happens often— confirmation is delayed until the next one.
-                                </>
-                            )}
+                            {pending.sawRetained && !retainedIsLogCmd
+                                ? t('log.pendingPickedUp')
+                                : t('log.pendingRetained', {
+                                    when: state?.node?.nextWakeInSec > 0
+                                        ? t('log.pendingWhen', { sec: state.node.nextWakeInSec })
+                                        : '',
+                                })}
                         </div>
                     </div>
                 </div>
@@ -534,13 +528,10 @@ const LogPanel = ({ state, connected }) => {
                 <div className="svc-alert svc-alert-warn" style={{ marginTop: '0.6rem' }}>
                     <AlertTriangle size={18} aria-hidden="true" />
                     <div>
-                        <strong>Capture cannot be changed while the node is in service mode.</strong>
+                        <strong>{t('log.lockedTitle')}</strong>
                         <div className="svc-small">
-                            {inServiceMode
-                                ? 'During the session the node ignores everything that arrives on the command topic except the request to exit, and closing the session clears the topic — so the command would not be delayed, it would be lost.'
-                                : 'There is a retained maintenance command waiting for the node to wake up. The topic holds only one message, so publishing the capture command here would overwrite it and cancel service mode.'}
-                            {' '}Transferring still works. To change the capture, exit service mode and
-                            wait for the next normal cycle.
+                            {inServiceMode ? t('log.lockedInService') : t('log.lockedArmed')}
+                            {t('log.lockedTail')}
                         </div>
                     </div>
                 </div>
@@ -548,10 +539,8 @@ const LogPanel = ({ state, connected }) => {
 
             <ConfirmDialog
                 open={confirm !== null}
-                title={confirm === 'start'
-                    ? 'Starting discards the capture in progress'
-                    : "Stopping empties the node's memory"}
-                confirmLabel={confirm === 'start' ? 'Discard and start' : 'Stop and delete'}
+                title={confirm === 'start' ? t('log.confirm.startTitle') : t('log.confirm.stopTitle')}
+                confirmLabel={confirm === 'start' ? t('log.confirm.startLabel') : t('log.confirm.stopLabel')}
                 onCancel={() => setConfirm(null)}
                 onConfirm={() => {
                     const kind = confirm;
@@ -559,20 +548,34 @@ const LogPanel = ({ state, connected }) => {
                     setCaptureLevel(kind === 'start' ? level : 0);
                 }}
             >
+                {/* Whole sentences chosen by condition rather than a run of
+                    fragments. The English original was assembled from six pieces
+                    whose order the JSX decided; that leaves a translator unable to
+                    see, or reorder, the sentence they are writing. */}
                 {confirm === 'start'
-                    ? <>There is an active capture at {levelName(logs.level)}. Starting a new one erases it and starts from zero.</>
-                    : <>On stopping, the node empties its capture memory.</>}
-                {' '}The node reported <strong>{logs.count} events</strong> in its last telemetry
-                {logs.count > 0 && <> — if you haven't transferred them, they will be lost</>}.
-                {' '}The number can be up to one cycle behind, so there could be more.
+                    ? t('log.confirm.startBody', { level: levelName(t, logs.level) })
+                    : t('log.confirm.stopBody')}
+                {' '}
+                <Trans
+                    t={t}
+                    i18nKey={logs.count > 0 ? 'log.confirm.reportedLost' : 'log.confirm.reportedNone'}
+                    values={{ count: logs.count }}
+                />
                 {logs.count > 0 && (
-                    <> If they matter, cancel and use <em>Transfer logs from the node</em> first
-                    {confirm === 'stop' && <> (this leaves the memory empty and the capture stopped, which is the same thing you were after)</>}.</>
+                    <>
+                        {' '}
+                        <Trans
+                            t={t}
+                            i18nKey={confirm === 'stop'
+                                ? 'log.confirm.transferFirstStop'
+                                : 'log.confirm.transferFirstStart'}
+                        />
+                    </>
                 )}
             </ConfirmDialog>
 
             {/* ── Step 2 ───────────────────────────────────────────────────── */}
-            <h4 className="svc-h4" style={{ marginTop: '1.2rem' }}>2 · Transfer to the backend</h4>
+            <h4 className="svc-h4" style={{ marginTop: '1.2rem' }}>{t('log.step2')}</h4>
 
             {/* The requirement goes BEFORE the button and with the action inside it.
                 This explanation used to hang below everything, so it read like the
@@ -582,53 +585,53 @@ const LogPanel = ({ state, connected }) => {
                 <div className="svc-alert svc-alert-info" style={{ marginTop: '0.4rem' }}>
                     <Info size={18} aria-hidden="true" />
                     <div>
-                        <strong>The node needs to be woken up first.</strong>
-                        <div className="svc-small">
-                            Outside a service mode session the node sleeps 60 s out of every 70 and
-                            doesn't listen to the request topic, so it can't respond to a transfer.
-                            The capture keeps running fine in the meantime.
-                        </div>
+                        <strong>{t('log.needsWakeTitle')}</strong>
+                        <div className="svc-small">{t('log.needsWakeBody')}</div>
                         <button
                             className="svc-btn svc-tip"
                             style={{ marginTop: '0.6rem' }}
-                            data-tip="Publishes the maintenance command with the default 15 min timeout. The node picks it up on its next wake and stays awake — only then can it be transferred."
+                            data-tip={t('log.armTip')}
                             disabled={busy || maintenanceArmed}
                             onClick={armServiceMode}
                         >
-                            <Wrench size={16} /> {maintenanceArmed ? 'Service mode already requested — waiting on the node' : 'Activate service mode'}
+                            <Wrench size={16} /> {maintenanceArmed ? t('log.armAlreadyRequested') : t('log.arm')}
                         </button>
                     </div>
                 </div>
             )}
 
             {!logs.canFetch && !needsServiceMode && logs.cantWhy && (
-                <p className="svc-muted svc-small" style={{ marginTop: '0.4rem' }}>{logs.cantWhy}</p>
+                <p className="svc-muted svc-small" style={{ marginTop: '0.4rem' }}>
+                    {apiText(t, 'cantWhy', logs.cantWhyCode, logs.cantWhy)}
+                </p>
             )}
 
             <div className="svc-btn-row" style={{ marginTop: '0.6rem' }}>
                 <button
                     className="svc-btn svc-btn-primary svc-tip"
-                    data-tip="Fetches the captured events page by page. The node only clears them after the backend confirms they all arrived, so an interrupted transfer doesn't cost the capture."
+                    data-tip={t('log.transferTip')}
                     disabled={busy || !logs.canFetch}
                     onClick={transfer}
                 >
                     {/* The label watches `transferring`, not `busy`: `busy` is shared
                         by every action on the panel, so starting a capture would put
                         this button in "Transferring…" while nothing was transferring. */}
-                    <DownloadCloud size={16} /> {transferring ? 'Transferring…' : 'Transfer logs from the node'}
+                    <DownloadCloud size={16} /> {transferring ? t('log.transferring') : t('log.transfer')}
                 </button>
                 <label className="svc-checkbox">
                     <input type="checkbox" checked={keep} onChange={(e) => setKeep(e.target.checked)} />
-                    <Tip text="Fetches a copy without stopping the capture or emptying the node's memory, for investigations that are still ongoing. By default the transfer empties and stops it.">
-                        keep capture running
-                    </Tip>
+                    <Tip text={t('log.keepTip')}>{t('log.keep')}</Tip>
                 </label>
             </div>
             {logs.lastError && (
                 <div className="svc-alert svc-alert-warn" style={{ marginTop: '0.6rem' }}>
                     <AlertTriangle size={18} aria-hidden="true" />
                     <div>
-                        <strong>The last transfer failed.</strong>
+                        {/* lastError itself stays untranslated: it is the raw text
+                            from paho or from the network, and the verbatim message
+                            is worth more to whoever is debugging than a rendering
+                            of it. */}
+                        <strong>{t('log.lastErrorTitle')}</strong>
                         <div className="svc-small">{logs.lastError}</div>
                     </div>
                 </div>
@@ -639,13 +642,13 @@ const LogPanel = ({ state, connected }) => {
                 <>
                     <div className="svc-card-head" style={{ marginTop: '1.2rem' }}>
                         <h4 className="svc-h4">
-                            3 · Review · {capture.count || capture.entries?.length || 0} events
-                            {capture.firmware ? ` · ${capture.firmware}` : ''}
+                            {t('log.step3', { count: capture.count || capture.entries?.length || 0 })}
+                            {capture.firmware ? t('log.step3Firmware', { firmware: capture.firmware }) : ''}
                         </h4>
                         <div className="svc-toolbar">
                             <a
                                 className="svc-icon-btn svc-tip"
-                                data-tip="Downloads the capture as JSON, with the code dictionary and time anchors included. Stays readable even after the firmware moves on and renumbers the codes."
+                                data-tip={t('log.exportJsonTip')}
                                 href={LOG_EXPORT_JSON_URL}
                                 download
                             >
@@ -653,7 +656,7 @@ const LogPanel = ({ state, connected }) => {
                             </a>
                             <a
                                 className="svc-icon-btn svc-tip"
-                                data-tip="Same as the JSON but one event per line, with a header line first. Same format as the payload viewer's export."
+                                data-tip={t('log.exportNdjsonTip')}
                                 href={LOG_EXPORT_NDJSON_URL}
                                 download
                             >
@@ -662,30 +665,29 @@ const LogPanel = ({ state, connected }) => {
                         </div>
                     </div>
                     <p className="svc-muted svc-small">
-                        Transferred {formatClock(capture.fetchedAt)}.{' '}
+                        {t('log.transferredAt', { time: formatClock(capture.fetchedAt) })}{' '}
                         {capture.cleared
-                            ? (capture.kept
-                                ? "The node's memory was cleared but the capture is still active."
-                                : 'The node cleared its memory and stopped the capture.')
-                            : 'The node did not confirm the clear: the capture is still occupying its memory.'}
+                            ? (capture.kept ? t('log.clearedKept') : t('log.clearedStopped'))
+                            : t('log.notCleared')}
                     </p>
 
                     {capture.dropped > 0 && (
                         <div className="svc-alert svc-alert-warn" style={{ marginTop: '0.5rem' }}>
                             <AlertTriangle size={18} aria-hidden="true" />
                             <div>
-                                <strong>The oldest events are missing.</strong>
-                                <div className="svc-small">
-                                    The node's memory filled up and overwrote {capture.dropped} events with newer
-                                    ones, so the capture doesn't reach back to the start of the window and may
-                                    not cover what you were looking for. Next time, a leaner level lasts longer.
-                                </div>
+                                <strong>{t('log.droppedTitle')}</strong>
+                                <div className="svc-small">{t('log.droppedBody', { count: capture.dropped })}</div>
                             </div>
                         </div>
                     )}
 
+                    {/* noteCodes runs parallel to notes and in the same order, so
+                        the index lines them up; the prose is the fallback for a
+                        backend that predates the codes. */}
                     {capture.notes?.map((n, i) => (
-                        <p key={i} className="svc-muted svc-small" style={{ marginTop: '0.35rem' }}>{n}</p>
+                        <p key={i} className="svc-muted svc-small" style={{ marginTop: '0.35rem' }}>
+                            {apiNote(t, 'captureNote', capture.noteCodes?.[i], n)}
+                        </p>
                     ))}
 
                     {(capture.entries?.length ?? 0) > 0 && (
@@ -695,7 +697,7 @@ const LogPanel = ({ state, connected }) => {
                                     className={`svc-range-btn ${codeFilter === 'all' ? 'active' : ''}`}
                                     onClick={() => setCodeFilter('all')}
                                 >
-                                    all
+                                    {t('log.filterAll')}
                                 </button>
                                 {codeNames.map((n) => (
                                     <button
@@ -713,7 +715,7 @@ const LogPanel = ({ state, connected }) => {
                                     className="svc-input"
                                     value={text}
                                     onChange={(e) => setText(e.target.value)}
-                                    placeholder="Filter by text — e.g. rssi, timeout, mqtt"
+                                    placeholder={t('log.filterPlaceholder')}
                                     spellCheck={false}
                                 />
                                 <span className="svc-muted svc-small" style={{ alignSelf: 'center' }}>
@@ -723,7 +725,7 @@ const LogPanel = ({ state, connected }) => {
 
                             <div className="svc-log" style={{ marginTop: '0.5rem' }}>
                                 {filtered.length === 0 && (
-                                    <p className="svc-muted svc-small">No events match the filter.</p>
+                                    <p className="svc-muted svc-small">{t('log.noMatches')}</p>
                                 )}
                                 {filtered.map((e, i) => (
                                     <div key={i} className="svc-log-row">
@@ -731,14 +733,21 @@ const LogPanel = ({ state, connected }) => {
                                             <span className="svc-log-time">
                                                 {e.at ? formatClock(e.at) : '—'}
                                                 {e.at && !e.atAnchored && (
-                                                    <Tip text="Estimated time: this cycle did not publish telemetry, so it was interpolated from the nearest cycle with a real timestamp using the measured awake time. The deep sleep timer has ±5% drift, so the deviation grows with distance.">
+                                                    <Tip text={t('log.estimatedTimeTip')}>
                                                         {' '}≈
                                                     </Tip>
                                                 )}
                                             </span>
                                             <span className="svc-badge svc-badge-muted">#{e.boot}</span>
                                             <span className="svc-muted svc-small">{e.ms} ms</span>
-                                            <span className="svc-log-topic">{e.text}</span>
+                                            {/* The node's LOG_CODES templates are hashed into the
+                                                firmware's dictionary fingerprint, so they cannot be
+                                                translated at the source. Rendered here by code name,
+                                                with the node's own rendered text as the fallback for
+                                                a code this build has not seen. */}
+                                            <span className="svc-log-topic">
+                                                {apiText(t, 'logCode', e.name, e.text, { a: e.a, b: e.b })}
+                                            </span>
                                         </div>
                                     </div>
                                 ))}

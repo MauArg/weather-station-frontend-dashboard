@@ -1,3 +1,5 @@
+import i18n from '../i18n';
+
 const API_BASE_URL = '/api/v1';
 
 /**
@@ -105,6 +107,17 @@ export const getBatteryTrend = async (hours = 72) => {
 // this line goes with them.
 export { formatClock } from '../utils/timezone';
 
+/*
+ * The two functions below are the one place text is produced outside a React
+ * component, so they read i18n.t off the instance rather than through the hook.
+ *
+ * They do not re-render on their own when the language changes — nothing here
+ * is subscribed. It works because every call site is inside a component that
+ * *is* subscribed via useTranslation, so the switch re-renders the caller and
+ * the string is recomputed on the way through. Anything that memoised one of
+ * these across a language change would keep the stale wording.
+ */
+
 /**
  * How long ago something happened, or null when it is recent enough that the
  * clock alone is unambiguous.
@@ -117,18 +130,20 @@ export { formatClock } from '../utils/timezone';
  */
 export const formatAge = (iso, now = Date.now()) => {
     if (!iso) return null;
-    const t = new Date(iso).getTime();
-    if (isNaN(t)) return null;
+    const at = new Date(iso).getTime();
+    if (isNaN(at)) return null;
 
-    const seconds = Math.floor((now - t) / 1000);
+    const seconds = Math.floor((now - at) / 1000);
     // Below two minutes the clock is already enough, and a suffix on every row
     // would be noise on top of traffic that actually is live.
     if (seconds < 120) return null;
-    if (seconds < 3600) return `${Math.floor(seconds / 60)} min ago`;
-    if (seconds < 86400) return `${Math.floor(seconds / 3600)} h ago`;
+    if (seconds < 3600) return i18n.t('age.minutes', { count: Math.floor(seconds / 60) });
+    if (seconds < 86400) return i18n.t('age.hours', { count: Math.floor(seconds / 3600) });
 
-    const days = Math.floor(seconds / 86400);
-    return days === 1 ? '1 day ago' : `${days} days ago`;
+    // The only genuine plural in the app, and the reason it is a plural rather
+    // than a hand-written special case: "1 day" / "N days" happens to need two
+    // forms in both languages, but that is a fact about these two languages.
+    return i18n.t('age.days', { count: Math.floor(seconds / 86400) });
 };
 
 /**
@@ -142,12 +157,14 @@ export const formatAge = (iso, now = Date.now()) => {
 export const formatElapsed = (totalSeconds) => {
     if (totalSeconds == null || totalSeconds < 0) return '—';
     const minutes = Math.floor(totalSeconds / 60);
-    if (minutes < 1) return 'less than 1 min';
-    if (minutes < 60) return `${minutes} min`;
+    if (minutes < 1) return i18n.t('elapsed.lessThanAMinute');
+    if (minutes < 60) return i18n.t('elapsed.minutes', { count: minutes });
 
     const hours = Math.floor(minutes / 60);
     const rest = minutes % 60;
-    return rest === 0 ? `${hours} h` : `${hours} h ${rest} min`;
+    return rest === 0
+        ? i18n.t('elapsed.hours', { count: hours })
+        : i18n.t('elapsed.hoursMinutes', { hours, minutes: rest });
 };
 
 export const formatDuration = (totalSeconds) => {

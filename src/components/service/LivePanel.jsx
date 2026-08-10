@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
+import { Trans, useTranslation } from 'react-i18next';
 import { Radio, Play, Square, FlaskConical, AlertTriangle } from 'lucide-react';
 import { sendServiceCommand, formatAge } from '../../services/ServiceApi';
+import { apiNote } from '../../i18n/apiText';
 import { useNow } from '../../hooks/useNow';
 import Tip from './Tip';
 
@@ -11,17 +13,6 @@ const INTERVAL_SEC = 5;
 const SESSION_MIN = 60;
 const FORCED_CAP_MIN = 30;
 
-// Why the node ended a session, in the operator's words. The node publishes these
-// verbatim in live_mode_ended.
-const EXIT_REASON = {
-    no_sun: 'the panel stopped producing',
-    low_battery: 'the pack dropped below its floor',
-    timeout: 'it used up its budget',
-    mqtt_lost: 'the broker became unreachable',
-    cleared_by_server: 'it was stopped from here',
-    budget_exhausted: 'no budget was left from earlier sessions',
-};
-
 const fmtDuration = (sec) => {
     if (sec == null || sec < 0) return '—';
     const m = Math.floor(sec / 60);
@@ -30,6 +21,7 @@ const fmtDuration = (sec) => {
 };
 
 const LivePanel = ({ state, connected }) => {
+    const { t } = useTranslation('service');
     const now = useNow(15000);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState(null);
@@ -81,7 +73,7 @@ const LivePanel = ({ state, connected }) => {
         setNote(null);
         try {
             const res = await sendServiceCommand(body);
-            setNote(res.note || describe);
+            setNote(apiNote(t, 'note', res.noteCode, res.note) || describe);
         } catch (e) {
             setError(e.message);
         } finally {
@@ -92,43 +84,52 @@ const LivePanel = ({ state, connected }) => {
     const start = (force) =>
         run(
             { cmd: 'live', intervalSec: INTERVAL_SEC, timeoutMin: SESSION_MIN, force },
-            force ? 'Forced session armed.' : 'Live mode armed.',
+            force ? t('live.toast.forcedArmed') : t('live.toast.armed'),
         );
 
     // Stop is 'clear', not a live-specific command: an empty retained payload is
     // what every mode on the node reads as "stop". Same button the OTA wizard uses
     // to leave service mode.
-    const stop = () => run({ cmd: 'clear' }, 'Stop sent.');
+    const stop = () => run({ cmd: 'clear' }, t('live.toast.stopped'));
+
+    // Known reasons get the operator's phrasing; an unknown one falls through to
+    // the raw code the node sent, which is more useful than hiding it.
+    const exitReason = lastEnded?.reason
+        ? t(`live.exitReason.${lastEnded.reason}`, { defaultValue: lastEnded.reason })
+        : t('live.exitReason.unreported');
 
     return (
         <div className="svc-card svc-span-2">
             <div className="svc-card-head">
-                <h3 className="svc-h4"><Radio size={18} aria-hidden="true" /> Live mode</h3>
-                {isRunning && <span className="svc-badge">running</span>}
-                {!isRunning && isArmed && <span className="svc-badge svc-badge-warn">armed · waiting for wake</span>}
+                <h3 className="svc-h4"><Radio size={18} aria-hidden="true" /> {t('live.title')}</h3>
+                {isRunning && <span className="svc-badge">{t('live.running')}</span>}
+                {!isRunning && isArmed && <span className="svc-badge svc-badge-warn">{t('live.armed')}</span>}
             </div>
 
+            {/* <Trans> rather than three t() calls: the tip sits mid-sentence, and
+                splitting the paragraph around it would hand the translator three
+                fragments whose order the JSX, not the grammar, decides. */}
             <p className="svc-small svc-muted">
-                The node stops sleeping and publishes every ~{INTERVAL_SEC}s instead of every 60.
-                Only worth it while the charger is already rejecting energy:{' '}
-                <Tip text="Measured over a 47 min field session: 53.1 mA sustained, 41.3 mAh consumed. The normal duty cycle uses about 47 mAh for a whole day, so an hour of live mode costs roughly a day of ordinary operation.">
-                    <strong>~53 mAh per hour</strong>
-                </Tip>
-                , against ~47 mAh for a full day of the normal cycle.
+                <Trans
+                    t={t}
+                    i18nKey="live.intro"
+                    values={{ sec: INTERVAL_SEC }}
+                    components={[<Tip key="cost" text={t('live.costTip')} />]}
+                />
             </p>
 
             {isRunning && (
                 <div className="svc-kv-grid">
                     <div className="svc-kv">
-                        <span className="svc-kv-label">Elapsed</span>
+                        <span className="svc-kv-label">{t('live.elapsed')}</span>
                         <span className="svc-kv-value">{fmtDuration(elapsedSec)}</span>
                     </div>
                     <div className="svc-kv">
-                        <span className="svc-kv-label">Remaining</span>
+                        <span className="svc-kv-label">{t('live.remaining')}</span>
                         <span className="svc-kv-value">{fmtDuration(remainingSec)}</span>
                     </div>
                     <div className="svc-kv">
-                        <span className="svc-kv-label">Published</span>
+                        <span className="svc-kv-label">{t('live.published')}</span>
                         <span className="svc-kv-value">{seq ?? '—'}</span>
                     </div>
                 </div>
@@ -136,11 +137,10 @@ const LivePanel = ({ state, connected }) => {
 
             {!isRunning && lastEnded && (
                 <p className="svc-small svc-muted">
-                    Last session{lastEndedAge ? ` (${lastEndedAge})` : ''} ended because{' '}
-                    {EXIT_REASON[lastEnded.reason] || lastEnded.reason || 'of an unreported reason'}.
-                    {(lastEnded.reason === 'no_sun' || lastEnded.reason === 'low_battery') && (
-                        <> The node judged conditions from its own sensors, so automatic arming stands down for an hour.</>
-                    )}
+                    {lastEndedAge
+                        ? t('live.lastSessionAged', { age: lastEndedAge, reason: exitReason })
+                        : t('live.lastSession', { reason: exitReason })}
+                    {(lastEnded.reason === 'no_sun' || lastEnded.reason === 'low_battery') && t('live.floorCooldown')}
                 </p>
             )}
 
@@ -148,11 +148,8 @@ const LivePanel = ({ state, connected }) => {
                 <div className="svc-alert svc-alert-warn">
                     <AlertTriangle size={18} aria-hidden="true" />
                     <div>
-                        <strong>“{retained.cmd}” is already retained.</strong>
-                        <div className="svc-small">
-                            The node has a single command slot and every mode reads an empty payload as
-                            “stop”, so they cannot be queued against each other. Clear that one first.
-                        </div>
+                        <strong>{t('live.otherCommandTitle', { cmd: retained.cmd })}</strong>
+                        <div className="svc-small">{t('live.otherCommandBody')}</div>
                     </div>
                 </div>
             )}
@@ -163,7 +160,7 @@ const LivePanel = ({ state, connected }) => {
                     disabled={!connected || busy || isArmed || isRunning || otherCommand}
                     onClick={() => start(false)}
                 >
-                    <Play size={16} aria-hidden="true" /> Start ({SESSION_MIN} min)
+                    <Play size={16} aria-hidden="true" /> {t('live.start', { min: SESSION_MIN })}
                 </button>
 
                 {/* Its own button rather than a checkbox: forcing skips a safety
@@ -173,9 +170,9 @@ const LivePanel = ({ state, connected }) => {
                     className="svc-btn svc-tip"
                     disabled={!connected || busy || isArmed || isRunning || otherCommand}
                     onClick={() => start(true)}
-                    data-tip={`Skips only the node's panel-voltage floor, so the mode can be exercised without sun. The node caps a forced session at ${FORCED_CAP_MIN} min, and the pack floor, the budget and the broker floor all still apply.`}
+                    data-tip={t('live.forceTip', { min: FORCED_CAP_MIN })}
                 >
-                    <FlaskConical size={16} aria-hidden="true" /> Force (test)
+                    <FlaskConical size={16} aria-hidden="true" /> {t('live.force')}
                 </button>
 
                 <button
@@ -183,7 +180,7 @@ const LivePanel = ({ state, connected }) => {
                     disabled={!connected || busy || (!isArmed && !isRunning)}
                     onClick={stop}
                 >
-                    <Square size={16} aria-hidden="true" /> Stop
+                    <Square size={16} aria-hidden="true" /> {t('live.stop')}
                 </button>
             </div>
 
@@ -195,10 +192,7 @@ const LivePanel = ({ state, connected }) => {
                 </div>
             )}
 
-            <p className="svc-small svc-muted">
-                The node exits on its own when the panel, the pack, the budget or the broker say so —
-                nothing here can leave it awake indefinitely.
-            </p>
+            <p className="svc-small svc-muted">{t('live.footer')}</p>
         </div>
     );
 };

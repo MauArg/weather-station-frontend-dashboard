@@ -1,16 +1,18 @@
 import React, { useMemo, useState } from 'react';
+import { Trans, useTranslation } from 'react-i18next';
 import {
     Wrench, Clock, CheckCircle2, Copy, Power, Loader2, AlertTriangle, ShieldX, Terminal, ArrowRight, HelpCircle, RefreshCw,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { sendServiceCommand, formatDuration, formatClock } from '../../services/ServiceApi';
+import { apiNote, apiText } from '../../i18n/apiText';
 import { useNow } from '../../hooks/useNow';
 import { copyText } from '../../utils/clipboard';
 
-const OTA_ENVS = [
-    { id: 'ota_production', label: 'Production', hint: 'LOG_LEVEL=0 — the one that goes to the field' },
-    { id: 'ota_development', label: 'Development', hint: 'LOG_LEVEL=2 — costs 2 s of delay per wake' },
-];
+// The ids are PlatformIO environment names and never translate; the label and
+// the hint beside them do.
+const OTA_ENVS = ['ota_production', 'ota_development'];
+const ENV_KEY = { ota_production: 'production', ota_development: 'development' };
 
 /**
  * Derives the wizard step from live node state rather than tracking it locally.
@@ -36,6 +38,7 @@ const deriveStep = (state, session) => {
 };
 
 const OtaWizard = ({ state, session, onSession }) => {
+    const { t } = useTranslation('service');
     const [busy, setBusy] = useState(false);
     const [timeoutMin, setTimeoutMin] = useState(15);
     const [env, setEnv] = useState('ota_production');
@@ -49,6 +52,9 @@ const OtaWizard = ({ state, session, onSession }) => {
     // cold start. Unknown gets its own neutral state and does not block: the first
     // telemetry cycle lands within 60 s and will raise the real gate if warranted.
     const risk = battery?.flashRisk ?? 'unknown';
+    // Same rule as BatteryPanel: the note is derived from flashRisk, with the
+    // backend's own sentence as the fallback.
+    const riskNote = apiText(t, 'riskNote', battery?.flashRisk, battery?.riskNote);
     const connected = state.broker?.connected;
     const restarts = state.session?.starts ?? 0;
 
@@ -72,7 +78,8 @@ const OtaWizard = ({ state, session, onSession }) => {
                 firmwareAtArm: state.telemetry?.firmware ?? null,
                 timeoutMin,
             });
-            toast.success(`Service mode activated${res.note ? ` — ${res.note}` : ''}`);
+            const note = apiNote(t, 'note', res.noteCode, res.note);
+            toast.success(`${t('ota.toast.activated')}${note ? ` — ${note}` : ''}`);
         } catch (err) {
             toast.error(err.message);
         } finally {
@@ -85,7 +92,7 @@ const OtaWizard = ({ state, session, onSession }) => {
         try {
             await sendServiceCommand({ cmd: 'clear' });
             onSession(null);
-            toast.success('Service mode deactivated — the node returns to its normal cycle');
+            toast.success(t('ota.toast.deactivated'));
         } catch (err) {
             toast.error(err.message);
         } finally {
@@ -94,22 +101,19 @@ const OtaWizard = ({ state, session, onSession }) => {
     };
 
     const copyCommand = async () => {
-        if (await copyText(pioCommand)) toast.success('Command copied');
-        else toast.error('Could not copy');
+        if (await copyText(pioCommand)) toast.success(t('ota.toast.copied'));
+        else toast.error(t('ota.toast.copyFailed'));
     };
 
     return (
         <div className="svc-card svc-wizard">
             <div className="svc-card-head">
-                <h3>OTA session</h3>
+                <h3>{t('ota.title')}</h3>
                 <ol className="svc-steps">
-                    {[
-                        ['idle', 'Arm'],
-                        ['armed', 'Wait for wake'],
-                        ['ready', 'Flash'],
-                        ['flashed', 'Verify'],
-                    ].map(([id, label]) => (
-                        <li key={id} className={`svc-step ${step === id ? 'active' : ''}`}>{label}</li>
+                    {['idle', 'armed', 'ready', 'flashed'].map((id) => (
+                        <li key={id} className={`svc-step ${step === id ? 'active' : ''}`}>
+                            {t(`ota.step.${id}`)}
+                        </li>
                     ))}
                 </ol>
             </div>
@@ -117,33 +121,30 @@ const OtaWizard = ({ state, session, onSession }) => {
             {/* ── Step 1 — arm ────────────────────────────────────────────── */}
             {step === 'idle' && (
                 <>
-                    <p className="svc-muted">
-                        Publishes <code>{'{"cmd":"maintenance"}'}</code> retained. The node picks it up on its next wake,
-                        brings up ArduinoOTA and announces it on the status topic — no need to ping it.
-                    </p>
+                    <p className="svc-muted"><Trans t={t} i18nKey="ota.intro" /></p>
 
                     <div className="svc-field">
-                        <label className="svc-kv-label"><Clock size={13} aria-hidden="true" /> Session timeout: <strong>{timeoutMin} min</strong></label>
+                        <label className="svc-kv-label">
+                            <Clock size={13} aria-hidden="true" />{' '}
+                            <Trans t={t} i18nKey="ota.timeoutLabel" values={{ min: timeoutMin }} />
+                        </label>
                         <input
                             type="range" min={1} max={60} value={timeoutMin}
                             onChange={(e) => setTimeoutMin(Number(e.target.value))}
                             className="svc-slider"
                         />
-                        <span className="svc-muted svc-small">
-                            The firmware caps this at 60 min (SERVICE_MODE_MAX_TIMEOUT_MIN). During the session the
-                            node stays awake at 50-140 mA with no deep sleep.
-                        </span>
+                        <span className="svc-muted svc-small">{t('ota.timeoutHint')}</span>
                     </div>
 
                     {risk === 'unsafe' && (
                         <div className="svc-alert svc-alert-danger">
                             <ShieldX size={18} aria-hidden="true" />
                             <div>
-                                <strong>Battery at {battery?.volts?.toFixed(3)} V — flashing is not advisable.</strong>
-                                <div className="svc-small">{battery?.riskNote}</div>
+                                <strong>{t('ota.unsafeTitle', { volts: battery?.volts?.toFixed(3) })}</strong>
+                                <div className="svc-small">{riskNote}</div>
                                 <label className="svc-checkbox" style={{ marginTop: '0.5rem' }}>
                                     <input type="checkbox" checked={overrideRisk} onChange={(e) => setOverrideRisk(e.target.checked)} />
-                                    I understand the risk, arm anyway
+                                    {t('ota.override')}
                                 </label>
                             </div>
                         </div>
@@ -152,18 +153,15 @@ const OtaWizard = ({ state, session, onSession }) => {
                         <div className="svc-alert svc-alert-warn">
                             <AlertTriangle size={18} aria-hidden="true" />
                             <div>
-                                <strong>Battery at {battery?.volts?.toFixed(3)} V.</strong>
-                                <div className="svc-small">{battery?.riskNote}</div>
+                                <strong>{t('ota.cautionTitle', { volts: battery?.volts?.toFixed(3) })}</strong>
+                                <div className="svc-small">{riskNote}</div>
                             </div>
                         </div>
                     )}
                     {risk === 'unknown' && (
                         <div className="svc-alert svc-alert-info">
                             <HelpCircle size={18} aria-hidden="true" />
-                            <div className="svc-small">
-                                No battery reading yet — it arrives with the first telemetry cycle, within
-                                60 s. If it's better to wait, the warning will show up on its own.
-                            </div>
+                            <div className="svc-small">{t('ota.unknownRisk')}</div>
                         </div>
                     )}
 
@@ -173,9 +171,9 @@ const OtaWizard = ({ state, session, onSession }) => {
                         onClick={arm}
                     >
                         {busy ? <Loader2 size={16} className="animate-spin" /> : <Wrench size={16} />}
-                        Activate service mode
+                        {t('ota.activate')}
                     </button>
-                    {!connected && <p className="svc-muted svc-small">No connection to the MQTT broker.</p>}
+                    {!connected && <p className="svc-muted svc-small">{t('ota.noBroker')}</p>}
                 </>
             )}
 
@@ -185,21 +183,18 @@ const OtaWizard = ({ state, session, onSession }) => {
                     <div className="svc-waiting">
                         <Loader2 size={32} className="animate-spin" color="#4dabf7" />
                         <div>
-                            <strong>Waiting for the node to wake up</strong>
+                            <strong>{t('ota.waitingTitle')}</strong>
                             <div className="svc-muted svc-small">
                                 {state.node?.nextWakeInSec > 0
-                                    ? `Next wake estimated in ~${state.node.nextWakeInSec}s`
-                                    : 'The node should be waking up right now'}
-                                {' · '}the command stays retained until it reads it
+                                    ? t('ota.nextWake', { sec: state.node.nextWakeInSec })
+                                    : t('ota.wakingNow')}
+                                {t('ota.stillRetained')}
                             </div>
                         </div>
                     </div>
-                    <p className="svc-muted svc-small">
-                        This replaces the old <code>ping</code> window: the node publishes <code>service_mode_active</code> when
-                        ArduinoOTA is up, which is the real signal that it's ready to flash.
-                    </p>
+                    <p className="svc-muted svc-small"><Trans t={t} i18nKey="ota.replacesPing" /></p>
                     <button className="svc-btn" disabled={busy} onClick={disarm}>
-                        <Power size={16} /> Cancel
+                        <Power size={16} /> {t('ota.cancel')}
                     </button>
                 </>
             )}
@@ -210,18 +205,16 @@ const OtaWizard = ({ state, session, onSession }) => {
                     <div className={`svc-ready ${step === 'flashed' ? 'done' : ''}`}>
                         <CheckCircle2 size={28} color={step === 'flashed' ? '#4ade80' : '#4dabf7'} aria-hidden="true" />
                         <div>
-                            <strong>
-                                {step === 'flashed' ? 'Flashed and verified' : 'Node ready — ArduinoOTA listening'}
-                            </strong>
+                            <strong>{step === 'flashed' ? t('ota.flashedTitle') : t('ota.readyTitle')}</strong>
                             <div className="svc-muted svc-small">
-                                {remainingSec != null && <><strong>{formatDuration(remainingSec)}</strong> left in the session · </>}
-                                running <strong>{state.status?.firmware || '—'}</strong>
-                                {step === 'flashed' && session?.firmwareAtArm && (
-                                    <> (was {session.firmwareAtArm})</>
+                                {remainingSec != null && (
+                                    <Trans t={t} i18nKey="ota.sessionLeft" values={{ duration: formatDuration(remainingSec) }} />
                                 )}
-                                {state.session?.deadline && (
-                                    <> · backend cutoff {formatClock(state.session.deadline)}</>
-                                )}
+                                <Trans t={t} i18nKey="ota.running" values={{ firmware: state.status?.firmware || '—' }} />
+                                {step === 'flashed' && session?.firmwareAtArm &&
+                                    t('ota.wasVersion', { firmware: session.firmwareAtArm })}
+                                {state.session?.deadline &&
+                                    t('ota.backendCutoff', { time: formatClock(state.session.deadline) })}
                             </div>
                         </div>
                     </div>
@@ -230,13 +223,9 @@ const OtaWizard = ({ state, session, onSession }) => {
                         <div className="svc-alert svc-alert-warn">
                             <RefreshCw size={18} aria-hidden="true" />
                             <div>
-                                <strong>The node restarted the session {restarts} times.</strong>
+                                <strong>{t('ota.restartsTitle', { count: restarts })}</strong>
                                 <div className="svc-small">
-                                    It loses MQTT partway through, goes to sleep unable to clear the retained
-                                    command, and reads it again on waking. With firmware ≤ 1.1.0 each restart
-                                    gets a brand new full timeout. The backend still cuts it off at
-                                    {state.session?.timeoutMin} min from when it was armed — if the flash doesn't
-                                    fit in that window, arm it again.
+                                    {t('ota.restartsBody', { min: state.session?.timeoutMin })}
                                 </div>
                             </div>
                         </div>
@@ -245,26 +234,23 @@ const OtaWizard = ({ state, session, onSession }) => {
                     {step === 'ready' && (
                         <>
                             <div className="svc-field">
-                                <label className="svc-kv-label">PlatformIO environment</label>
+                                <label className="svc-kv-label">{t('ota.pioEnv')}</label>
                                 <div className="svc-btn-row">
-                                    {OTA_ENVS.map((e) => (
+                                    {OTA_ENVS.map((id) => (
                                         <button
-                                            key={e.id}
-                                            className={`svc-range-btn ${env === e.id ? 'active' : ''}`}
-                                            onClick={() => setEnv(e.id)}
-                                            title={e.hint}
+                                            key={id}
+                                            className={`svc-range-btn ${env === id ? 'active' : ''}`}
+                                            onClick={() => setEnv(id)}
+                                            title={t(`ota.env.${ENV_KEY[id]}Hint`)}
                                         >
-                                            {e.label}
+                                            {t(`ota.env.${ENV_KEY[id]}`)}
                                         </button>
                                     ))}
                                 </div>
                                 {env === 'ota_development' && (
                                     <div className="svc-alert svc-alert-warn" style={{ marginTop: '0.5rem' }}>
                                         <AlertTriangle size={18} aria-hidden="true" />
-                                        <div className="svc-small">
-                                            The development build burns a fixed 2 s in <code>delay(2000)</code> on every wake,
-                                            at 50-140 mA. Don't leave it in the field longer than necessary.
-                                        </div>
+                                        <div className="svc-small"><Trans t={t} i18nKey="ota.devWarning" /></div>
                                     </div>
                                 )}
                             </div>
@@ -272,21 +258,14 @@ const OtaWizard = ({ state, session, onSession }) => {
                             <div className="svc-cmdline">
                                 <Terminal size={16} aria-hidden="true" />
                                 <code>{pioCommand}</code>
-                                <button className="svc-icon-btn" onClick={copyCommand}><Copy size={14} /> Copy</button>
+                                <button className="svc-icon-btn" onClick={copyCommand}><Copy size={14} /> {t('ota.copy')}</button>
                             </div>
-                            <p className="svc-muted svc-small">
-                                Run it from <code>weather-station-station-iot/</code>. When it's done, the node reboots,
-                                re-enters service mode on its own (it's flagged in RTC memory) and publishes its new
-                                version — that's when this view verifies it automatically.
-                            </p>
+                            <p className="svc-muted svc-small"><Trans t={t} i18nKey="ota.runFrom" /></p>
                         </>
                     )}
 
                     {step === 'flashed' && (
-                        <p className="svc-muted svc-small">
-                            The version changed, so the OTA went through. Deactivate so it returns to its normal
-                            cycle: otherwise it stays awake until the timeout runs out.
-                        </p>
+                        <p className="svc-muted svc-small">{t('ota.flashedNote')}</p>
                     )}
 
                     <button
@@ -295,7 +274,7 @@ const OtaWizard = ({ state, session, onSession }) => {
                         onClick={disarm}
                     >
                         {busy ? <Loader2 size={16} className="animate-spin" /> : <Power size={16} />}
-                        Deactivate service mode
+                        {t('ota.deactivate')}
                         {step === 'flashed' && <ArrowRight size={16} />}
                     </button>
                 </>

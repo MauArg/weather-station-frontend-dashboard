@@ -26,5 +26,19 @@
     "view": "View {{caption}}",
     "switchTo": "Switch to {{next}}. Currently showing {{current}}."
   },
-  "unknown": "unknown"
+  "unknown": "unknown",
+  "confirm": "Confirm",
+  "cancel": "Cancel",
+  "age": {
+    "minutes": "{{count}} min ago",
+    "hours": "{{count}} h ago",
+    "days_one": "{{count}} day ago",
+    "days_other": "{{count}} days ago"
+  },
+  "elapsed": {
+    "lessThanAMinute": "less than 1 min",
+    "minutes": "{{count}} min",
+    "hours": "{{count}} h",
+    "hoursMinutes": "{{hours}} h {{minutes}} min"
+  }
 }

@@ -1,0 +1,75 @@
+{
+  "note": {
+    "timeout_clamped_service": "timeout_min clamped from {{from}} to {{to}} (SERVICE_MODE_MAX_TIMEOUT_MIN)",
+    "timeout_clamped_live": "timeout_min clamped from {{from}} to {{to}} (the backend watchdog bounds any retained command to this)",
+    "level_clamped": "level clamped from {{from}} to {{to}} (LOG_MAX_LEVEL)",
+    "entries_clamped": "entries clamped from {{from}} to {{to}} (LOG_RING_ENTRIES — the ring lives in RTC memory and cannot grow at runtime)",
+    "cleared": "Topic cleared — the node exits service mode on the next loop (~100 ms).",
+    "ping": "The node responds on status and clears the retained topic on its own.",
+    "reboot": "The retained topic clears automatically as soon as the node confirms the reboot. boot_count starts over: that's expected and will be flagged as such.",
+    "capture_stopped": "Capture stopped. The node's memory is cleared: any events not yet transferred are lost.",
+    "capture_started": "The node applies the config, clears the retained topic and continues its normal cycle — it does not enter service mode. Capturing costs no energy; the cost is in transferring the logs afterward.",
+    "live_forced": "Forced session: the node skips its panel-voltage floor, so this runs without sun. The node caps a forced session at 30 min regardless of timeout_min, and the pack floor, the budget and the MQTT floor all still apply.",
+    "live_armed": "The node stops sleeping and publishes every ~{{interval}} s (it adds its sensor-read time on top). Costs about 53 mAh per hour, against ~47 mAh for a full day of the normal cycle. It exits on its own when the panel, the pack, the budget or the broker say so."
+  },
+  "cantWhy": {
+    "broker_down": "The backend is not connected to the MQTT broker.",
+    "fetch_in_progress": "A download is already in progress.",
+    "needs_service_mode": "The node needs to be in service mode: outside a session it sleeps almost the whole cycle and doesn't listen to the request topic."
+  },
+  "anomaly": {
+    "duplicate": "Two payloads with the same boot_count outside live mode: the same cycle was delivered twice.",
+    "gap": "{{missed}} telemetry payload(s) did not arrive: the node woke up but the publish didn't go through.",
+    "reset_spontaneous": "Spontaneous boot_count reset: RTC memory wiped with no reflash — watchdog or brownout signature.",
+    "reset_reboot": "Expected boot_count reset: a reboot was ordered moments ago. Any restart wipes RTC memory, so the counter starts over.",
+    "reset_service": "Expected boot_count reset: there was a recent service mode session, and a reflash wipes RTC memory."
+  },
+  "captureNote": {
+    "dump_not_multiple": "The dump is {{bytes}} B, which is not a multiple of {{entrySize}}: the trailing {{trailing}} B were discarded.",
+    "pre_restart_untimed": "{{count}} events before a node restart are left with no time: that restart reset boot_count to zero, so their cycle numbers belong to a different series and cannot be anchored against telemetry. The order between them is still correct.",
+    "no_anchors": "No reference telemetry: boot_count values are the raw 16 bits and no times were reconstructed.",
+    "no_anchor_in_range": "No cycle in the capture published telemetry: there is no anchor point to reconstruct times from.",
+    "implausible_boot_range": "Implausible boot_count range ({{cycles}} cycles): reconstructed times are omitted.",
+    "interpolated_times": "{{interpolated}} of {{total}} entries have an interpolated time (their cycle did not publish telemetry). The deep sleep timer runs on an RC oscillator with ±5%, so the drift grows with distance from the nearest anchored cycle.",
+    "no_entries": "The node has no captured entries yet.",
+    "ring_wraparound": "The ring overwrote {{dropped}} entries via wraparound: the capture is truncated at the start and may not cover the event being looked for.",
+    "clear_unconfirmed": "The capture downloaded fully but the node did not confirm the clear: it's still occupying the ring and logging may still be active."
+  },
+  "sensor": {
+    "sht31_ok": "SHT31-D (outdoor T+H)",
+    "bmp_ok": "BMP085/180 (pressure)",
+    "ds18b20_ok": "DS18B20 (enclosure)",
+    "dht11_ok": "DHT22 (enclosure)",
+    "photo_ok": "Photoresistor",
+    "rain_ok": "Rain sensor",
+    "solar_ok": "INA219 solar",
+    "system_ok": "INA219 system"
+  },
+  "tier": {
+    "1": "Full operation · Rail A + Rail B ON",
+    "2": "Rail A ON · Rail B OFF",
+    "3": "SHT31 + BMP180 only, every 5 min",
+    "4": "Heartbeat every 30 min · everything OFF"
+  },
+  "riskNote": {
+    "safe": "Wide margin for a 15 min session.",
+    "caution": "Short session (timeout ≤ 5 min) and avoid repeated flashes.",
+    "unsafe": "Do not flash: risk of a brownout mid-write from sag under load."
+  },
+  "logCode": {
+    "LOG_CAPTURE_START": "capture started - level {{a}}, capacity {{b}} events",
+    "LOG_BOOT": "boot - reset={{b}} (8=deep sleep wake; any other value resets boot_count)",
+    "LOG_WIFI_TRY": "wifi attempt {{a}} (cached channel {{b}}, 0=scan)",
+    "LOG_WIFI_OK": "wifi ok - attempt {{a}}, rssi {{b}} dBm",
+    "LOG_WIFI_FAIL": "wifi timeout - attempt {{a}}, status {{b}}",
+    "LOG_WIFI_GIVEUP": "wifi exhausted retries - {{b}} x100ms lost",
+    "LOG_MQTT_OK": "mqtt connected in {{b}} ms",
+    "LOG_MQTT_FAIL": "mqtt rejected - state {{b}}",
+    "LOG_CMD_RX": "retained command - type {{a}} (1=maintenance 2=reboot 3=config 4=calibrate 5=ping 6=log_on)",
+    "LOG_PUBLISH_OK": "telemetry published - {{b}} B",
+    "LOG_PUBLISH_FAIL": "publish failed - {{b}} B, cause {{a}} (1=doesn't fit in buffer, 2=connection dropped)",
+    "LOG_SERVICE_ENTER": "entering service mode - {{b}} s budget",
+    "LOG_SERVICE_EXIT": "exiting service mode - reason {{a}} (1=timeout 2=server 3=mqtt down), {{b}} s",
+    "LOG_SLEEP": "sleeping - {{b}} x100ms awake"
+  }
+}

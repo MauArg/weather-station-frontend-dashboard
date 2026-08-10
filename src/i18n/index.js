@@ -5,10 +5,14 @@ import LanguageDetector from 'i18next-browser-languagedetector';
 import enCommon from './locales/en/common.json';
 import enDashboard from './locales/en/dashboard.json';
 import enCalendar from './locales/en/calendar.json';
+import enService from './locales/en/service.json';
+import enApi from './locales/en/api.json';
 
 import esCommon from './locales/es/common.json';
 import esDashboard from './locales/es/dashboard.json';
 import esCalendar from './locales/es/calendar.json';
+import esService from './locales/es/service.json';
+import esApi from './locales/es/api.json';
 
 /**
  * The language layer.
@@ -34,9 +38,13 @@ import esCalendar from './locales/es/calendar.json';
  * to a readable sentence rather than to its own key name.
  */
 
+// `api` is its own namespace because its source of truth is outside this repo:
+// the keys are codes minted by the backend (models/i18n.go) and by the node's
+// LOG_CODES table. Keeping them apart from `service` makes it obvious that
+// adding a key here means something changed in another repo.
 const resources = {
-    en: { common: enCommon, dashboard: enDashboard, calendar: enCalendar },
-    es: { common: esCommon, dashboard: esDashboard, calendar: esCalendar },
+    en: { common: enCommon, dashboard: enDashboard, calendar: enCalendar, service: enService, api: enApi },
+    es: { common: esCommon, dashboard: esDashboard, calendar: esCalendar, service: esService, api: esApi },
 };
 
 export const SUPPORTED_LANGUAGES = ['en', 'es'];
@@ -57,7 +65,7 @@ i18n
         // here— would miss the 'es' bundle and silently fall back to English.
         nonExplicitSupportedLngs: true,
         defaultNS: 'common',
-        ns: ['common', 'dashboard', 'calendar'],
+        ns: ['common', 'dashboard', 'calendar', 'service', 'api'],
         detection: {
             order: ['localStorage', 'navigator'],
             lookupLocalStorage: STORAGE_KEY,
@@ -68,12 +76,33 @@ i18n
             // escaping on double-encodes anything with an & or a quote in it.
             escapeValue: false,
         },
+        react: {
+            // Tags <Trans> may render straight from the string, with no matching
+            // child in the JSX. `code` and `em` are added to i18next's default
+            // set because this UI quotes firmware identifiers and payload
+            // fragments mid-sentence constantly — <code>service_mode_active</code>,
+            // <code>delay(2000)</code> — and forcing each of those to be a
+            // numbered placeholder would make the translatable strings unreadable
+            // for no gain. Anything that is a real component, like <Tip>, still
+            // has to be a numbered child.
+            transKeepBasicHtmlNodesFor: ['br', 'strong', 'i', 'p', 'code', 'em'],
+        },
         // Resources are bundled rather than fetched, so init is synchronous and
         // there is no loading state to guard against.
-        saveMissing: false,
-        missingKeyHandler: import.meta.env.DEV
-            ? (lngs, ns, key) => console.warn(`[i18n] missing key: ${ns}:${key} (${lngs.join(', ')})`)
-            : undefined,
+        //
+        // saveMissing is what actually arms missingKeyHandler — without it the
+        // handler is never called and the warning is dead code.
+        saveMissing: import.meta.env.DEV,
+        missingKeyHandler: (lngs, ns, key) => {
+            // The `api` namespace is exempt. Its keys are codes minted by the
+            // backend and by the node's LOG_CODES table, so a key this build
+            // does not know is the expected case whenever one of those repos is
+            // ahead — it falls back to the English sentence they shipped
+            // alongside it, by design. Warning about that would train everyone
+            // to ignore the warning.
+            if (ns === 'api') return;
+            console.warn(`[i18n] missing key: ${ns}:${key} (${lngs.join(', ')})`);
+        },
     });
 
 /**

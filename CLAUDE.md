@@ -15,6 +15,25 @@ Dashboard en React + Vite que consume la API de `backend-service`. Ver `backend_
 
 `nginx.conf` desactiva `proxy_buffering` en `/api` — sin eso el SSE queda retenido en el buffer y el visor de payloads parece congelado.
 
+## Idioma (i18n)
+
+EN/ES con `react-i18next`. La capa vive en `src/i18n/`; los diccionarios en `src/i18n/locales/{en,es}/`, un archivo por namespace. **Inglés es el idioma fuente y el fallback** — es el que está garantizado completo.
+
+Cinco namespaces, y la división que importa es `api` contra el resto:
+
+- `common`, `dashboard`, `calendar`, `service` — texto que nace en este repo.
+- **`api`** — códigos acuñados **afuera**: por el backend (`internal/models/i18n.go`) y por la tabla `LOG_CODES` del firmware. Agregar una clave acá significa que cambió otro repo. Por eso el `missingKeyHandler` **exime a `api`**: que falte un código es el caso esperado cuando el firmware o el backend van adelante, y avisar de eso entrena a ignorar el warning.
+
+**La regla, en todos lados: traducir por código, con fallback a la prosa que mandó el emisor.** Está en `src/i18n/apiText.js` (`apiText` / `apiNote` / `commandNote` / `commandToast`) y no se reimplementa a mano. Es lo que hace que el cambio de API sea aditivo: backend, dashboard y nodo se despliegan con sus propios tiempos, así que en cualquier momento uno puede estar adelantado, y un código desconocido renderiza la oración que llegó con él en vez de un hueco.
+
+Tres cosas que la capa deliberadamente **no** hace:
+
+- **No toca el formato de números ni de fechas.** Eso vive en `src/utils/timezone.js`, fijo en `es-AR` / `America/Argentina/Buenos_Aires` **en los dos idiomas**: la estación está en Argentina y el backend corta sus días en medianoche local, así que ART y el reloj de 24 h son propiedades del dato. Sólo cambian las palabras. Ojo con dos trampas ya pisadas: `es-AR` con `hour` explícito resuelve a 12 h en Chrome (de ahí el `hourCycle: 'h23'`), y `toFixed()` siempre emite punto — usar `formatFixed`.
+- **No llega al firmware.** `_dictFingerprint()` hashea los templates de `LOG_CODES`, así que editarlos resetea el ring de logs en RTC. Se traducen acá, y **la traducción sólo vale para el template contra el que fue escrita**: `LogPanel` compara el template del firmware —que viaja en cada captura— contra el original inglés del nuestro, y si difieren gana el renderizado del nodo.
+- **No traduce `broker.lastError` ni `logs.lastError`.** Son strings crudos de paho y de la red; para quien debuggea el mensaje textual vale más.
+
+Al tocar los diccionarios, chequear **paridad de claves, de markup y de placeholders entre `en` y `es`** — un desajuste cae al fallback en silencio. Y `count` es el selector de plural de i18next: no usarlo para cantidades decimales.
+
 ## Versionado
 
 La versión del dashboard es el campo **`version` de `package.json`, y no hay otra copia**. Bumpearla es editar ese campo o correr `npm version patch|minor|major`.

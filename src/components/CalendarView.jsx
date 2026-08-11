@@ -209,7 +209,7 @@ const CalendarView = ({ onBack }) => {
                                                 className="data-cell"
                                                 style={getStyle(dayData.maxTemp)}
                                                 onClick={() => handleCellClick(dayData)}
-                                                title={t('cell.max', { temp: dayData.maxTemp })}
+                                                title={t('cell.max', { temp: formatTemp(dayData.maxTemp) })}
                                             >
                                                 {formatTemp(dayData.maxTemp)}
                                             </td>
@@ -217,7 +217,7 @@ const CalendarView = ({ onBack }) => {
                                                 className="data-cell"
                                                 style={getStyle(dayData.minTemp)}
                                                 onClick={() => handleCellClick(dayData)}
-                                                title={t('cell.min', { temp: dayData.minTemp })}
+                                                title={t('cell.min', { temp: formatTemp(dayData.minTemp) })}
                                             >
                                                 {formatTemp(dayData.minTemp)}
                                             </td>

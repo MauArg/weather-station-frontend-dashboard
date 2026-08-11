@@ -136,10 +136,11 @@
     "unexplained": " · {{count}} unexplained",
     "allExplained": " · all explained",
     "hideExpectedTip": "Hides reboots that explain themselves —a reboot you requested, a reflash— to leave only what deserves attention.",
-    "showExpected": "show the {{count}} expected",
     "hideExpected": "hide expected",
     "noneUnexplained": "None unexplained. All discontinuities come from a reboot or a reflash.",
-    "heartbeatVoltageNote": "The voltage shown comes from the service mode heartbeat, i.e. measured with the node awake and draining."
+    "heartbeatVoltageNote": "The voltage shown comes from the service mode heartbeat, i.e. measured with the node awake and draining.",
+    "showExpected_one": "show the {{count}} expected one",
+    "showExpected_other": "show the {{count}} expected"
   },
   "live": {
     "title": "Live mode",
@@ -271,10 +272,12 @@
       "stopLabel": "Stop and delete",
       "startBody": "There is an active capture at {{level}}. Starting a new one erases it and starts from zero.",
       "stopBody": "On stopping, the node empties its capture memory.",
-      "reportedLost": "The node reported <strong>{{count}} events</strong> in its last telemetry — if you haven't transferred them, they will be lost. The number can be up to one cycle behind, so there could be more.",
-      "reportedNone": "The node reported <strong>{{count}} events</strong> in its last telemetry. The number can be up to one cycle behind, so there could be more.",
       "transferFirstStart": "If they matter, cancel and use <em>Transfer logs from the node</em> first.",
-      "transferFirstStop": "If they matter, cancel and use <em>Transfer logs from the node</em> first — that leaves the memory empty and the capture stopped, which is the same thing you were after."
+      "transferFirstStop": "If they matter, cancel and use <em>Transfer logs from the node</em> first — that leaves the memory empty and the capture stopped, which is the same thing you were after.",
+      "reportedLost_one": "The node reported <strong>{{count}} event</strong> in its last telemetry — if you haven't transferred it, it will be lost. The number can be up to one cycle behind, so there could be more.",
+      "reportedLost_other": "The node reported <strong>{{count}} events</strong> in its last telemetry — if you haven't transferred them, they will be lost. The number can be up to one cycle behind, so there could be more.",
+      "reportedNone_one": "The node reported <strong>{{count}} event</strong> in its last telemetry. The number can be up to one cycle behind, so there could be more.",
+      "reportedNone_other": "The node reported <strong>{{count}} events</strong> in its last telemetry. The number can be up to one cycle behind, so there could be more."
     },
     "step2": "2 · Transfer to the backend",
     "needsWakeTitle": "The node needs to be woken up first.",
@@ -288,7 +291,6 @@
     "keep": "keep capture running",
     "keepTip": "Fetches a copy without stopping the capture or emptying the node's memory, for investigations that are still ongoing. By default the transfer empties and stops it.",
     "lastErrorTitle": "The last transfer failed.",
-    "step3": "3 · Review · {{count}} events",
     "step3Firmware": " · {{firmware}}",
     "exportJsonTip": "Downloads the capture as JSON, with the code dictionary and time anchors included. Stays readable even after the firmware moves on and renumbers the codes.",
     "exportNdjsonTip": "Same as the JSON but one event per line, with a header line first. Same format as the payload viewer's export.",
@@ -297,7 +299,6 @@
     "clearedStopped": "The node cleared its memory and stopped the capture.",
     "notCleared": "The node did not confirm the clear: the capture is still occupying its memory.",
     "droppedTitle": "The oldest events are missing.",
-    "droppedBody": "The node's memory filled up and overwrote {{count}} events with newer ones, so the capture doesn't reach back to the start of the window and may not cover what you were looking for. Next time, a leaner level lasts longer.",
     "filterAll": "all",
     "filterPlaceholder": "Filter by text — e.g. rssi, timeout, mqtt",
     "noMatches": "No events match the filter.",
@@ -313,6 +314,10 @@
       "transferred_other": "{{count}} events transferred",
       "transferredCleared": " — the node already cleared them",
       "serviceRequested": "Service mode requested"
-    }
+    },
+    "step3_one": "3 · Review · {{count}} event",
+    "step3_other": "3 · Review · {{count}} events",
+    "droppedBody_one": "The node's memory filled up and overwrote {{count}} event with a newer one, so the capture doesn't reach back to the start of the window and may not cover what you were looking for. Next time, a leaner level lasts longer.",
+    "droppedBody_other": "The node's memory filled up and overwrote {{count}} events with newer ones, so the capture doesn't reach back to the start of the window and may not cover what you were looking for. Next time, a leaner level lasts longer."
   }
 }

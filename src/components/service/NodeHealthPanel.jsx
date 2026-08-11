@@ -251,7 +251,11 @@ const NodeHealthPanel = ({ state }) => {
                                             only in the prose; `note` is the
                                             fallback for a backend that predates it. */}
                                         {' '}— {a.previous} → {a.current}.{' '}
-                                        {apiText(t, 'anomaly', a.cause, a.note, { missed: a.missed })}
+                                        {/* `count`, not `missed`: i18next selects the
+                                            plural form on `count` and nothing else, and
+                                            a gap of exactly one payload is the common
+                                            case. */}
+                                        {apiText(t, 'anomaly', a.cause, a.note, { count: a.missed })}
                                     </span>
                                 </li>
                             );

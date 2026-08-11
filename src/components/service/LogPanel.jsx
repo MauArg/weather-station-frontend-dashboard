@@ -295,15 +295,55 @@ const LogPanel = ({ state, connected }) => {
         return Array.from(seen).sort();
     }, [capture]);
 
+    /**
+     * Which codes this build is still allowed to render in the operator's
+     * language.
+     *
+     * The node is the authority on its own dictionary — that is the whole
+     * reason there is no code→text map in the backend (see models/logs.go).
+     * Translating here reintroduces exactly the map that design avoids, so the
+     * translation is only allowed to stand in for the template it was actually
+     * written against.
+     *
+     * The check is local because every capture carries the node's dictionary
+     * with it: compare the firmware's template against the English source of
+     * our translation, and if they differ, the firmware moved on and its own
+     * rendering wins. This is not hypothetical — several of these lines carry
+     * magic-number legends ("1=maintenance 2=reboot …") that grow whenever a
+     * command is added, without the code name ever changing. Silently showing a
+     * stale legend would be worse than showing English.
+     */
+    const translatable = useMemo(() => {
+        const ok = new Set();
+        for (const entry of capture?.dictionary ?? []) {
+            // Our copy uses i18next placeholders; the firmware uses printf-ish ones.
+            // Always read the English copy: it is the one the translation was
+            // written from, and the only one comparable to the firmware's.
+            const ours = t(`api:logCode.${entry.name}`, { lng: 'en', defaultValue: '' });
+            if (ours && ours.replace(/\{\{([ab])\}\}/g, '%$1') === entry.template) ok.add(entry.name);
+        }
+        return ok;
+    }, [capture, t]);
+
+    // Rendered once, here, so the free-text filter searches the same string the
+    // row displays. Filtering on the node's English `text` while showing the
+    // translation meant typing a word you could read on screen matched nothing.
+    const rows = useMemo(() => (capture?.entries ?? []).map((e) => ({
+        entry: e,
+        text: translatable.has(e.name)
+            ? t(`api:logCode.${e.name}`, { a: e.a, b: e.b })
+            : e.text,
+    })), [capture, translatable, t]);
+
     const filtered = useMemo(() => {
-        let rows = capture?.entries ?? [];
-        if (codeFilter !== 'all') rows = rows.filter((e) => e.name === codeFilter);
+        let list = rows;
+        if (codeFilter !== 'all') list = list.filter((r) => r.entry.name === codeFilter);
         if (text.trim()) {
             const needle = text.trim().toLowerCase();
-            rows = rows.filter((e) => e.text?.toLowerCase().includes(needle));
+            list = list.filter((r) => r.text?.toLowerCase().includes(needle));
         }
-        return rows;
-    }, [capture, codeFilter, text]);
+        return list;
+    }, [rows, codeFilter, text]);
 
     const ring = logs.ringEntries || 768;
     const fillPct = logs.active && ring ? Math.min(100, (logs.count / ring) * 100) : 0;
@@ -731,7 +771,7 @@ const LogPanel = ({ state, connected }) => {
                                 {filtered.length === 0 && (
                                     <p className="svc-muted svc-small">{t('log.noMatches')}</p>
                                 )}
-                                {filtered.map((e, i) => (
+                                {filtered.map(({ entry: e, text: rendered }, i) => (
                                     <div key={i} className="svc-log-row">
                                         <div className="svc-log-head">
                                             <span className="svc-log-time">
@@ -744,14 +784,11 @@ const LogPanel = ({ state, connected }) => {
                                             </span>
                                             <span className="svc-badge svc-badge-muted">#{e.boot}</span>
                                             <span className="svc-muted svc-small">{e.ms} ms</span>
-                                            {/* The node's LOG_CODES templates are hashed into the
-                                                firmware's dictionary fingerprint, so they cannot be
-                                                translated at the source. Rendered here by code name,
-                                                with the node's own rendered text as the fallback for
-                                                a code this build has not seen. */}
-                                            <span className="svc-log-topic">
-                                                {apiText(t, 'logCode', e.name, e.text, { a: e.a, b: e.b })}
-                                            </span>
+                                            {/* Already resolved above, alongside the filter, so the
+                                                two can never disagree. The node's LOG_CODES templates
+                                                are hashed into its dictionary fingerprint and so cannot
+                                                be translated at the source — see `translatable`. */}
+                                            <span className="svc-log-topic">{rendered}</span>
                                         </div>
                                     </div>
                                 ))}

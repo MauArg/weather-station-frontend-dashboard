@@ -136,10 +136,11 @@
     "unexplained": " · {{count}} sin explicar",
     "allExplained": " · todas explicadas",
     "hideExpectedTip": "Oculta los reinicios que se explican solos —un reinicio que pediste, un reflasheo— para dejar sólo lo que merece atención.",
-    "showExpected": "mostrar los {{count}} esperados",
     "hideExpected": "ocultar los esperados",
     "noneUnexplained": "Ninguna sin explicar. Todas las discontinuidades vienen de un reinicio o de un reflasheo.",
-    "heartbeatVoltageNote": "La tensión que se muestra viene del heartbeat de service mode, o sea medida con el nodo despierto y consumiendo."
+    "heartbeatVoltageNote": "La tensión que se muestra viene del heartbeat de service mode, o sea medida con el nodo despierto y consumiendo.",
+    "showExpected_one": "mostrar el esperado",
+    "showExpected_other": "mostrar los {{count}} esperados"
   },
   "live": {
     "title": "Live mode",
@@ -271,10 +272,12 @@
       "stopLabel": "Detener y borrar",
       "startBody": "Hay una captura activa en {{level}}. Arrancar una nueva la borra y empieza de cero.",
       "stopBody": "Al detenerla, el nodo vacía su memoria de captura.",
-      "reportedLost": "El nodo reportó <strong>{{count}} eventos</strong> en su última telemetría — si no los transferiste, se van a perder. El número puede estar hasta un ciclo atrasado, así que podría haber más.",
-      "reportedNone": "El nodo reportó <strong>{{count}} eventos</strong> en su última telemetría. El número puede estar hasta un ciclo atrasado, así que podría haber más.",
       "transferFirstStart": "Si importan, cancelá y usá <em>Transferir logs del nodo</em> primero.",
-      "transferFirstStop": "Si importan, cancelá y usá <em>Transferir logs del nodo</em> primero — eso deja la memoria vacía y la captura detenida, que es lo mismo que buscabas."
+      "transferFirstStop": "Si importan, cancelá y usá <em>Transferir logs del nodo</em> primero — eso deja la memoria vacía y la captura detenida, que es lo mismo que buscabas.",
+      "reportedLost_one": "El nodo reportó <strong>{{count}} evento</strong> en su última telemetría — si no lo transferiste, se va a perder. El número puede estar hasta un ciclo atrasado, así que podría haber más.",
+      "reportedLost_other": "El nodo reportó <strong>{{count}} eventos</strong> en su última telemetría — si no los transferiste, se van a perder. El número puede estar hasta un ciclo atrasado, así que podría haber más.",
+      "reportedNone_one": "El nodo reportó <strong>{{count}} evento</strong> en su última telemetría. El número puede estar hasta un ciclo atrasado, así que podría haber más.",
+      "reportedNone_other": "El nodo reportó <strong>{{count}} eventos</strong> en su última telemetría. El número puede estar hasta un ciclo atrasado, así que podría haber más."
     },
     "step2": "2 · Transferir al backend",
     "needsWakeTitle": "Primero hay que despertar al nodo.",
@@ -288,7 +291,6 @@
     "keep": "mantener la captura corriendo",
     "keepTip": "Trae una copia sin detener la captura ni vaciar la memoria del nodo, para investigaciones que siguen en curso. Por defecto la transferencia la vacía y la detiene.",
     "lastErrorTitle": "La última transferencia falló.",
-    "step3": "3 · Revisar · {{count}} eventos",
     "step3Firmware": " · {{firmware}}",
     "exportJsonTip": "Descarga la captura como JSON, con el diccionario de códigos y los anclajes de tiempo incluidos. Sigue siendo legible incluso después de que el firmware avance y renumere los códigos.",
     "exportNdjsonTip": "Igual que el JSON pero un evento por línea, con una línea de encabezado adelante. Mismo formato que la exportación del visor de payloads.",
@@ -297,7 +299,6 @@
     "clearedStopped": "El nodo limpió su memoria y detuvo la captura.",
     "notCleared": "El nodo no confirmó el borrado: la captura sigue ocupando su memoria.",
     "droppedTitle": "Faltan los eventos más viejos.",
-    "droppedBody": "La memoria del nodo se llenó y sobrescribió {{count}} eventos con otros más nuevos, así que la captura no llega hasta el principio de la ventana y puede no cubrir lo que estabas buscando. La próxima vez, un nivel más liviano dura más.",
     "filterAll": "todos",
     "filterPlaceholder": "Filtrar por texto — ej. rssi, timeout, mqtt",
     "noMatches": "Ningún evento coincide con el filtro.",
@@ -313,6 +314,10 @@
       "transferred_other": "{{count}} eventos transferidos",
       "transferredCleared": " — el nodo ya los borró",
       "serviceRequested": "Service mode pedido"
-    }
+    },
+    "step3_one": "3 · Revisar · {{count}} evento",
+    "step3_other": "3 · Revisar · {{count}} eventos",
+    "droppedBody_one": "La memoria del nodo se llenó y sobrescribió {{count}} evento con otro más nuevo, así que la captura no llega hasta el principio de la ventana y puede no cubrir lo que estabas buscando. La próxima vez, un nivel más liviano dura más.",
+    "droppedBody_other": "La memoria del nodo se llenó y sobrescribió {{count}} eventos con otros más nuevos, así que la captura no llega hasta el principio de la ventana y puede no cubrir lo que estabas buscando. La próxima vez, un nivel más liviano dura más."
   }
 }

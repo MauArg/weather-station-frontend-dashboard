@@ -19,21 +19,23 @@
   },
   "anomaly": {
     "duplicate": "Two payloads with the same boot_count outside live mode: the same cycle was delivered twice.",
-    "gap": "{{missed}} telemetry payload(s) did not arrive: the node woke up but the publish didn't go through.",
     "reset_spontaneous": "Spontaneous boot_count reset: RTC memory wiped with no reflash — watchdog or brownout signature.",
     "reset_reboot": "Expected boot_count reset: a reboot was ordered moments ago. Any restart wipes RTC memory, so the counter starts over.",
-    "reset_service": "Expected boot_count reset: there was a recent service mode session, and a reflash wipes RTC memory."
+    "reset_service": "Expected boot_count reset: there was a recent service mode session, and a reflash wipes RTC memory.",
+    "gap_one": "{{count}} telemetry payload did not arrive: the node woke up but the publish didn't go through.",
+    "gap_other": "{{count}} telemetry payloads did not arrive: the node woke up but the publish didn't go through."
   },
   "captureNote": {
     "dump_not_multiple": "The dump is {{bytes}} B, which is not a multiple of {{entrySize}}: the trailing {{trailing}} B were discarded.",
-    "pre_restart_untimed": "{{count}} events before a node restart are left with no time: that restart reset boot_count to zero, so their cycle numbers belong to a different series and cannot be anchored against telemetry. The order between them is still correct.",
     "no_anchors": "No reference telemetry: boot_count values are the raw 16 bits and no times were reconstructed.",
     "no_anchor_in_range": "No cycle in the capture published telemetry: there is no anchor point to reconstruct times from.",
     "implausible_boot_range": "Implausible boot_count range ({{cycles}} cycles): reconstructed times are omitted.",
     "interpolated_times": "{{interpolated}} of {{total}} entries have an interpolated time (their cycle did not publish telemetry). The deep sleep timer runs on an RC oscillator with ±5%, so the drift grows with distance from the nearest anchored cycle.",
     "no_entries": "The node has no captured entries yet.",
     "ring_wraparound": "The ring overwrote {{dropped}} entries via wraparound: the capture is truncated at the start and may not cover the event being looked for.",
-    "clear_unconfirmed": "The capture downloaded fully but the node did not confirm the clear: it's still occupying the ring and logging may still be active."
+    "clear_unconfirmed": "The capture downloaded fully but the node did not confirm the clear: it's still occupying the ring and logging may still be active.",
+    "pre_restart_untimed_one": "{{count}} event before a node restart is left with no time: that restart reset boot_count to zero, so its cycle number belongs to a different series and cannot be anchored against telemetry.",
+    "pre_restart_untimed_other": "{{count}} events before a node restart are left with no time: that restart reset boot_count to zero, so their cycle numbers belong to a different series and cannot be anchored against telemetry. The order between them is still correct."
   },
   "sensor": {
     "sht31_ok": "SHT31-D (outdoor T+H)",

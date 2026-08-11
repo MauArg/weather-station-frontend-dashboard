@@ -19,21 +19,23 @@
   },
   "anomaly": {
     "duplicate": "Dos payloads con el mismo boot_count fuera de live mode: el mismo ciclo se entregó dos veces.",
-    "gap": "{{missed}} payload(s) de telemetría no llegaron: el nodo despertó pero la publicación no salió.",
     "reset_spontaneous": "Reset espontáneo del boot_count: se borró la memoria RTC sin reflasheo — firma de watchdog o brownout.",
     "reset_reboot": "Reset esperado del boot_count: se pidió un reinicio hace instantes. Cualquier reinicio borra la memoria RTC, así que el contador arranca de nuevo.",
-    "reset_service": "Reset esperado del boot_count: hubo una sesión de service mode reciente, y un reflasheo borra la memoria RTC."
+    "reset_service": "Reset esperado del boot_count: hubo una sesión de service mode reciente, y un reflasheo borra la memoria RTC.",
+    "gap_one": "{{count}} payload de telemetría no llegó: el nodo despertó pero la publicación no salió.",
+    "gap_other": "{{count}} payloads de telemetría no llegaron: el nodo despertó pero la publicación no salió."
   },
   "captureNote": {
     "dump_not_multiple": "El volcado son {{bytes}} B, que no es múltiplo de {{entrySize}}: se descartaron los {{trailing}} B del final.",
-    "pre_restart_untimed": "{{count}} eventos anteriores a un reinicio del nodo quedan sin hora: ese reinicio puso el boot_count en cero, así que sus números de ciclo pertenecen a otra serie y no se pueden anclar contra la telemetría. El orden entre ellos sigue siendo correcto.",
     "no_anchors": "No hay telemetría de referencia: los boot_count son los 16 bits crudos y no se reconstruyó ninguna hora.",
     "no_anchor_in_range": "Ningún ciclo de la captura publicó telemetría: no hay punto de anclaje desde el cual reconstruir las horas.",
     "implausible_boot_range": "Rango de boot_count inverosímil ({{cycles}} ciclos): se omiten las horas reconstruidas.",
     "interpolated_times": "{{interpolated}} de {{total}} entradas tienen hora interpolada (su ciclo no publicó telemetría). El timer de deep sleep corre sobre un oscilador RC con ±5%, así que la deriva crece con la distancia al ciclo anclado más cercano.",
     "no_entries": "El nodo todavía no tiene eventos capturados.",
     "ring_wraparound": "El ring sobrescribió {{dropped}} entradas al dar la vuelta: la captura está truncada al principio y puede no cubrir el evento que se está buscando.",
-    "clear_unconfirmed": "La captura se descargó completa pero el nodo no confirmó el borrado: sigue ocupando el ring y el logging puede seguir activo."
+    "clear_unconfirmed": "La captura se descargó completa pero el nodo no confirmó el borrado: sigue ocupando el ring y el logging puede seguir activo.",
+    "pre_restart_untimed_one": "{{count}} evento anterior a un reinicio del nodo queda sin hora: ese reinicio puso el boot_count en cero, así que su número de ciclo pertenece a otra serie y no se puede anclar contra la telemetría.",
+    "pre_restart_untimed_other": "{{count}} eventos anteriores a un reinicio del nodo quedan sin hora: ese reinicio puso el boot_count en cero, así que sus números de ciclo pertenecen a otra serie y no se puede anclar contra la telemetría. El orden entre ellos sigue siendo correcto."
   },
   "sensor": {
     "sht31_ok": "SHT31-D (T+H exterior)",

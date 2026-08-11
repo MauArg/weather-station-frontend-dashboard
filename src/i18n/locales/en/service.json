@@ -86,8 +86,8 @@
     },
     "trendTitle": "Trend — a single instantaneous reading can't tell \"it's recovering\" from \"it's been dropping for three days\"",
     "trendError": "Couldn't load the history: {{error}}",
-    "refSafe": "safe 4.00V",
-    "refRisk": "risk 3.85V",
+    "refSafe": "safe {{volts}}V",
+    "refRisk": "risk {{volts}}V",
     "series": "Battery"
   },
   "health": {
@@ -229,8 +229,8 @@
     },
     "levelNamed": "level {{level}} ({{label}})",
     "levelBare": "level {{level}}",
-    "windowMinutes": "~{{count}} min",
-    "windowHours": "~{{count}} h",
+    "windowMinutes": "~{{value}} min",
+    "windowHours": "~{{value}} h",
     "chipCapturing": "Capturing · {{level}} · {{count}}/{{ring}}",
     "chipStopped": "Capture stopped",
     "dictCached": "dictionary cached",

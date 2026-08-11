@@ -113,3 +113,18 @@ export const formatNumber = (value, { digits = 2, minDigits, grouping = true } =
         useGrouping: grouping,
     });
 };
+
+/**
+ * A reading with a fixed number of decimals — the localised counterpart to
+ * Number.prototype.toFixed.
+ *
+ * toFixed always emits a dot, whatever the locale, and the service view used it
+ * everywhere. The result was two decimal separators on the same screen: the
+ * battery card read "3.992 V" while the threshold line on the chart right below
+ * it read "3,85V". Same quantity, same card, different punctuation.
+ *
+ * Trailing zeros are kept —"4,00 V", not "4 V"— because these are instrument
+ * readings and the precision is part of what is being shown.
+ */
+export const formatFixed = (value, digits) =>
+    formatNumber(value, { digits, minDigits: digits });

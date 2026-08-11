@@ -86,8 +86,8 @@
     },
     "trendTitle": "Tendencia — una sola lectura instantánea no distingue «se está recuperando» de «viene cayendo hace tres días»",
     "trendError": "No se pudo cargar el historial: {{error}}",
-    "refSafe": "seguro 4,00V",
-    "refRisk": "riesgo 3,85V",
+    "refSafe": "seguro {{volts}}V",
+    "refRisk": "riesgo {{volts}}V",
     "series": "Batería"
   },
   "health": {
@@ -229,8 +229,8 @@
     },
     "levelNamed": "nivel {{level}} ({{label}})",
     "levelBare": "nivel {{level}}",
-    "windowMinutes": "~{{count}} min",
-    "windowHours": "~{{count}} h",
+    "windowMinutes": "~{{value}} min",
+    "windowHours": "~{{value}} h",
     "chipCapturing": "Capturando · {{level}} · {{count}}/{{ring}}",
     "chipStopped": "Captura detenida",
     "dictCached": "diccionario cacheado",

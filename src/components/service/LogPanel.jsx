@@ -8,6 +8,7 @@ import toast from 'react-hot-toast';
 import Tip from './Tip';
 import ConfirmDialog from './ConfirmDialog';
 import { apiNote, apiText } from '../../i18n/apiText';
+import { formatFixed } from '../../utils/timezone';
 import { useNow } from '../../hooks/useNow';
 import {
     sendServiceCommand,
@@ -58,12 +59,15 @@ const LEVELS = [
 // with a median of 64.
 const CYCLE_SEC = 64;
 
+// `value` rather than i18next's `count`: `count` is the plural selector, and
+// handing it "8.0" would quietly make the plural rules depend on a decimal
+// string. These keys have no plural forms and should not grow one by accident.
 const formatWindow = (t, ringEntries, entriesPerCycle) => {
     if (!ringEntries || !entriesPerCycle) return '—';
     const hours = (ringEntries / entriesPerCycle) * CYCLE_SEC / 3600;
     return hours < 1
-        ? t('log.windowMinutes', { count: Math.round(hours * 60) })
-        : t('log.windowHours', { count: hours.toFixed(1) });
+        ? t('log.windowMinutes', { value: Math.round(hours * 60) })
+        : t('log.windowHours', { value: formatFixed(hours, 1) });
 };
 
 // The number and the name together, always in the same order. The level is what

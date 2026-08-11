@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { BatteryCharging, Battery, ShieldCheck, AlertTriangle, ShieldX, Sun } from 'lucide-react';
 import { getBatteryTrend } from '../../services/ServiceApi';
-import { formatDayTime } from '../../utils/timezone';
+import { formatDayTime, formatFixed } from '../../utils/timezone';
 import { apiText } from '../../i18n/apiText';
 import Tip from './Tip';
 
@@ -88,7 +88,7 @@ const BatteryPanel = ({ battery }) => {
                     >
                         <div className="svc-batt-volts">
                             <ChargeIcon size={28} color={battery.charging ? '#4ade80' : '#a1a1aa'} aria-hidden="true" />
-                            <span>{battery.volts.toFixed(3)}</span>
+                            <span>{formatFixed(battery.volts, 3)}</span>
                             <span className="svc-batt-unit">V</span>
                         </div>
                     </Tip>
@@ -116,8 +116,8 @@ const BatteryPanel = ({ battery }) => {
                             <div className="svc-muted svc-small svc-inline">
                                 <Sun size={14} aria-hidden="true" />
                                 {t('battery.panelLine', {
-                                    volts: battery.solarV?.toFixed(2),
-                                    ma: battery.solarMa.toFixed(1),
+                                    volts: formatFixed(battery.solarV, 2),
+                                    ma: formatFixed(battery.solarMa, 1),
                                 })}
                                 {battery.charging ? t('battery.charging') : t('battery.noSignificantCharge')}
                             </div>
@@ -186,27 +186,37 @@ const BatteryPanel = ({ battery }) => {
                                 stroke="#ffffff66"
                                 tick={{ fontSize: 11 }}
                                 width={52}
-                                tickFormatter={(v) => `${v.toFixed(2)}V`}
+                                tickFormatter={(v) => `${formatFixed(v, 2)}V`}
                             />
                             <Tooltip
                                 contentStyle={{ backgroundColor: 'rgba(0,0,0,0.85)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '8px' }}
                                 itemStyle={{ color: '#e4e4e7' }}
                                 labelStyle={{ color: '#a1a1aa' }}
                                 cursor={{ stroke: 'rgba(255,255,255,0.4)', strokeWidth: 1, strokeDasharray: '4 4' }}
-                                formatter={(value) => [`${value.toFixed(3)} V`, t('battery.series')]}
+                                formatter={(value) => [`${formatFixed(value, 3)} V`, t('battery.series')]}
                                 labelFormatter={formatDayTime}
                             />
                             <ReferenceLine
                                 y={THRESHOLD_SAFE}
                                 stroke="#4ade80"
                                 strokeDasharray="5 5"
-                                label={{ value: t('battery.refSafe'), position: 'insideTopRight', fill: '#a1a1aa', fontSize: 11 }}
+                                label={{
+                                    // The number comes from the threshold constant and
+                                    // through the same formatter as the axis. Writing it
+                                    // into the dictionary meant two sources of truth, and
+                                    // the English copy had already drifted to a dot.
+                                    value: t('battery.refSafe', { volts: formatFixed(THRESHOLD_SAFE, 2) }),
+                                    position: 'insideTopRight', fill: '#a1a1aa', fontSize: 11,
+                                }}
                             />
                             <ReferenceLine
                                 y={THRESHOLD_CAUTION}
                                 stroke="#f87171"
                                 strokeDasharray="5 5"
-                                label={{ value: t('battery.refRisk'), position: 'insideBottomRight', fill: '#a1a1aa', fontSize: 11 }}
+                                label={{
+                                    value: t('battery.refRisk', { volts: formatFixed(THRESHOLD_CAUTION, 2) }),
+                                    position: 'insideBottomRight', fill: '#a1a1aa', fontSize: 11,
+                                }}
                             />
                             <Area
                                 type="monotone"

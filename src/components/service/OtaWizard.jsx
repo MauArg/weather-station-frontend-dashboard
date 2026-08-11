@@ -6,6 +6,7 @@ import {
 import toast from 'react-hot-toast';
 import { sendServiceCommand, formatDuration, formatClock } from '../../services/ServiceApi';
 import { apiNote, apiText } from '../../i18n/apiText';
+import { formatFixed } from '../../utils/timezone';
 import { useNow } from '../../hooks/useNow';
 import { copyText } from '../../utils/clipboard';
 
@@ -140,7 +141,7 @@ const OtaWizard = ({ state, session, onSession }) => {
                         <div className="svc-alert svc-alert-danger">
                             <ShieldX size={18} aria-hidden="true" />
                             <div>
-                                <strong>{t('ota.unsafeTitle', { volts: battery?.volts?.toFixed(3) })}</strong>
+                                <strong>{t('ota.unsafeTitle', { volts: formatFixed(battery?.volts, 3) })}</strong>
                                 <div className="svc-small">{riskNote}</div>
                                 <label className="svc-checkbox" style={{ marginTop: '0.5rem' }}>
                                     <input type="checkbox" checked={overrideRisk} onChange={(e) => setOverrideRisk(e.target.checked)} />
@@ -153,7 +154,7 @@ const OtaWizard = ({ state, session, onSession }) => {
                         <div className="svc-alert svc-alert-warn">
                             <AlertTriangle size={18} aria-hidden="true" />
                             <div>
-                                <strong>{t('ota.cautionTitle', { volts: battery?.volts?.toFixed(3) })}</strong>
+                                <strong>{t('ota.cautionTitle', { volts: formatFixed(battery?.volts, 3) })}</strong>
                                 <div className="svc-small">{riskNote}</div>
                             </div>
                         </div>

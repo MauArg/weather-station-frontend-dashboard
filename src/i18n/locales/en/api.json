@@ -37,6 +37,22 @@
     "pre_restart_untimed_one": "{{count}} event before a node restart is left with no time: that restart reset boot_count to zero, so its cycle number belongs to a different series and cannot be anchored against telemetry.",
     "pre_restart_untimed_other": "{{count}} events before a node restart are left with no time: that restart reset boot_count to zero, so their cycle numbers belong to a different series and cannot be anchored against telemetry. The order between them is still correct."
   },
+  "exitReason": {
+    "no_sun": "the panel stopped producing",
+    "low_battery": "the pack dropped below its floor",
+    "timeout": "it used up its budget",
+    "mqtt_lost": "the broker became unreachable",
+    "cleared_by_server": "it was stopped from here",
+    "budget_exhausted": "no budget was left from earlier sessions",
+    "unreported": "of an unreported reason"
+  },
+  "lastSeenSource": {
+    "telemetry": "telemetry",
+    "heartbeat": "service mode heartbeat",
+    "service_ended": "service mode ended",
+    "reboot": "reboot",
+    "ping": "ping response"
+  },
   "sensor": {
     "sht31_ok": "SHT31-D (outdoor T+H)",
     "bmp_ok": "BMP085/180 (pressure)",

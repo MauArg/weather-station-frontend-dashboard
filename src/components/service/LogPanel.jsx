@@ -7,18 +7,10 @@ import {
 import toast from 'react-hot-toast';
 import Tip from './Tip';
 import ConfirmDialog from './ConfirmDialog';
-import { apiNote, apiText } from '../../i18n/apiText';
-import { formatFixed } from '../../utils/timezone';
+import { apiNote, apiText, commandToast } from '../../i18n/apiText';
+import { formatClock, formatElapsed, formatFixed } from '../../utils/timezone';
 import { useNow } from '../../hooks/useNow';
-import {
-    sendServiceCommand,
-    fetchNodeLogs,
-    getLastLogCapture,
-    formatClock,
-    formatElapsed,
-    LOG_EXPORT_JSON_URL,
-    LOG_EXPORT_NDJSON_URL,
-} from '../../services/ServiceApi';
+import { sendServiceCommand, fetchNodeLogs, getLastLogCapture, LOG_EXPORT_JSON_URL, LOG_EXPORT_NDJSON_URL } from '../../services/ServiceApi';
 
 /**
  * Node logging: start a capture, let it run, transfer it back.
@@ -252,13 +244,9 @@ const LogPanel = ({ state, connected }) => {
             // "Published", not "started": at this point all that happened is that
             // the message landed on the broker. Saying the capture had started was
             // the lie that made it look like nothing happened afterward.
-            const note = apiNote(t, 'note', res.noteCode, res.note);
-            toast.success(
-                (lvl === 0
-                    ? t('log.toast.stopPublished')
-                    : t('log.toast.startPublished', { level: levelName(t, lvl) }))
-                + (note ? ` — ${note}` : '')
-            );
+            toast.success(commandToast(t, lvl === 0
+                ? t('log.toast.stopPublished')
+                : t('log.toast.startPublished', { level: levelName(t, lvl) }), res));
         } catch (err) {
             toast.error(err.message);
         } finally {
@@ -312,28 +300,30 @@ const LogPanel = ({ state, connected }) => {
      * magic-number legends ("1=maintenance 2=reboot …") that grow whenever a
      * command is added, without the code name ever changing. Silently showing a
      * stale legend would be worse than showing English.
+     *
+     * Rendered here rather than at the row, so the free-text filter below
+     * searches the same string the row displays. Filtering on the node's English
+     * `text` while showing the translation meant typing a word you could read on
+     * screen matched nothing.
      */
-    const translatable = useMemo(() => {
-        const ok = new Set();
+    const rows = useMemo(() => {
+        const translatable = new Set();
         for (const entry of capture?.dictionary ?? []) {
             // Our copy uses i18next placeholders; the firmware uses printf-ish ones.
             // Always read the English copy: it is the one the translation was
             // written from, and the only one comparable to the firmware's.
             const ours = t(`api:logCode.${entry.name}`, { lng: 'en', defaultValue: '' });
-            if (ours && ours.replace(/\{\{([ab])\}\}/g, '%$1') === entry.template) ok.add(entry.name);
+            if (ours && ours.replace(/\{\{([ab])\}\}/g, '%$1') === entry.template) {
+                translatable.add(entry.name);
+            }
         }
-        return ok;
+        return (capture?.entries ?? []).map((e) => ({
+            entry: e,
+            text: translatable.has(e.name)
+                ? t(`api:logCode.${e.name}`, { a: e.a, b: e.b })
+                : e.text,
+        }));
     }, [capture, t]);
-
-    // Rendered once, here, so the free-text filter searches the same string the
-    // row displays. Filtering on the node's English `text` while showing the
-    // translation meant typing a word you could read on screen matched nothing.
-    const rows = useMemo(() => (capture?.entries ?? []).map((e) => ({
-        entry: e,
-        text: translatable.has(e.name)
-            ? t(`api:logCode.${e.name}`, { a: e.a, b: e.b })
-            : e.text,
-    })), [capture, translatable, t]);
 
     const filtered = useMemo(() => {
         let list = rows;
@@ -367,8 +357,7 @@ const LogPanel = ({ state, connected }) => {
         setBusy(true);
         try {
             const res = await sendServiceCommand({ cmd: 'maintenance', timeoutMin: 15 });
-            const note = apiNote(t, 'note', res.noteCode, res.note);
-            toast.success(`${t('log.toast.serviceRequested')}${note ? ` — ${note}` : ''}`);
+            toast.success(commandToast(t, t('log.toast.serviceRequested'), res));
         } catch (err) {
             toast.error(err.message);
         } finally {
@@ -549,11 +538,13 @@ const LogPanel = ({ state, connected }) => {
                 <div className="svc-alert svc-alert-info" style={{ marginTop: '0.6rem' }}>
                     <Loader2 size={18} className="animate-spin" aria-hidden="true" />
                     <div>
+                        {/* Two whole sentences, for the same reason the confirm
+                            dialog below uses them: a shared trailing clause in its
+                            own key is a sentence the translator never sees whole. */}
                         <strong>
                             {pending.kind === 'stop'
                                 ? t('log.pendingStop')
                                 : t('log.pendingStart', { level: levelName(t, pending.level) })}
-                            {t('log.pendingSuffix')}
                         </strong>
                         <div className="svc-small">
                             {pending.sawRetained && !retainedIsLogCmd

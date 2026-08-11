@@ -37,6 +37,22 @@
     "pre_restart_untimed_one": "{{count}} evento anterior a un reinicio del nodo queda sin hora: ese reinicio puso el boot_count en cero, así que su número de ciclo pertenece a otra serie y no se puede anclar contra la telemetría.",
     "pre_restart_untimed_other": "{{count}} eventos anteriores a un reinicio del nodo quedan sin hora: ese reinicio puso el boot_count en cero, así que sus números de ciclo pertenecen a otra serie y no se puede anclar contra la telemetría. El orden entre ellos sigue siendo correcto."
   },
+  "exitReason": {
+    "no_sun": "el panel dejó de producir",
+    "low_battery": "el pack bajó de su piso",
+    "timeout": "se le acabó el presupuesto",
+    "mqtt_lost": "el broker quedó inalcanzable",
+    "cleared_by_server": "se lo frenó desde acá",
+    "budget_exhausted": "no quedaba presupuesto de sesiones anteriores",
+    "unreported": "un motivo no reportado"
+  },
+  "lastSeenSource": {
+    "telemetry": "telemetría",
+    "heartbeat": "heartbeat de service mode",
+    "service_ended": "fin de service mode",
+    "reboot": "reinicio",
+    "ping": "respuesta a ping"
+  },
   "sensor": {
     "sht31_ok": "SHT31-D (T+H exterior)",
     "bmp_ok": "BMP085/180 (presión)",

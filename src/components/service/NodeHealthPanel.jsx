@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CheckCircle2, XCircle, Cpu, Wifi, Moon, Radio, AlertTriangle, HelpCircle, Bug, HardDrive, Info, Eye, EyeOff } from 'lucide-react';
-import { formatClock, formatAge } from '../../services/ServiceApi';
+import { formatClock, formatAge } from '../../utils/timezone';
 import { apiText } from '../../i18n/apiText';
 import { useNow } from '../../hooks/useNow';
 import Tip from './Tip';
@@ -116,9 +116,12 @@ const NodeHealthPanel = ({ state }) => {
                     <span className="svc-kv-label">{t('health.lastSeen')}</span>
                     <span className="svc-kv-value">
                         {node?.lastSeenAt ? formatClock(node.lastSeenAt) : '—'}
+                        {/* A backend enum, same family as tier and the sensor
+                            keys — so it resolves through apiText into the `api`
+                            namespace, not by hand into this one. */}
                         {node?.lastSeenSource && (
                             <span className="svc-muted svc-small">
-                                {' '}({t(`health.lastSeenSource.${node.lastSeenSource}`, { defaultValue: node.lastSeenSource })})
+                                {' '}({apiText(t, 'lastSeenSource', node.lastSeenSource, node.lastSeenSource)})
                             </span>
                         )}
                         {secondsSince != null && secondsSince >= 0 && (

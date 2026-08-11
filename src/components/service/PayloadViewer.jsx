@@ -2,7 +2,7 @@ import React, { useMemo, useRef, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pause, Play, Trash2, Download, Copy } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { formatClock, formatAge } from '../../services/ServiceApi';
+import { formatClock, formatAge } from '../../utils/timezone';
 import { useNow } from '../../hooks/useNow';
 import { copyText } from '../../utils/clipboard';
 
@@ -17,8 +17,15 @@ const shortTopic = (topic) => topic.split('/').pop();
 const PayloadViewer = ({ payloads, paused, onTogglePause, onClear, backlogUntilSeq }) => {
     const { t } = useTranslation('service');
 
+    // Resolved once per render rather than per row: these three take no
+    // interpolation, so inside the map they produced the same string up to 500
+    // times on every SSE push.
+    const retainedLabel = t('payloads.retained');
+    const copyLabel = t('payloads.copyPayload');
+    const emptyLabel = t('payloads.empty');
+
     const prettyPayload = (payload) => {
-        if (!payload) return t('payloads.empty');
+        if (!payload) return emptyLabel;
         try {
             return JSON.stringify(JSON.parse(payload), null, 2);
         } catch {
@@ -139,18 +146,18 @@ const PayloadViewer = ({ payloads, paused, onTogglePause, onClear, backlogUntilS
                                         from just now: formatClock only prints HH:MM:SS. */}
                                     {age && <span className="svc-muted svc-small">{age}</span>}
                                     <span className="svc-log-topic" style={{ color }}>{p.topic}</span>
-                                    {p.retained && <span className="svc-badge svc-badge-muted">{t('payloads.retained')}</span>}
+                                    {p.retained && <span className="svc-badge svc-badge-muted">{retainedLabel}</span>}
                                     <span className="svc-muted svc-small">{p.sizeBytes} B</span>
                                     <button
                                         className="svc-icon-btn svc-icon-btn-bare"
                                         onClick={(e) => { e.stopPropagation(); copyPayload(p.payload); }}
-                                        title={t('payloads.copyPayload')}
+                                        title={copyLabel}
                                     >
                                         <Copy size={13} />
                                     </button>
                                 </div>
                                 <pre className={`svc-log-body ${isOpen ? 'open' : ''}`}>
-                                    {isOpen ? prettyPayload(p.payload) : (p.payload || t('payloads.empty'))}
+                                    {isOpen ? prettyPayload(p.payload) : (p.payload || emptyLabel)}
                                 </pre>
                             </div>
                             {p.seq === backlogUntilSeq && (

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 import { Radio, Play, Square, FlaskConical, AlertTriangle } from 'lucide-react';
-import { sendServiceCommand, formatAge } from '../../services/ServiceApi';
-import { apiNote } from '../../i18n/apiText';
+import { sendServiceCommand } from '../../services/ServiceApi';
+import { formatAge } from '../../utils/timezone';
+import { apiText, commandNote } from '../../i18n/apiText';
 import { useNow } from '../../hooks/useNow';
 import Tip from './Tip';
 
@@ -73,7 +74,9 @@ const LivePanel = ({ state, connected }) => {
         setNote(null);
         try {
             const res = await sendServiceCommand(body);
-            setNote(apiNote(t, 'note', res.noteCode, res.note) || describe);
+            // commandNote, not commandToast: here the note stands alone as a
+            // paragraph rather than trailing a message.
+            setNote(commandNote(t, res) || describe);
         } catch (e) {
             setError(e.message);
         } finally {
@@ -92,11 +95,13 @@ const LivePanel = ({ state, connected }) => {
     // to leave service mode.
     const stop = () => run({ cmd: 'clear' }, t('live.toast.stopped'));
 
-    // Known reasons get the operator's phrasing; an unknown one falls through to
-    // the raw code the node sent, which is more useful than hiding it.
+    // The node publishes these verbatim in live_mode_ended, so they are codes
+    // minted outside this repo and go through apiText like every other one:
+    // the `api` namespace is the one exempt from the missing-key warning,
+    // precisely because a firmware that adds a reason is the expected case.
     const exitReason = lastEnded?.reason
-        ? t(`live.exitReason.${lastEnded.reason}`, { defaultValue: lastEnded.reason })
-        : t('live.exitReason.unreported');
+        ? apiText(t, 'exitReason', lastEnded.reason, lastEnded.reason)
+        : t('api:exitReason.unreported');
 
     return (
         <div className="svc-card svc-span-2">

@@ -102,13 +102,6 @@
       "unknown": "Sin datos",
       "unknownTip": "Todavía no llegó ningún mensaje del nodo desde que arrancó el backend. Si esto persiste más de un minuto, revisá la conexión al broker."
     },
-    "lastSeenSource": {
-      "telemetry": "telemetría",
-      "heartbeat": "heartbeat de service mode",
-      "service_ended": "fin de service mode",
-      "reboot": "reinicio",
-      "ping": "respuesta a ping"
-    },
     "firmware": "Firmware",
     "debugBuild": "build de debug",
     "debugTip": "LOG_LEVEL=2: setup() quema 2 s fijos en delay(2000) en cada despertar, a 50-140 mA, sin ningún beneficio en el campo. Reflashear con ota_production.",
@@ -151,15 +144,6 @@
     "elapsed": "Transcurrido",
     "remaining": "Restante",
     "published": "Publicados",
-    "exitReason": {
-      "no_sun": "el panel dejó de producir",
-      "low_battery": "el pack bajó de su piso",
-      "timeout": "se le acabó el presupuesto",
-      "mqtt_lost": "el broker quedó inalcanzable",
-      "cleared_by_server": "se lo frenó desde acá",
-      "budget_exhausted": "no quedaba presupuesto de sesiones anteriores",
-      "unreported": "un motivo no reportado"
-    },
     "lastSession": "La última sesión terminó porque {{reason}}.",
     "lastSessionAged": "La última sesión ({{age}}) terminó porque {{reason}}.",
     "floorCooldown": " El nodo juzgó las condiciones con sus propios sensores, así que el armado automático se abstiene por una hora.",
@@ -255,9 +239,8 @@
     "stop": "Detener captura",
     "stopping": "Deteniendo captura…",
     "stopTip": "Detiene la captura y vacía la memoria del nodo. Los eventos que no se hayan transferido se pierden — si importan, transferí primero.",
-    "pendingStop": "Deteniendo la captura",
-    "pendingStart": "Arrancando la captura en {{level}}",
-    "pendingSuffix": " — esperando al nodo.",
+    "pendingStop": "Deteniendo la captura — esperando al nodo.",
+    "pendingStart": "Arrancando la captura en {{level}} — esperando al nodo.",
     "pendingPickedUp": "El nodo levantó el comando y lo está aplicando. Todavía falta la telemetría que lo confirma, que llega en este mismo ciclo.",
     "pendingRetained": "El comando quedó retenido en el broker. El nodo sólo lo lee al despertar{{when}}, y hasta entonces sigue capturando como estaba. Si el ciclo no logra publicar —cosa que pasa seguido— la confirmación se demora hasta el siguiente.",
     "pendingWhen": ", en ~{{sec}} s",

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Send, Radio, RotateCcw, Eraser, Terminal } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { sendServiceCommand } from '../../services/ServiceApi';
-import { apiNote } from '../../i18n/apiText';
+import { commandToast } from '../../i18n/apiText';
 
 /**
  * Direct access to the command topic.
@@ -24,8 +24,7 @@ const CommandConsole = ({ connected }) => {
         setBusy(true);
         try {
             const res = await sendServiceCommand(body);
-            const note = apiNote(t, 'note', res.noteCode, res.note);
-            toast.success(`${description}${note ? ` — ${note}` : ''}`);
+            toast.success(commandToast(t, description, res));
         } catch (err) {
             toast.error(err.message);
         } finally {

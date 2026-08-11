@@ -4,16 +4,18 @@ import {
     Wrench, Clock, CheckCircle2, Copy, Power, Loader2, AlertTriangle, ShieldX, Terminal, ArrowRight, HelpCircle, RefreshCw,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { sendServiceCommand, formatDuration, formatClock } from '../../services/ServiceApi';
-import { apiNote, apiText } from '../../i18n/apiText';
-import { formatFixed } from '../../utils/timezone';
+import { sendServiceCommand } from '../../services/ServiceApi';
+import { formatClock, formatDuration, formatFixed } from '../../utils/timezone';
+import { apiText, commandToast } from '../../i18n/apiText';
 import { useNow } from '../../hooks/useNow';
 import { copyText } from '../../utils/clipboard';
 
 // The ids are PlatformIO environment names and never translate; the label and
-// the hint beside them do.
+// the hint beside them do. The dictionary key is derived rather than kept in a
+// second table — a parallel map is one more thing to forget when a third
+// environment is added, and a missing entry would render `ota.env.undefined`.
 const OTA_ENVS = ['ota_production', 'ota_development'];
-const ENV_KEY = { ota_production: 'production', ota_development: 'development' };
+const envKey = (id) => id.replace(/^ota_/, '');
 
 /**
  * Derives the wizard step from live node state rather than tracking it locally.
@@ -79,8 +81,7 @@ const OtaWizard = ({ state, session, onSession }) => {
                 firmwareAtArm: state.telemetry?.firmware ?? null,
                 timeoutMin,
             });
-            const note = apiNote(t, 'note', res.noteCode, res.note);
-            toast.success(`${t('ota.toast.activated')}${note ? ` — ${note}` : ''}`);
+            toast.success(commandToast(t, t('ota.toast.activated'), res));
         } catch (err) {
             toast.error(err.message);
         } finally {
@@ -242,9 +243,9 @@ const OtaWizard = ({ state, session, onSession }) => {
                                             key={id}
                                             className={`svc-range-btn ${env === id ? 'active' : ''}`}
                                             onClick={() => setEnv(id)}
-                                            title={t(`ota.env.${ENV_KEY[id]}Hint`)}
+                                            title={t(`ota.env.${envKey(id)}Hint`)}
                                         >
-                                            {t(`ota.env.${ENV_KEY[id]}`)}
+                                            {t(`ota.env.${envKey(id)}`)}
                                         </button>
                                     ))}
                                 </div>

@@ -102,13 +102,6 @@
       "unknown": "No data",
       "unknownTip": "No message from the node has arrived yet since the backend started. If this persists for more than a minute, check the connection to the broker."
     },
-    "lastSeenSource": {
-      "telemetry": "telemetry",
-      "heartbeat": "service mode heartbeat",
-      "service_ended": "service mode ended",
-      "reboot": "reboot",
-      "ping": "ping response"
-    },
     "firmware": "Firmware",
     "debugBuild": "debug build",
     "debugTip": "LOG_LEVEL=2: setup() burns a fixed 2 s in delay(2000) on every wake, at 50-140 mA, with no benefit in the field. Reflash with ota_production.",
@@ -151,15 +144,6 @@
     "elapsed": "Elapsed",
     "remaining": "Remaining",
     "published": "Published",
-    "exitReason": {
-      "no_sun": "the panel stopped producing",
-      "low_battery": "the pack dropped below its floor",
-      "timeout": "it used up its budget",
-      "mqtt_lost": "the broker became unreachable",
-      "cleared_by_server": "it was stopped from here",
-      "budget_exhausted": "no budget was left from earlier sessions",
-      "unreported": "of an unreported reason"
-    },
     "lastSession": "Last session ended because {{reason}}.",
     "lastSessionAged": "Last session ({{age}}) ended because {{reason}}.",
     "floorCooldown": " The node judged conditions from its own sensors, so automatic arming stands down for an hour.",
@@ -255,9 +239,8 @@
     "stop": "Stop capture",
     "stopping": "Stopping capture…",
     "stopTip": "Stops the capture and empties the node's memory. Any events not yet transferred are lost — transfer first if that matters.",
-    "pendingStop": "Stopping the capture",
-    "pendingStart": "Starting the capture at {{level}}",
-    "pendingSuffix": " — waiting on the node.",
+    "pendingStop": "Stopping the capture — waiting on the node.",
+    "pendingStart": "Starting the capture at {{level}} — waiting on the node.",
     "pendingPickedUp": "The node picked up the command and is applying it. The telemetry that confirms it is still needed, which comes in this same cycle.",
     "pendingRetained": "The command stayed retained on the broker. The node only reads it on waking{{when}}, and until then it keeps capturing as it was. If the cycle fails to publish —which happens often— confirmation is delayed until the next one.",
     "pendingWhen": ", in ~{{sec}} s",

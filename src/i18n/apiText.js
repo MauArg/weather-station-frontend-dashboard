@@ -37,3 +37,24 @@ export const apiText = (t, group, code, fallback, params) =>
  */
 export const apiNote = (t, group, coded, fallback) =>
     apiText(t, group, coded?.code, fallback, coded?.params);
+
+/**
+ * The note a command came back with, or '' when it published without remark.
+ *
+ * Exists so the `note` group name is written once instead of at all five
+ * call sites that read it.
+ */
+export const commandNote = (t, response) =>
+    apiNote(t, 'note', response?.noteCode, response?.note) || '';
+
+/**
+ * A toast line with the command's note appended, if there is one.
+ *
+ * The four toast sites were each building the same `${msg} — ${note}` by hand.
+ * The live panel is not one of them: it shows the note as its own paragraph,
+ * so it calls commandNote directly.
+ */
+export const commandToast = (t, message, response) => {
+    const note = commandNote(t, response);
+    return note ? `${message} — ${note}` : message;
+};

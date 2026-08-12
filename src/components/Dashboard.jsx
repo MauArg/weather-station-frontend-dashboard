@@ -437,7 +437,7 @@ const Dashboard = () => {
                                 <CartesianGrid yAxisId="left" strokeDasharray="3 3" vertical={false} stroke="#ffffff20" />
                                 <XAxis dataKey="uniqueTime" stroke="#ffffff80" tickFormatter={formatTime} tick={{ fontSize: 12 }} minTickGap={30} tickMargin={10} />
                                 <YAxis yAxisId="left" width={80} domain={[0, 100]} ticks={[0, 25, 50, 75, 100]} stroke="#facc15" tickFormatter={val => `${val}%`} tickMargin={10} />
-                                <YAxis yAxisId="right" orientation="right" width={60} domain={[0, 40]} stroke="#ff6b6b" tickFormatter={val => `${val}°C`} tickMargin={10} />
+                                <YAxis yAxisId="right" orientation="right" width={60} domain={[0, 40]} ticks={[0, 10, 20, 30, 40]} stroke="#ff6b6b" tickFormatter={val => `${val}°C`} tickMargin={10} />
                                 <Tooltip
                                     formatter={(value, name, entry) => [
                                         `${formatValue(value)} ${entry?.dataKey === 'luminosity' ? '%' : '°C'}`,

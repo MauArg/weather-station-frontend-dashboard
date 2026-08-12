@@ -24,9 +24,9 @@
         "label": "Charging",
         "detail": "The panel is covering the system's consumption."
       },
-      "full": {
-        "label": "Battery full",
-        "detail": "Fully charged. Not currently charging."
+      "surplus": {
+        "label": "Battery full · Solar surplus",
+        "detail": "The pack is topped off and the panel is producing more than the station can spend."
       },
       "discharging": {
         "label": "Discharging",

@@ -135,9 +135,16 @@ const Dashboard = () => {
     // consumes" because the state includes the flat-voltage case where input ≈
     // output. Claiming a surplus would bring back the comparison this gauge
     // stopped making, and would clash with the drift phrase saying "steady".
+    //
+    // `surplus` replaced `full`, which the backend no longer sends. Both named
+    // the same situation — pack topped off, charger turning energy away — but
+    // `full` was decided from a single sample of a process that cycles every few
+    // minutes, so this card flipped between it and `charging` 136 times per
+    // daylight hour. An older backend still sending `full` falls through to
+    // `unknown` below, which is the same degradation this line already handles.
     const ENERGY_UI = {
         charging: { color: '#4ade80', Icon: BatteryCharging, pulse: 'pulse-animation-positive' },
-        full: { color: '#4ade80', Icon: CheckCircle2, pulse: '' },
+        surplus: { color: '#4ade80', Icon: CheckCircle2, pulse: '' },
         discharging: { color: '#a1a1aa', Icon: Moon, pulse: '' },
         deficit: { color: '#f87171', Icon: AlertTriangle, pulse: 'pulse-animation-negative' },
         unknown: { color: '#71717a', Icon: HelpCircle, pulse: '' },

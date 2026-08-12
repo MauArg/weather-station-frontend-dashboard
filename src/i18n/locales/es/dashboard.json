@@ -24,9 +24,9 @@
         "label": "Cargando",
         "detail": "El panel está cubriendo el consumo del sistema."
       },
-      "full": {
-        "label": "Batería llena",
-        "detail": "Carga completa. No está cargando en este momento."
+      "surplus": {
+        "label": "Batería llena · Excedente solar",
+        "detail": "El pack está cargado y el panel produce más de lo que la estación puede gastar."
       },
       "discharging": {
         "label": "Descargando",

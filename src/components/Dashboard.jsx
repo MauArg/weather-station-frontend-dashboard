@@ -5,10 +5,26 @@ import { Thermometer, Droplets, Gauge, CloudRain, Battery, BatteryCharging, Chec
 import StatCard from './StatCard';
 import { getRealTimeData, getDailyStats, getRecentHistory } from '../services/ApiService';
 import { formatTime, formatNumber } from '../utils/timezone';
+import { useNarrowLayout } from '../hooks/useNarrowLayout';
 import toast from 'react-hot-toast';
 
 const Dashboard = () => {
     const { t } = useTranslation('dashboard');
+
+    /*
+      The two full-width charts carry desktop gutters — 30px of margin on each
+      side plus fixed axis widths — that are a rounding error on a 1200px card
+      and half the card on a phone. Measured at a 390px viewport: the stacked
+      cards are all 325px wide, but the plot area came out 255px on the
+      temperature and humidity charts against 185px on the energy one and 125px
+      on the thermal-lag one, which has axes on both sides. So the two charts
+      the eye reads as "the wide ones" were the narrowest of the four.
+
+      Below the breakpoint the gutters collapse and the axes size themselves to
+      their labels. Desktop keeps the numbers it had.
+    */
+    const narrow = useNarrowLayout();
+    const wideChartMargin = { right: narrow ? 10 : 30, left: narrow ? 0 : 30 };
 
     const formatValue = (val) => formatNumber(val);
 
@@ -380,7 +396,7 @@ const Dashboard = () => {
                         <ResponsiveContainer width="100%" height="100%">
                             <AreaChart
                                 data={history}
-                                margin={{ top: 20, right: 30, left: 30, bottom: 5 }}
+                                margin={{ top: 20, bottom: 5, ...wideChartMargin }}
                                 onMouseMove={(e) => {
                                     if (e.activePayload && e.activePayload[0]) {
                                         setActiveEnergy(e.activePayload[0].payload.solarPower);
@@ -400,7 +416,7 @@ const Dashboard = () => {
                                 </defs>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ffffff20" />
                                 <XAxis dataKey="uniqueTime" stroke="#ffffff80" tickFormatter={formatTime} tick={{ fontSize: 12 }} minTickGap={30} tickMargin={10} />
-                                <YAxis width={80} domain={[0, 'auto']} stroke="#ffffff80" tickFormatter={val => `${val}mW`} tickMargin={10} />
+                                <YAxis width={narrow ? 'auto' : 80} domain={[0, 'auto']} stroke="#ffffff80" tickFormatter={val => `${val}mW`} tickMargin={narrow ? 4 : 10} />
                                 <Tooltip
                                     formatter={(value) => formatValue(value)}
                                     labelFormatter={formatTime}
@@ -440,11 +456,11 @@ const Dashboard = () => {
                     <h3>{t('chart.thermalLag')}</h3>
                     <div className="chart-wrapper" style={{ cursor: 'crosshair' }}>
                         <ResponsiveContainer width="100%" height="100%">
-                            <ComposedChart data={history} margin={{ top: 20, right: 30, left: 30, bottom: 20 }}>
+                            <ComposedChart data={history} margin={{ top: 20, bottom: 20, ...wideChartMargin }}>
                                 <CartesianGrid yAxisId="left" strokeDasharray="3 3" vertical={false} stroke="#ffffff20" />
                                 <XAxis dataKey="uniqueTime" stroke="#ffffff80" tickFormatter={formatTime} tick={{ fontSize: 12 }} minTickGap={30} tickMargin={10} />
-                                <YAxis yAxisId="left" width={80} domain={[0, 100]} ticks={[0, 25, 50, 75, 100]} stroke="#facc15" tickFormatter={val => `${val}%`} tickMargin={10} />
-                                <YAxis yAxisId="right" orientation="right" width={60} domain={[0, 40]} ticks={[0, 10, 20, 30, 40]} stroke="#ff6b6b" tickFormatter={val => `${val}°C`} tickMargin={10} />
+                                <YAxis yAxisId="left" width={narrow ? 'auto' : 80} domain={[0, 100]} ticks={[0, 25, 50, 75, 100]} stroke="#facc15" tickFormatter={val => `${val}%`} tickMargin={narrow ? 4 : 10} />
+                                <YAxis yAxisId="right" orientation="right" width={narrow ? 'auto' : 60} domain={[0, 40]} ticks={[0, 10, 20, 30, 40]} stroke="#ff6b6b" tickFormatter={val => `${val}°C`} tickMargin={narrow ? 4 : 10} />
                                 <Tooltip
                                     formatter={(value, name, entry) => [
                                         `${formatValue(value)} ${entry?.dataKey === 'luminosity' ? '%' : '°C'}`,

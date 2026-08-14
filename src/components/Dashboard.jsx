@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ComposedChart } from 'recharts';
 import { Thermometer, Droplets, Gauge, CloudRain, Battery, BatteryCharging, CheckCircle2, Moon, AlertTriangle, HelpCircle, Sun, Zap, Loader2 } from 'lucide-react';
 import StatCard from './StatCard';
+import ChartCrosshair, { CROSSHAIR_STROKE, CROSSHAIR_WIDTH } from './ChartCrosshair';
 import { getRealTimeData, getDailyStats, getRecentHistory } from '../services/ApiService';
 import { formatTime, formatNumber } from '../utils/timezone';
 import { useNarrowLayout } from '../hooks/useNarrowLayout';
@@ -32,10 +33,6 @@ const Dashboard = () => {
     const [history, setHistory] = useState([]);
     const [stats, setStats] = useState(null);
     const [timeRange, setTimeRange] = useState(24); // 6, 24, 48, 72 hours
-    const [activeTemp, setActiveTemp] = useState(null);
-    const [activeHum, setActiveHum] = useState(null);
-
-    const [activeEnergy, setActiveEnergy] = useState(null);
 
     // Sea-level by default: ~1014 hPa is what a barometric reading means to anyone
     // reading it, while the station's ~923 hPa only parses if you already know the
@@ -306,17 +303,9 @@ const Dashboard = () => {
             <div className="charts-grid">
                 <div className="chart-card">
                     <h3>{t('chart.temperature')}</h3>
-                    <div className="chart-wrapper" style={{ cursor: 'crosshair' }}>
+                    <ChartCrosshair>
                         <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart
-                                data={history}
-                                onMouseMove={(e) => {
-                                    if (e.activePayload && e.activePayload[0]) {
-                                        setActiveTemp(e.activePayload[0].payload.temperature);
-                                    }
-                                }}
-                                onMouseLeave={() => setActiveTemp(null)}
-                            >
+                            <AreaChart data={history}>
                                 <defs>
                                     <linearGradient id="colorTemp" x1="0" y1="0" x2="0" y2="1">
                                         <stop offset="5%" stopColor="#ff6b6b" stopOpacity={0.8} />
@@ -331,36 +320,25 @@ const Dashboard = () => {
                                     labelFormatter={formatTime}
                                     contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: 'none', borderRadius: '8px' }}
                                     itemStyle={{ color: '#fff' }}
-                                    cursor={{ stroke: 'rgba(255,255,255,0.5)', strokeWidth: 1, strokeDasharray: '4 4' }}
+                                    cursor={{ stroke: CROSSHAIR_STROKE, strokeWidth: CROSSHAIR_WIDTH, strokeDasharray: '3 3' }}
                                 />
                                 {/* `name` is not decoration: without it the tooltip
                                     falls back to the dataKey and prints the raw
                                     field name, which is neither language. */}
                                 <Area type="monotone" dataKey="temperature" name={t('series.temperature')} stroke="#ff6b6b" fillOpacity={1} fill="url(#colorTemp)" />
-                                {activeTemp !== null && (
-                                    <ReferenceLine y={activeTemp} stroke="rgba(255,255,255,0.5)" strokeDasharray="4 4" />
-                                )}
                                 {midnightPoints.map(uniqueTime => (
                                     <ReferenceLine key={`mid-${uniqueTime}`} x={uniqueTime} stroke="rgba(255,255,255,0.3)" strokeDasharray="5 5" />
                                 ))}
                             </AreaChart>
                         </ResponsiveContainer>
-                    </div>
+                    </ChartCrosshair>
                 </div>
 
                 <div className="chart-card">
                     <h3>{t('chart.humidity')}</h3>
-                    <div className="chart-wrapper" style={{ cursor: 'crosshair' }}>
+                    <ChartCrosshair>
                         <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart
-                                data={history}
-                                onMouseMove={(e) => {
-                                    if (e.activePayload && e.activePayload[0]) {
-                                        setActiveHum(e.activePayload[0].payload.humidity);
-                                    }
-                                }}
-                                onMouseLeave={() => setActiveHum(null)}
-                            >
+                            <AreaChart data={history}>
                                 <defs>
                                     <linearGradient id="colorHum" x1="0" y1="0" x2="0" y2="1">
                                         <stop offset="5%" stopColor="#4dabf7" stopOpacity={0.8} />
@@ -375,35 +353,23 @@ const Dashboard = () => {
                                     labelFormatter={formatTime}
                                     contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: 'none', borderRadius: '8px' }}
                                     itemStyle={{ color: '#fff' }}
-                                    cursor={{ stroke: 'rgba(255,255,255,0.5)', strokeWidth: 1, strokeDasharray: '4 4' }}
+                                    cursor={{ stroke: CROSSHAIR_STROKE, strokeWidth: CROSSHAIR_WIDTH, strokeDasharray: '3 3' }}
                                 />
                                 <Area type="monotone" dataKey="humidity" name={t('series.humidity')} stroke="#4dabf7" fillOpacity={1} fill="url(#colorHum)" />
-                                {activeHum !== null && (
-                                    <ReferenceLine y={activeHum} stroke="rgba(255,255,255,0.5)" strokeDasharray="4 4" />
-                                )}
                                 {midnightPoints.map(uniqueTime => (
                                     <ReferenceLine key={`mid-${uniqueTime}`} x={uniqueTime} stroke="rgba(255,255,255,0.3)" strokeDasharray="5 5" />
                                 ))}
                             </AreaChart>
                         </ResponsiveContainer>
-                    </div>
+                    </ChartCrosshair>
                 </div>
 
                 {/* Energy Chart: Production curve and consumption */}
                 <div className="chart-card wide">
                     <h3>{t('chart.energy')}</h3>
-                    <div className="chart-wrapper" style={{ cursor: 'crosshair' }}>
+                    <ChartCrosshair>
                         <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart
-                                data={history}
-                                margin={{ top: 20, bottom: 5, ...wideChartMargin }}
-                                onMouseMove={(e) => {
-                                    if (e.activePayload && e.activePayload[0]) {
-                                        setActiveEnergy(e.activePayload[0].payload.solarPower);
-                                    }
-                                }}
-                                onMouseLeave={() => setActiveEnergy(null)}
-                            >
+                            <AreaChart data={history} margin={{ top: 20, bottom: 5, ...wideChartMargin }}>
                                 <defs>
                                     <linearGradient id="colorSolar" x1="0" y1="0" x2="0" y2="1">
                                         <stop offset="5%" stopColor="#facc15" stopOpacity={0.8} />
@@ -422,19 +388,16 @@ const Dashboard = () => {
                                     labelFormatter={formatTime}
                                     contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: 'none', borderRadius: '8px' }}
                                     itemStyle={{ color: '#fff' }}
-                                    cursor={{ stroke: 'rgba(255,255,255,0.5)', strokeWidth: 1, strokeDasharray: '4 4' }}
+                                    cursor={{ stroke: CROSSHAIR_STROKE, strokeWidth: CROSSHAIR_WIDTH, strokeDasharray: '3 3' }}
                                 />
                                 <Area type="monotone" dataKey="solarPower" name={t('series.solar')} stroke="#facc15" fillOpacity={1} fill="url(#colorSolar)" />
                                 <Area type="step" dataKey="systemConsumption" name={t('series.consumption')} stroke="#f87171" fillOpacity={1} fill="url(#colorCons)" />
-                                {activeEnergy !== null && (
-                                    <ReferenceLine y={activeEnergy} stroke="rgba(255,255,255,0.3)" strokeDasharray="4 4" />
-                                )}
                                 {midnightPoints.map(uniqueTime => (
                                     <ReferenceLine key={`mid-${uniqueTime}`} x={uniqueTime} stroke="rgba(255,255,255,0.3)" strokeDasharray="5 5" />
                                 ))}
                             </AreaChart>
                         </ResponsiveContainer>
-                    </div>
+                    </ChartCrosshair>
                 </div>
 
                 {/*
@@ -454,7 +417,7 @@ const Dashboard = () => {
                 */}
                 <div className="chart-card wide">
                     <h3>{t('chart.thermalLag')}</h3>
-                    <div className="chart-wrapper" style={{ cursor: 'crosshair' }}>
+                    <ChartCrosshair>
                         <ResponsiveContainer width="100%" height="100%">
                             <ComposedChart data={history} margin={{ top: 20, bottom: 20, ...wideChartMargin }}>
                                 <CartesianGrid yAxisId="left" strokeDasharray="3 3" vertical={false} stroke="#ffffff20" />
@@ -469,7 +432,7 @@ const Dashboard = () => {
                                     labelFormatter={formatTime}
                                     contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: 'none', borderRadius: '8px' }}
                                     itemStyle={{ color: '#fff' }}
-                                    cursor={{ stroke: 'rgba(255,255,255,0.5)', strokeWidth: 1, strokeDasharray: '4 4' }}
+                                    cursor={{ stroke: CROSSHAIR_STROKE, strokeWidth: CROSSHAIR_WIDTH, strokeDasharray: '3 3' }}
                                 />
                                 {/*
                                   connectNulls stays off: a missing reading has to
@@ -486,7 +449,7 @@ const Dashboard = () => {
                                 ))}
                             </ComposedChart>
                         </ResponsiveContainer>
-                    </div>
+                    </ChartCrosshair>
                 </div>
 
             </div>

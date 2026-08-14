@@ -319,6 +319,22 @@ body {
 .chart-wrapper {
     flex: 1;
     width: 100%;
+    /* Anchor for the crosshair overlay, which is positioned against this box. */
+    position: relative;
+    cursor: crosshair;
+}
+
+/*
+   Horizontal half of the crosshair — see components/ChartCrosshair.jsx. Only
+   the structure lives here: colour and width come inline from that module's
+   constants, because the vertical half is an SVG presentation attribute drawn
+   by recharts and cannot read a custom property.
+*/
+.chart-crosshair-y {
+    position: absolute;
+    height: 0;
+    border-top-style: dashed;
+    pointer-events: none;
 }
 
 /* Calendar */

@@ -28,6 +28,19 @@ export const CROSSHAIR_STROKE = 'rgba(120, 120, 130, 0.5)';
 export const CROSSHAIR_WIDTH = 1 / (window.devicePixelRatio || 1);
 
 /**
+ * Dash and gap of the crosshair, in CSS pixels.
+ *
+ * Both halves have to name this number explicitly, because the two rendering
+ * paths disagree about what a dash is by default. SVG's `stroke-dasharray` is
+ * independent of the stroke width, while CSS `border-style: dashed` derives the
+ * dash length from the border width — so the hairline horizontal came out with
+ * a much finer rhythm than the vertical it was meant to match. Hence the
+ * repeating gradient below rather than a dashed border: it is the only way to
+ * state the pattern in pixels on the CSS side.
+ */
+export const CROSSHAIR_DASH = 3;
+
+/**
  * Chart wrapper that adds the horizontal half of a Grafana-style crosshair.
  *
  * The vertical half is recharts' own tooltip cursor, which snaps to the hovered
@@ -97,8 +110,8 @@ const ChartCrosshair = ({ children }) => {
                         top: `${line.top}px`,
                         left: `${line.left}px`,
                         width: `${line.width}px`,
-                        borderTopColor: CROSSHAIR_STROKE,
-                        borderTopWidth: `${CROSSHAIR_WIDTH}px`,
+                        height: `${CROSSHAIR_WIDTH}px`,
+                        backgroundImage: `repeating-linear-gradient(to right, ${CROSSHAIR_STROKE} 0 ${CROSSHAIR_DASH}px, transparent ${CROSSHAIR_DASH}px ${CROSSHAIR_DASH * 2}px)`,
                     }}
                 />
             )}

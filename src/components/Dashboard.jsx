@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ComposedChart } from 'recharts';
 import { Thermometer, Droplets, Gauge, CloudRain, Battery, BatteryCharging, CheckCircle2, Moon, AlertTriangle, HelpCircle, Sun, Zap, Loader2 } from 'lucide-react';
 import StatCard from './StatCard';
-import ChartCrosshair, { CROSSHAIR_STROKE, CROSSHAIR_WIDTH } from './ChartCrosshair';
+import ChartCrosshair, { CROSSHAIR_STROKE, CROSSHAIR_WIDTH, CROSSHAIR_DASH } from './ChartCrosshair';
 import { getRealTimeData, getDailyStats, getRecentHistory } from '../services/ApiService';
 import { formatTime, formatNumber } from '../utils/timezone';
 import { useNarrowLayout } from '../hooks/useNarrowLayout';
@@ -320,7 +320,7 @@ const Dashboard = () => {
                                     labelFormatter={formatTime}
                                     contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: 'none', borderRadius: '8px' }}
                                     itemStyle={{ color: '#fff' }}
-                                    cursor={{ stroke: CROSSHAIR_STROKE, strokeWidth: CROSSHAIR_WIDTH, strokeDasharray: '3 3' }}
+                                    cursor={{ stroke: CROSSHAIR_STROKE, strokeWidth: CROSSHAIR_WIDTH, strokeDasharray: `${CROSSHAIR_DASH} ${CROSSHAIR_DASH}` }}
                                 />
                                 {/* `name` is not decoration: without it the tooltip
                                     falls back to the dataKey and prints the raw
@@ -353,7 +353,7 @@ const Dashboard = () => {
                                     labelFormatter={formatTime}
                                     contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: 'none', borderRadius: '8px' }}
                                     itemStyle={{ color: '#fff' }}
-                                    cursor={{ stroke: CROSSHAIR_STROKE, strokeWidth: CROSSHAIR_WIDTH, strokeDasharray: '3 3' }}
+                                    cursor={{ stroke: CROSSHAIR_STROKE, strokeWidth: CROSSHAIR_WIDTH, strokeDasharray: `${CROSSHAIR_DASH} ${CROSSHAIR_DASH}` }}
                                 />
                                 <Area type="monotone" dataKey="humidity" name={t('series.humidity')} stroke="#4dabf7" fillOpacity={1} fill="url(#colorHum)" />
                                 {midnightPoints.map(uniqueTime => (
@@ -388,7 +388,7 @@ const Dashboard = () => {
                                     labelFormatter={formatTime}
                                     contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: 'none', borderRadius: '8px' }}
                                     itemStyle={{ color: '#fff' }}
-                                    cursor={{ stroke: CROSSHAIR_STROKE, strokeWidth: CROSSHAIR_WIDTH, strokeDasharray: '3 3' }}
+                                    cursor={{ stroke: CROSSHAIR_STROKE, strokeWidth: CROSSHAIR_WIDTH, strokeDasharray: `${CROSSHAIR_DASH} ${CROSSHAIR_DASH}` }}
                                 />
                                 <Area type="monotone" dataKey="solarPower" name={t('series.solar')} stroke="#facc15" fillOpacity={1} fill="url(#colorSolar)" />
                                 <Area type="step" dataKey="systemConsumption" name={t('series.consumption')} stroke="#f87171" fillOpacity={1} fill="url(#colorCons)" />
@@ -432,7 +432,7 @@ const Dashboard = () => {
                                     labelFormatter={formatTime}
                                     contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: 'none', borderRadius: '8px' }}
                                     itemStyle={{ color: '#fff' }}
-                                    cursor={{ stroke: CROSSHAIR_STROKE, strokeWidth: CROSSHAIR_WIDTH, strokeDasharray: '3 3' }}
+                                    cursor={{ stroke: CROSSHAIR_STROKE, strokeWidth: CROSSHAIR_WIDTH, strokeDasharray: `${CROSSHAIR_DASH} ${CROSSHAIR_DASH}` }}
                                 />
                                 {/*
                                   connectNulls stays off: a missing reading has to

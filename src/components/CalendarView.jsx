@@ -7,7 +7,7 @@ import { getYearlyTableData, getHistoricData } from '../services/ApiService';
 import { formatNumber } from '../utils/timezone';
 import toast from 'react-hot-toast';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import ChartCrosshair, { CROSSHAIR_STROKE, CROSSHAIR_WIDTH } from './ChartCrosshair';
+import ChartCrosshair, { CROSSHAIR_STROKE, CROSSHAIR_WIDTH, CROSSHAIR_DASH } from './ChartCrosshair';
 
 // The only place date-fns renders words rather than digits. Its locale follows
 // the UI language —month names are words— while everything numeric in this view
@@ -133,7 +133,7 @@ const CalendarView = ({ onBack }) => {
                                     <Tooltip
                                         formatter={(value) => formatNumber(value)}
                                         contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: 'none' }}
-                                        cursor={{ stroke: CROSSHAIR_STROKE, strokeWidth: CROSSHAIR_WIDTH, strokeDasharray: '3 3' }}
+                                        cursor={{ stroke: CROSSHAIR_STROKE, strokeWidth: CROSSHAIR_WIDTH, strokeDasharray: `${CROSSHAIR_DASH} ${CROSSHAIR_DASH}` }}
                                     />
                                     <Area type="monotone" dataKey="temperature" name={t('series.temperature')} stroke="#ff6b6b" fill="#ff6b6b80" />
                                 </AreaChart>

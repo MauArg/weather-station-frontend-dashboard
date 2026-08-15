@@ -785,10 +785,24 @@ body {
     text-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
 }
 
+/*
+ * The cap is sized to the longest sentence this line can hold, not to a reading
+ * measure. It is one sentence read at a glance, and breaking it across two lines
+ * costs more than the extra characters per line do.
+ *
+ * Measured in the real face over every state × drift combination in both
+ * languages: the widest is the Spanish `discharging` with a rising trend, at
+ * 855px. 58rem is 928px, which clears it with room for a wider mV/h figure and
+ * for the metric shift if the webfont fails and the fallback takes over. The old
+ * 46rem was 736px, which is why that one wrapped once the page got wider.
+ *
+ * Narrower viewports still wrap it, as they must — this only stops the wrap
+ * happening when there is room to spare.
+ */
 .energy-state-detail {
     color: #a1a1aa;
     font-size: 0.95rem;
-    max-width: 46rem;
+    max-width: 58rem;
     margin: 0 auto;
 }
 

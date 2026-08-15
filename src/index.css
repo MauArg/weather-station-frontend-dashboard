@@ -637,10 +637,27 @@ body {
    min-height reserves the line so the card does not resize when the band
    changes between a state that shows a rate and one that does not.
 */
+/*
+   Value and note on one line, aligned on their baselines so the small text sits
+   on the same footing as the big number instead of floating against its middle.
+
+   It wraps, and on a phone it does: the note needs about 200px next to a 130px
+   reading inside a 309px card. That costs nothing there, because the cards are
+   stacked in a single column and there is no neighbouring rule to line up with —
+   which is the whole reason this line moved up here in the first place.
+*/
+.stat-headline {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    /* The column gap is wide on purpose: the note has to read as a separate
+       thought from the reading, and the unit already sits against the number's
+       right side, so a tight gap runs "°C" and the trend together. */
+    gap: 0.15rem 1.25rem;
+}
+
 .stat-note {
-    margin-top: 0.35rem;
     font-size: 0.8rem;
-    min-height: 1.2em;
 }
 
 .stat-trend {

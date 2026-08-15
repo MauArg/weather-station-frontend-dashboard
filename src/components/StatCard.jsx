@@ -59,10 +59,19 @@ const StatCard = ({ title, value, unit, icon: Icon, color = 'blue', variants, ac
                     {Icon && <Icon size={20} color={color} />}
                 </div>
             </div>
-            <div className="stat-value">
-                {shown.value} <span className="stat-unit">{shown.unit}</span>
+            {/*
+              The note shares the headline's line rather than taking one of its
+              own. A row of its own pushed everything below it down, so the rule
+              above the footer stopped lining up with the same rule on the card
+              next door — and four cards whose rules sit at four heights read as
+              a broken grid, whatever each card says on its own.
+            */}
+            <div className="stat-headline">
+                <div className="stat-value">
+                    {shown.value} <span className="stat-unit">{shown.unit}</span>
+                </div>
+                {note && <div className="stat-note">{note}</div>}
             </div>
-            {note && <div className="stat-note">{note}</div>}
             {shown.caption && (
                 <button
                     type="button"

@@ -52,8 +52,8 @@
     "trends": "Trends"
   },
   "chart": {
-    "temperature": "Real-time Temperature",
-    "humidity": "Real-time Humidity",
+    "temperature": "Temperature",
+    "humidity": "Humidity",
     "energy": "Solar Engine & Consumption",
     "thermalLag": "Weather: Daylight vs Thermal Lag"
   },

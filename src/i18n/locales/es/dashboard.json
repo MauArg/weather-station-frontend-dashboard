@@ -52,8 +52,8 @@
     "trends": "Tendencias"
   },
   "chart": {
-    "temperature": "Temperatura en tiempo real",
-    "humidity": "Humedad en tiempo real",
+    "temperature": "Temperatura",
+    "humidity": "Humedad",
     "energy": "Generación solar y consumo",
     "thermalLag": "Clima: luz diurna vs. retardo térmico"
   },

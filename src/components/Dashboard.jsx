@@ -327,8 +327,22 @@ const Dashboard = () => {
       inventing a trend from a handful of samples, which is what the Grafana
       panel this replaces does.
 
-      The rate is shown unsigned because the word and the chevron already carry
-      the direction, and "▼ Enfriando · -1,8 °C/h" says it three times.
+      The rate carries its sign, and the parentheses are not decoration.
+
+      Signed because inside the steady band the word says "Estable" and the icon
+      is a flat dash: neither of them carries a direction, so `(+0,3 °C/h)` and
+      `(-0,3 °C/h)` are the same reading without it — a night that is warming
+      back up against one still cooling. There the sign is not repeating
+      anything, it is the only place that information lives. In the other four
+      bands it does repeat the word, and that is fine: it is the rule this
+      dashboard already applies to colour, which never communicates alone.
+
+      Parenthesised because the separator that used to sit there was a middle
+      dot, and at this size "· 0,13" reads as a mangled "-0,13" — Mau read it
+      that way. Worse than looking odd: taken for a sign it inverts the meaning,
+      turning "Calentando · 1,8" into a fall. A bracket cannot be mistaken for
+      one in any position, and it says what the dot was trying to say — this is
+      the evidence for the word in front of it.
     */
     const temperatureTrend = (() => {
         const band = currentData.tempTrend;
@@ -344,7 +358,7 @@ const Dashboard = () => {
                 <Icon size={16} aria-hidden="true" />
                 {t(`trend.${band}`)}
                 {rate != null && (
-                    <span className="stat-trend-rate">· {formatValue(Math.abs(rate))} °C/h</span>
+                    <span className="stat-trend-rate">({formatNumber(rate, { sign: 'always' })} °C/h)</span>
                 )}
             </span>
         );

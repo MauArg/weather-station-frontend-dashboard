@@ -126,14 +126,15 @@ export const formatDay = (value) => {
 // Number formatters vary by call site, so they are cached by their option set
 // rather than declared up front. Half a dozen distinct shapes exist in the app.
 const numberFormatters = new Map();
-const numberFormatter = (digits, minDigits, grouping) => {
-    const key = `${digits}|${minDigits}|${grouping}`;
+const numberFormatter = (digits, minDigits, grouping, sign) => {
+    const key = `${digits}|${minDigits}|${grouping}|${sign}`;
     let fmt = numberFormatters.get(key);
     if (!fmt) {
         fmt = new Intl.NumberFormat(LOCALE, {
             maximumFractionDigits: digits,
             minimumFractionDigits: minDigits,
             useGrouping: grouping,
+            signDisplay: sign,
         });
         numberFormatters.set(key, fmt);
     }
@@ -152,9 +153,15 @@ const numberFormatter = (digits, minDigits, grouping) => {
  * that meteorology always writes plain, and one a quick glance mistakes for the
  * decimal point.
  */
-export const formatNumber = (value, { digits = 2, minDigits = 0, grouping = true } = {}) => {
+/**
+ * `sign: 'always'` is for quantities where the direction is part of the reading
+ * rather than a consequence of it — a rate of change, not a temperature. It
+ * comes from Intl rather than a concatenated "+" so the glyph and its placement
+ * follow the locale, the same reason decimals never go through toFixed.
+ */
+export const formatNumber = (value, { digits = 2, minDigits = 0, grouping = true, sign = 'auto' } = {}) => {
     if (typeof value !== 'number') return value;
-    return numberFormatter(digits, minDigits, grouping).format(value);
+    return numberFormatter(digits, minDigits, grouping, sign).format(value);
 };
 
 /**

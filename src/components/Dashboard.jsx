@@ -173,6 +173,37 @@ const Dashboard = () => {
             }
         }, 3000);
 
+        /*
+          Today's extremes are re-read on their own clock, because they change on
+          their own: a new high is set by a reading arriving, not by anything the
+          reader does. They used to be fetched only by the effect above — on the
+          first paint and on a range change — so on a dashboard left open they
+          stayed frozen at whatever the day had reached when the tab was opened,
+          and only a reload moved them. That read as a bug precisely because
+          everything around them was ticking.
+
+          A minute rather than the 3 s of the live poll, because this one costs a
+          query: the backend answers it by scanning every raw point since local
+          midnight, unaggregated — about 110 ms by mid-afternoon and growing
+          through the day. At 3 s that is a full day's scan running continuously
+          for a figure that cannot move faster than telemetry arrives, which is
+          once a minute. The card still reacts instantly to a new record; see the
+          fold in extremesFooter, which is what makes a minute here invisible.
+
+          What the minute actually bounds is the midnight reset, the one case the
+          fold cannot cover: extending a maximum is something a live reading can
+          do on its own, but dropping back to a new day's is not.
+        */
+        const statsInterval = setInterval(async () => {
+            try {
+                const dailyStats = await getDailyStats();
+                if (!isMounted) return;
+                setStats(dailyStats);
+            } catch (error) {
+                console.error("Stats interval fetch error:", error);
+            }
+        }, 60 * 1000);
+
         // Refresh history graph data every 5 minutes to keep it up to date
         // without distorting the curve with unaggregated real-time points
         const historyInterval = setInterval(async () => {
@@ -188,6 +219,7 @@ const Dashboard = () => {
         return () => {
             isMounted = false;
             clearInterval(interval);
+            clearInterval(statsInterval);
             clearInterval(historyInterval);
         };
         // `t` is intentionally out of the dependency list: it is only read inside
@@ -349,12 +381,19 @@ const Dashboard = () => {
         if (!band) return null;
 
         const ui = TREND_UI[band];
-        if (!ui) return <span className="stat-note-muted">{t('trend.unknown')}</span>;
+        /*
+          The two tooltips say different things on purpose. A band is a reading
+          that needs its scale explained — "Steady" means nothing until you know
+          what it is steady against — while `unknown` is not a reading at all,
+          and the only useful thing to say about it is that it passes on its own.
+          Without that second one "Measuring…" looks like something stuck.
+        */
+        if (!ui) return <span className="stat-note-muted" title={t('trend.unknownTip')}>{t('trend.unknown')}</span>;
 
         const { color, Icon } = ui;
         const rate = currentData.tempDriftCPerH;
         return (
-            <span className="stat-trend" style={{ color }}>
+            <span className="stat-trend" style={{ color }} title={t('trend.tip')}>
                 <Icon size={16} aria-hidden="true" />
                 {t(`trend.${band}`)}
                 {rate != null && (
@@ -364,21 +403,48 @@ const Dashboard = () => {
         );
     })();
 
-    const extremesFooter = (max, min, unit) => {
+    /*
+      The live reading is folded into the pair before they are drawn, so the
+      card cannot contradict itself.
+
+      Without it the headline and the footer answer to different clocks — the
+      reading every 3 s, the extremes every 60 — and for up to a minute either
+      side of a new record the card reads "8,92 °C" above "High today 8,87 °C".
+      That is not a stale figure, it is an impossible one, and it appears exactly
+      at the daily peak, which is when someone is most likely to be looking.
+
+      This is not a guess at what the backend will say: an extreme *is* the
+      furthest reading of the day, so a reading beyond it has already changed the
+      answer. The fold is running the same comparison the backend runs, one
+      sample earlier. It can only ever widen the pair, never narrow it, so it
+      cannot erase a real extreme that the current reading happens to sit inside
+      — including the one case it must not touch, the reset at local midnight,
+      which is left to the refetch.
+
+      The time comes from the same formatTime the fetched extremes go through, or
+      the folded row would wear a different format than the one it replaces.
+    */
+    const extremesFooter = (max, min, live, unit) => {
         // A sensor that did not report all day leaves these out of the payload,
         // and half a comparison is worse than none.
         if (!max || !min) return null;
+
+        const at = formatTime(currentData.timestamp);
+        const reported = typeof live === 'number';
+        const hi = reported && live > max.value ? { value: live, time: at } : max;
+        const lo = reported && live < min.value ? { value: live, time: at } : min;
+
         return (
             <>
                 <div className="stat-extreme">
                     <span className="stat-extreme-label">{t('extremes.maxToday')}</span>
-                    <span className="stat-extreme-value">{formatValue(max.value)} {unit}</span>
-                    <span className="stat-extreme-time">{t('extremes.at', { time: max.time })}</span>
+                    <span className="stat-extreme-value">{formatValue(hi.value)} {unit}</span>
+                    <span className="stat-extreme-time">{t('extremes.at', { time: hi.time })}</span>
                 </div>
                 <div className="stat-extreme">
                     <span className="stat-extreme-label">{t('extremes.minToday')}</span>
-                    <span className="stat-extreme-value">{formatValue(min.value)} {unit}</span>
-                    <span className="stat-extreme-time">{t('extremes.at', { time: min.time })}</span>
+                    <span className="stat-extreme-value">{formatValue(lo.value)} {unit}</span>
+                    <span className="stat-extreme-time">{t('extremes.at', { time: lo.time })}</span>
                 </div>
             </>
         );
@@ -406,7 +472,7 @@ const Dashboard = () => {
                     icon={Thermometer}
                     color="#ff6b6b"
                     note={temperatureTrend}
-                    footer={extremesFooter(stats.maxTemp, stats.minTemp, '°C')}
+                    footer={extremesFooter(stats.maxTemp, stats.minTemp, currentData.temperature, '°C')}
                 />
                 <StatCard
                     title={t('card.humidity')}
@@ -414,7 +480,7 @@ const Dashboard = () => {
                     unit="%"
                     icon={Droplets}
                     color="#4dabf7"
-                    footer={extremesFooter(stats.maxHumidity, stats.minHumidity, '%')}
+                    footer={extremesFooter(stats.maxHumidity, stats.minHumidity, currentData.humidity, '%')}
                 />
                 <StatCard
                     title={t('card.pressure')}

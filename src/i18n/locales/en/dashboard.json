@@ -53,7 +53,9 @@
     "steady": "Steady",
     "warming": "Warming",
     "warmingFast": "Warming fast",
-    "unknown": "Measuring…"
+    "unknown": "Measuring…",
+    "tip": "How fast the air is warming or cooling, measured over the last hour. Under ±1 °C/h counts as steady, over ±3 °C/h as fast.",
+    "unknownTip": "Not enough samples yet. The window fills about half an hour after the backend restarts, and then the trend appears on its own."
   },
   "section": {
     "liveData": "Live Data",

@@ -53,7 +53,9 @@
     "steady": "Estable",
     "warming": "Calentando",
     "warmingFast": "Calentando rápido",
-    "unknown": "Midiendo…"
+    "unknown": "Midiendo…",
+    "tip": "Qué tan rápido se está calentando o enfriando el aire, medido sobre la última hora. Menos de ±1 °C/h se considera estable; más de ±3 °C/h, rápido.",
+    "unknownTip": "Todavía no hay muestras suficientes. La ventana se llena alrededor de media hora después de que el backend se reinicia, y la tendencia aparece sola."
   },
   "section": {
     "liveData": "Datos en vivo",

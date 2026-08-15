@@ -271,6 +271,36 @@ const Dashboard = () => {
         }
     }
 
+    /*
+      Today's high and low, shown inside the temperature card rather than in
+      their own row at the foot of the page.
+
+      They used to sit below the last chart, which is the furthest possible
+      point from the number they qualify — nobody scrolls past four charts to
+      find out whether 6° is a cold moment in a mild day or the mild moment in a
+      cold one. Read under the current reading, they are the context that makes
+      it mean something, which is the arrangement every weather app converged on.
+
+      They do not contradict the "live data" heading above them, because they
+      are not offered as a separate claim: the card is about temperature, and
+      these say where today's temperature has been. The `today` in the label is
+      what keeps that honest, and it is why the label is not just "max".
+    */
+    const temperatureExtremes = (
+        <>
+            <div className="stat-extreme">
+                <span className="stat-extreme-label">{t('extremes.maxToday')}</span>
+                <span className="stat-extreme-value">{formatValue(stats.maxTemp.value)} °C</span>
+                <span className="stat-extreme-time">{t('extremes.at', { time: stats.maxTemp.time })}</span>
+            </div>
+            <div className="stat-extreme">
+                <span className="stat-extreme-label">{t('extremes.minToday')}</span>
+                <span className="stat-extreme-value">{formatValue(stats.minTemp.value)} °C</span>
+                <span className="stat-extreme-time">{t('extremes.at', { time: stats.minTemp.time })}</span>
+            </div>
+        </>
+    );
+
     return (
         <div className="dashboard-container">
             {/*
@@ -292,6 +322,7 @@ const Dashboard = () => {
                     unit="°C"
                     icon={Thermometer}
                     color="#ff6b6b"
+                    footer={temperatureExtremes}
                 />
                 <StatCard
                     title={t('card.humidity')}
@@ -533,21 +564,6 @@ const Dashboard = () => {
                     </ChartCrosshair>
                 </div>
 
-            </div>
-
-            {/* Daily Extremes */}
-            <div className="extremes-grid">
-                <div className="extreme-card">
-                    <h4>{t('extremes.maxTemp')}</h4>
-                    <span>{formatValue(stats.maxTemp.value)}°C</span>
-                    <small>{t('extremes.at', { time: stats.maxTemp.time })}</small>
-                </div>
-                <div className="extreme-card">
-                    <h4>{t('extremes.minTemp')}</h4>
-                    <span>{formatValue(stats.minTemp.value)}°C</span>
-                    <small>{t('extremes.at', { time: stats.minTemp.time })}</small>
-                </div>
-                {/* Add more extremes as needed */}
             </div>
         </div>
     );

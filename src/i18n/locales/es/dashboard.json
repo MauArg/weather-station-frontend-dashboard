@@ -66,8 +66,8 @@
     "ambientTemp": "Temp. ambiente"
   },
   "extremes": {
-    "maxTemp": "Temp. máx.",
-    "minTemp": "Temp. mín.",
+    "maxToday": "Máx. hoy",
+    "minToday": "Mín. hoy",
     "at": "a las {{time}}"
   }
 }

@@ -21,8 +21,13 @@ import { ChevronDown } from 'lucide-react';
  * number without noticing which mode is active would have no way to tell them
  * apart. That is the same rule the service view follows for colour — the state
  * always says what it is in words.
+ *
+ * `footer` is an open slot under the reading, for context about the same
+ * quantity — today's extremes on the temperature card. It takes nodes rather
+ * than a fixed shape because the card has no business knowing what a daily
+ * extreme is; it only knows there is a quieter line below the headline.
  */
-const StatCard = ({ title, value, unit, icon: Icon, color = 'blue', variants, activeVariant, onCycleVariant }) => {
+const StatCard = ({ title, value, unit, icon: Icon, color = 'blue', variants, activeVariant, onCycleVariant, footer }) => {
     const { t } = useTranslation();
     const switchable = Array.isArray(variants) && variants.length > 1;
     const current = switchable
@@ -66,6 +71,7 @@ const StatCard = ({ title, value, unit, icon: Icon, color = 'blue', variants, ac
                     {shown.caption}
                 </button>
             )}
+            {footer && <div className="stat-footer">{footer}</div>}
         </div>
     );
 };

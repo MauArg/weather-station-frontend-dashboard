@@ -32,14 +32,20 @@ body {
  * globally — a project-wide reset would silently resize every padded box in the
  * app, and this file has a lot of them.
  *
- * max-width follows it up from 1280 to 1344 so the *content* stays 1280px wide.
- * The two changes cancel on desktop by design: the number that matters is how
- * much room the charts get, and that is unchanged.
+ * max-width is a deliberate middle ground, not a reading measure. A dashboard of
+ * charts is not prose — wider plots resolve more detail, which is the whole
+ * point of a 14-day range — so the old 1280px of content spent half of a 2560px
+ * screen on empty gutters. Grafana, which this is read beside, uses the full
+ * width; 1800 lands at about 70% of that screen and still stops the page from
+ * running edge to edge.
+ *
+ * The one block that does hold prose, the energy state sentence, caps itself at
+ * 46rem, so widening the page does not stretch it into a single long line.
  */
 #root {
     box-sizing: border-box;
     width: 100%;
-    max-width: 1344px;
+    max-width: 1800px;
     margin: 0 auto;
     padding: 2rem;
 }
@@ -623,34 +629,45 @@ body {
     font-weight: 500;
 }
 
-.extremes-grid {
+/*
+   Today's extremes, under the temperature reading — see the comment on
+   temperatureExtremes in Dashboard.jsx for why they live there now.
+
+   Two columns rather than a wrapping row: high and low are a pair, and a pair
+   that reflows to one column on a narrow card stops reading as a comparison.
+   At 1fr each they stay side by side down to the narrowest card the grid
+   allows, and the type is small enough that they do not compete with the
+   headline they qualify.
+*/
+.stat-footer {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 1rem;
-    margin-top: 1rem;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--glass-border);
 }
 
-.extreme-card {
-    background: rgba(0, 0, 0, 0.2);
-    padding: 1rem;
-    border-radius: 12px;
-    border: 1px solid var(--glass-border);
+.stat-extreme {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    min-width: 0;
 }
 
-.extreme-card h4 {
-    margin: 0;
+.stat-extreme-label {
     color: #a1a1aa;
-    font-size: 0.9rem;
+    font-size: 0.75rem;
 }
 
-.extreme-card span {
-    display: block;
-    font-size: 1.5rem;
+.stat-extreme-value {
+    font-size: 1.1rem;
     font-weight: 700;
 }
 
-.extreme-card small {
+.stat-extreme-time {
     color: #71717a;
+    font-size: 0.75rem;
 }
 
 /* Energy Dashboard Widget Centerpiece */

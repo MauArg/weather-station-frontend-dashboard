@@ -273,6 +273,17 @@ const Dashboard = () => {
 
     return (
         <div className="dashboard-container">
+            {/*
+              The two sections are split by *when*, not by what they draw. This
+              one is the current reading — the cards and the energy state, both
+              of which describe the station right now. The one below is the same
+              quantities over a window the reader picks, which is why it stopped
+              being called live data once that window could be a fortnight.
+            */}
+            <div className="section-header">
+                <h3>{t('section.liveData')}</h3>
+            </div>
+
             {/* Top Stats Row */}
             <div className="stats-grid">
                 <StatCard
@@ -349,7 +360,7 @@ const Dashboard = () => {
 
             {/* Main Graphs */}
             <div className="section-header">
-                <h3>{t('section.liveData')}</h3>
+                <h3>{t('section.trends')}</h3>
                 <div className="time-controls">
                     {RANGES.map(({ hours, label }) => (
                         <button

@@ -48,7 +48,8 @@
     "falling": "▼ {{mvh}} mV/h over the last 2 h"
   },
   "section": {
-    "liveData": "Live Data"
+    "liveData": "Live Data",
+    "trends": "Trends"
   },
   "chart": {
     "temperature": "Real-time Temperature",

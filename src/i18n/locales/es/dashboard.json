@@ -48,7 +48,8 @@
     "falling": "▼ {{mvh}} mV/h en las últimas 2 h"
   },
   "section": {
-    "liveData": "Datos en vivo"
+    "liveData": "Datos en vivo",
+    "trends": "Tendencias"
   },
   "chart": {
     "temperature": "Temperatura en tiempo real",

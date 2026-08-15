@@ -47,6 +47,14 @@
     "rising": "▲ {{mvh}} mV/h en las últimas 2 h",
     "falling": "▼ {{mvh}} mV/h en las últimas 2 h"
   },
+  "trend": {
+    "coolingFast": "Enfriando rápido",
+    "cooling": "Enfriando",
+    "steady": "Estable",
+    "warming": "Calentando",
+    "warmingFast": "Calentando rápido",
+    "unknown": "Midiendo…"
+  },
   "section": {
     "liveData": "Datos en vivo",
     "trends": "Tendencias"

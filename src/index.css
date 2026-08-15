@@ -630,6 +630,35 @@ body {
 }
 
 /*
+   The trend line, directly under the reading it qualifies and left-aligned
+   against the extremes block that hugs the right edge below it — the same two
+   ends the card already balances on.
+
+   min-height reserves the line so the card does not resize when the band
+   changes between a state that shows a rate and one that does not.
+*/
+.stat-note {
+    margin-top: 0.35rem;
+    font-size: 0.8rem;
+    min-height: 1.2em;
+}
+
+.stat-trend {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-weight: 500;
+}
+
+/* The rate stays quieter than the word: the word is the answer and the number is
+   the evidence for it. */
+.stat-trend-rate,
+.stat-note-muted {
+    color: #71717a;
+    font-weight: 400;
+}
+
+/*
    Today's extremes, under the temperature reading — see the comment on
    temperatureExtremes in Dashboard.jsx for why they live there now.
 

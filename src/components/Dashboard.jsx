@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ComposedChart } from 'recharts';
-import { Thermometer, Droplets, Gauge, CloudRain, Battery, BatteryCharging, CheckCircle2, Moon, AlertTriangle, HelpCircle, Sun, Zap, Loader2 } from 'lucide-react';
+import { Thermometer, Droplets, Gauge, CloudRain, Battery, BatteryCharging, CheckCircle2, Moon, AlertTriangle, HelpCircle, Sun, Zap, Loader2, ChevronUp, ChevronDown, ChevronsUp, ChevronsDown, Minus } from 'lucide-react';
 import StatCard from './StatCard';
 import ChartCrosshair, { CROSSHAIR_STROKE, CROSSHAIR_WIDTH, CROSSHAIR_DASH } from './ChartCrosshair';
 import { getRealTimeData, getDailyStats, getRecentHistory } from '../services/ApiService';
@@ -21,6 +21,26 @@ import toast from 'react-hot-toast';
   points and 3.7 s for 7 d, 1344 points and 4.7 s for 14 d. That wait is the
   reason the charts got their own loading state — see below.
 */
+/*
+  The temperature trend, keyed by the band the backend sends — see
+  internal/temptrend. The scale is diverging on purpose: blue for cooling, red
+  for warming, neutral grey in the middle. Grafana, where this indicator came
+  from, uses green for steady, and green reads as "good"; a temperature trend is
+  neither good nor bad, so a status palette would be saying something the data
+  does not.
+
+  Doubling the chevron carries the "fast" bands without needing a second colour
+  cue, which matters because the word is what actually communicates here — the
+  colour never does it alone, the same rule the service view follows.
+*/
+const TREND_UI = {
+    coolingFast: { color: '#4dabf7', Icon: ChevronsDown },
+    cooling: { color: '#74c0fc', Icon: ChevronDown },
+    steady: { color: '#a1a1aa', Icon: Minus },
+    warming: { color: '#ffa94d', Icon: ChevronUp },
+    warmingFast: { color: '#ff6b6b', Icon: ChevronsUp },
+};
+
 const RANGES = [
     { hours: 6, label: '6h' },
     { hours: 24, label: '24h' },
@@ -296,6 +316,40 @@ const Dashboard = () => {
       The honest fix is a `pressure_qnh` pair from the backend, which already has
       that field. Dew point has no extremes at all — it is derived.
     */
+    /*
+      Which way the air is going, under the reading it qualifies.
+
+      Three states, not two. An absent `tempTrend` is a backend too old to have
+      this at all and renders nothing — the same additive degradation the version
+      badge and the log panel already rely on. `unknown` is this backend saying
+      the ring is still filling, which takes about half an hour after a restart,
+      and that gets said out loud rather than hidden: the alternative is
+      inventing a trend from a handful of samples, which is what the Grafana
+      panel this replaces does.
+
+      The rate is shown unsigned because the word and the chevron already carry
+      the direction, and "▼ Enfriando · -1,8 °C/h" says it three times.
+    */
+    const temperatureTrend = (() => {
+        const band = currentData.tempTrend;
+        if (!band) return null;
+
+        const ui = TREND_UI[band];
+        if (!ui) return <span className="stat-note-muted">{t('trend.unknown')}</span>;
+
+        const { color, Icon } = ui;
+        const rate = currentData.tempDriftCPerH;
+        return (
+            <span className="stat-trend" style={{ color }}>
+                <Icon size={16} aria-hidden="true" />
+                {t(`trend.${band}`)}
+                {rate != null && (
+                    <span className="stat-trend-rate">· {formatValue(Math.abs(rate))} °C/h</span>
+                )}
+            </span>
+        );
+    })();
+
     const extremesFooter = (max, min, unit) => {
         // A sensor that did not report all day leaves these out of the payload,
         // and half a comparison is worse than none.
@@ -337,6 +391,7 @@ const Dashboard = () => {
                     unit="°C"
                     icon={Thermometer}
                     color="#ff6b6b"
+                    note={temperatureTrend}
                     footer={extremesFooter(stats.maxTemp, stats.minTemp, '°C')}
                 />
                 <StatCard

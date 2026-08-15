@@ -633,16 +633,21 @@ body {
    Today's extremes, under the temperature reading — see the comment on
    temperatureExtremes in Dashboard.jsx for why they live there now.
 
-   Two columns rather than a wrapping row: high and low are a pair, and a pair
-   that reflows to one column on a narrow card stops reading as a comparison.
-   At 1fr each they stay side by side down to the narrowest card the grid
-   allows, and the type is small enough that they do not compete with the
-   headline they qualify.
+   The pair travels together to the right edge, rather than sitting in two equal
+   columns. That is what balances the card: the headline anchors the bottom left
+   and the pair anchors the bottom right, so the two ends of the row are the two
+   things worth reading. Right-aligning *within* two equal columns was tried and
+   is worse — it leaves the high floating in the middle of the card with a gap to
+   its left that means nothing.
+
+   They stay side by side at every width: high and low are a comparison, and a
+   comparison that reflows to one column stops reading as one. Measured at a
+   309px card, the widest pair (pressure, "930,84 hPa") still clears it.
 */
 .stat-footer {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.5rem;
+    display: flex;
+    justify-content: flex-end;
+    gap: 1.5rem;
     margin-top: 0.75rem;
     padding-top: 0.75rem;
     border-top: 1px solid var(--glass-border);
@@ -651,6 +656,8 @@ body {
 .stat-extreme {
     display: flex;
     flex-direction: column;
+    align-items: flex-end;
+    text-align: right;
     gap: 0.1rem;
     min-width: 0;
 }

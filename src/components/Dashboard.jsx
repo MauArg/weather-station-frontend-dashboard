@@ -272,8 +272,8 @@ const Dashboard = () => {
     }
 
     /*
-      Today's high and low, shown inside the temperature card rather than in
-      their own row at the foot of the page.
+      Today's high and low, shown inside the card for the quantity they belong
+      to rather than in their own row at the foot of the page.
 
       They used to sit below the last chart, which is the furthest possible
       point from the number they qualify — nobody scrolls past four charts to
@@ -285,21 +285,36 @@ const Dashboard = () => {
       are not offered as a separate claim: the card is about temperature, and
       these say where today's temperature has been. The `today` in the label is
       what keeps that honest, and it is why the label is not just "max".
+
+      Temperature and humidity only. The API also returns maxPressure/minPressure
+      but they are taken over `pressure_hpa`, the raw station reading, while this
+      card shows sea-level QNH by default — about 90 hPa apart. Putting "930,84
+      hPa" under a headline of "1016,39 hPa" would read as a broken card, and
+      rescaling the extremes by the current offset would be a guess: the offset
+      moves with temperature through the day, by enough to matter against a
+      6 hPa spread, and the *times* of the two series' extremes need not agree.
+      The honest fix is a `pressure_qnh` pair from the backend, which already has
+      that field. Dew point has no extremes at all — it is derived.
     */
-    const temperatureExtremes = (
-        <>
-            <div className="stat-extreme">
-                <span className="stat-extreme-label">{t('extremes.maxToday')}</span>
-                <span className="stat-extreme-value">{formatValue(stats.maxTemp.value)} °C</span>
-                <span className="stat-extreme-time">{t('extremes.at', { time: stats.maxTemp.time })}</span>
-            </div>
-            <div className="stat-extreme">
-                <span className="stat-extreme-label">{t('extremes.minToday')}</span>
-                <span className="stat-extreme-value">{formatValue(stats.minTemp.value)} °C</span>
-                <span className="stat-extreme-time">{t('extremes.at', { time: stats.minTemp.time })}</span>
-            </div>
-        </>
-    );
+    const extremesFooter = (max, min, unit) => {
+        // A sensor that did not report all day leaves these out of the payload,
+        // and half a comparison is worse than none.
+        if (!max || !min) return null;
+        return (
+            <>
+                <div className="stat-extreme">
+                    <span className="stat-extreme-label">{t('extremes.maxToday')}</span>
+                    <span className="stat-extreme-value">{formatValue(max.value)} {unit}</span>
+                    <span className="stat-extreme-time">{t('extremes.at', { time: max.time })}</span>
+                </div>
+                <div className="stat-extreme">
+                    <span className="stat-extreme-label">{t('extremes.minToday')}</span>
+                    <span className="stat-extreme-value">{formatValue(min.value)} {unit}</span>
+                    <span className="stat-extreme-time">{t('extremes.at', { time: min.time })}</span>
+                </div>
+            </>
+        );
+    };
 
     return (
         <div className="dashboard-container">
@@ -322,7 +337,7 @@ const Dashboard = () => {
                     unit="°C"
                     icon={Thermometer}
                     color="#ff6b6b"
-                    footer={temperatureExtremes}
+                    footer={extremesFooter(stats.maxTemp, stats.minTemp, '°C')}
                 />
                 <StatCard
                     title={t('card.humidity')}
@@ -330,6 +345,7 @@ const Dashboard = () => {
                     unit="%"
                     icon={Droplets}
                     color="#4dabf7"
+                    footer={extremesFooter(stats.maxHumidity, stats.minHumidity, '%')}
                 />
                 <StatCard
                     title={t('card.pressure')}

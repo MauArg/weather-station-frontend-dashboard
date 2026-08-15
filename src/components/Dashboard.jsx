@@ -5,9 +5,30 @@ import { Thermometer, Droplets, Gauge, CloudRain, Battery, BatteryCharging, Chec
 import StatCard from './StatCard';
 import ChartCrosshair, { CROSSHAIR_STROKE, CROSSHAIR_WIDTH, CROSSHAIR_DASH } from './ChartCrosshair';
 import { getRealTimeData, getDailyStats, getRecentHistory } from '../services/ApiService';
-import { formatTime, formatNumber } from '../utils/timezone';
+import { formatTime, formatDayTime, formatDay, formatNumber } from '../utils/timezone';
 import { useNarrowLayout } from '../hooks/useNarrowLayout';
 import toast from 'react-hot-toast';
+
+/*
+  The ranges offered by the selector, in hours, with the label each one wears.
+  Hours stay the unit on the wire because that is what the API takes; the label
+  switches to days past 24 h because "336h" is a number nobody holds in their
+  head. The list is the single source of truth for both.
+
+  Nothing above 24 h needed a backend change: the handler accepts any positive
+  `hours`, and the Flux query already aggregates into 15-minute windows, so 14 d
+  is 1344 points rather than the raw sample count. Measured against the Pi: 673
+  points and 3.7 s for 7 d, 1344 points and 4.7 s for 14 d. That wait is the
+  reason the charts got their own loading state — see below.
+*/
+const RANGES = [
+    { hours: 6, label: '6h' },
+    { hours: 24, label: '24h' },
+    { hours: 48, label: '2d' },
+    { hours: 72, label: '3d' },
+    { hours: 168, label: '7d' },
+    { hours: 336, label: '14d' },
+];
 
 const Dashboard = () => {
     const { t } = useTranslation('dashboard');
@@ -32,7 +53,32 @@ const Dashboard = () => {
     const [currentData, setCurrentData] = useState(null);
     const [history, setHistory] = useState([]);
     const [stats, setStats] = useState(null);
-    const [timeRange, setTimeRange] = useState(24); // 6, 24, 48, 72 hours
+    const [timeRange, setTimeRange] = useState(24); // hours; see RANGES
+
+    /*
+      Past a day a bare HH:MM repeats itself once per day on the axis and in the
+      tooltip, which is the one thing a multi-day chart must not do. Past about
+      three days the hour stops meaning anything on a *tick* as well, so the
+      axis drops to a bare date while the tooltip keeps the full instant — a
+      tick labels a region, a tooltip labels a point.
+
+      Measured off the loaded series rather than off `timeRange`, because the
+      two disagree for the seconds a long range takes to answer: the selection
+      flips immediately while the previous range's curve is still on screen, and
+      driving the labels off the selection relabels that curve with dates it
+      does not span — a day of data captioned as a fortnight. The axis describes
+      what is drawn, so it has to be derived from what is drawn.
+    */
+    const spanHours = history.length > 1
+        ? (new Date(history[history.length - 1].uniqueTime) - new Date(history[0].uniqueTime)) / 3600000
+        : 0;
+    const isMultiDay = spanHours >= 36;
+    const axisTimeFormat = spanHours >= 144 ? formatDay : isMultiDay ? formatDayTime : formatTime;
+    const tooltipTimeFormat = isMultiDay ? formatDayTime : formatTime;
+
+    // Wider labels need more room before recharts is allowed to place the next
+    // tick, or the dates collide into an unreadable smear on a phone.
+    const axisTickGap = isMultiDay ? 60 : 30;
 
     // Sea-level by default: ~1014 hPa is what a barometric reading means to anyone
     // reading it, while the station's ~923 hPa only parses if you already know the
@@ -55,13 +101,26 @@ const Dashboard = () => {
         }
     }, [pressureMode]);
 
-    const [isLoading, setIsLoading] = useState(true);
+    /*
+      Only the charts wait on a range change, not the whole page.
+
+      This used to be one `isLoading` that gated the entire dashboard, which was
+      invisible while every range answered in well under a second. At 7 d and
+      14 d it is several seconds, and blanking the cards, the energy state and
+      the extremes — none of which depend on the range — to redraw them
+      identically reads as the page having crashed and come back.
+
+      The stale curve stays on screen, dimmed, while the new one loads. Showing
+      the previous range's data for a moment is honest here: it is real data
+      that was just correct, and the spinner over it says it is being replaced.
+    */
+    const [isHistoryLoading, setIsHistoryLoading] = useState(true);
 
     useEffect(() => {
         let isMounted = true;
 
         const loadData = async () => {
-            setIsLoading(true);
+            setIsHistoryLoading(true);
             try {
                 const [current, dailyStats, historyData] = await Promise.all([
                     getRealTimeData(),
@@ -78,7 +137,7 @@ const Dashboard = () => {
                 console.error(error);
                 if (isMounted) toast.error(t('toast.loadFailed'));
             } finally {
-                if (isMounted) setIsLoading(false);
+                if (isMounted) setIsHistoryLoading(false);
             }
         };
 
@@ -118,7 +177,9 @@ const Dashboard = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [timeRange]); // Re-run when timeRange changes
 
-    if (isLoading || !currentData || !stats) {
+    // The full-page loader is now only for the first paint, when there is
+    // genuinely nothing to show. A range change keeps everything on screen.
+    if (!currentData || !stats) {
         return (
             <div className="loading" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '1rem' }}>
                 <Loader2 className="animate-spin" size={48} color="#4dabf7" />
@@ -189,8 +250,17 @@ const Dashboard = () => {
         { key: 'station', value: formatPressure(currentData.pressure), unit: 'hPa', caption: t('pressure.station') },
     ];
 
+    /*
+      Day boundaries, drawn as vertical rules so an overnight curve can be read
+      against the calendar. They stop above 3 days: at 7 d and 14 d they stop
+      being landmarks and become a picket fence across the plot, and the axis
+      already carries the date by then, which is the job they were doing.
+
+      Gated on the span of the loaded data for the same reason as the axis
+      formatters above.
+    */
     const midnightPoints = [];
-    if (history.length > 0) {
+    if (history.length > 0 && spanHours <= 96) {
         for (let i = 1; i < history.length; i++) {
             if (!history[i-1].uniqueTime || !history[i].uniqueTime) continue;
             const prevDate = new Date(history[i-1].uniqueTime);
@@ -278,29 +348,29 @@ const Dashboard = () => {
             </div>
 
             {/* Main Graphs */}
-            <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <div className="section-header">
                 <h3>{t('section.liveData')}</h3>
-                <div className="time-controls" style={{ display: 'flex', gap: '0.5rem' }}>
-                    {[6, 24, 48, 72].map(hours => (
+                <div className="time-controls">
+                    {RANGES.map(({ hours, label }) => (
                         <button
                             key={hours}
+                            type="button"
+                            className="time-range-btn"
+                            aria-pressed={timeRange === hours}
                             onClick={() => setTimeRange(hours)}
-                            style={{
-                                padding: '0.25rem 0.75rem',
-                                borderRadius: '4px',
-                                border: '1px solid rgba(255,255,255,0.2)',
-                                background: timeRange === hours ? 'rgba(255,255,255,0.2)' : 'transparent',
-                                color: 'white',
-                                cursor: 'pointer'
-                            }}
                         >
-                            {hours}h
+                            {label}
                         </button>
                     ))}
                 </div>
             </div>
 
-            <div className="charts-grid">
+            <div className={`charts-grid${isHistoryLoading ? ' is-loading' : ''}`}>
+                {isHistoryLoading && (
+                    <div className="charts-loading" role="status" aria-live="polite">
+                        <Loader2 className="animate-spin" size={32} color="#4dabf7" />
+                    </div>
+                )}
                 <div className="chart-card">
                     <h3>{t('chart.temperature')}</h3>
                     <ChartCrosshair>
@@ -313,11 +383,11 @@ const Dashboard = () => {
                                     </linearGradient>
                                 </defs>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ffffff20" />
-                                <XAxis dataKey="uniqueTime" stroke="#ffffff80" tickFormatter={formatTime} tick={{ fontSize: 12 }} minTickGap={30} />
+                                <XAxis dataKey="uniqueTime" stroke="#ffffff80" tickFormatter={axisTimeFormat} tick={{ fontSize: 12 }} minTickGap={axisTickGap} />
                                 <YAxis domain={['auto', 'auto']} stroke="#ffffff80" tickFormatter={val => `${val}°`} />
                                 <Tooltip
                                     formatter={(value) => formatValue(value)}
-                                    labelFormatter={formatTime}
+                                    labelFormatter={tooltipTimeFormat}
                                     contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: 'none', borderRadius: '8px' }}
                                     itemStyle={{ color: '#fff' }}
                                     cursor={{ stroke: CROSSHAIR_STROKE, strokeWidth: CROSSHAIR_WIDTH, strokeDasharray: `${CROSSHAIR_DASH} ${CROSSHAIR_DASH}` }}
@@ -346,11 +416,11 @@ const Dashboard = () => {
                                     </linearGradient>
                                 </defs>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ffffff20" />
-                                <XAxis dataKey="uniqueTime" stroke="#ffffff80" tickFormatter={formatTime} tick={{ fontSize: 12 }} minTickGap={30} />
+                                <XAxis dataKey="uniqueTime" stroke="#ffffff80" tickFormatter={axisTimeFormat} tick={{ fontSize: 12 }} minTickGap={axisTickGap} />
                                 <YAxis domain={[0, 100]} stroke="#ffffff80" tickFormatter={val => `${val}%`} />
                                 <Tooltip
                                     formatter={(value) => formatValue(value)}
-                                    labelFormatter={formatTime}
+                                    labelFormatter={tooltipTimeFormat}
                                     contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: 'none', borderRadius: '8px' }}
                                     itemStyle={{ color: '#fff' }}
                                     cursor={{ stroke: CROSSHAIR_STROKE, strokeWidth: CROSSHAIR_WIDTH, strokeDasharray: `${CROSSHAIR_DASH} ${CROSSHAIR_DASH}` }}
@@ -381,11 +451,11 @@ const Dashboard = () => {
                                     </linearGradient>
                                 </defs>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ffffff20" />
-                                <XAxis dataKey="uniqueTime" stroke="#ffffff80" tickFormatter={formatTime} tick={{ fontSize: 12 }} minTickGap={30} tickMargin={10} />
+                                <XAxis dataKey="uniqueTime" stroke="#ffffff80" tickFormatter={axisTimeFormat} tick={{ fontSize: 12 }} minTickGap={axisTickGap} tickMargin={10} />
                                 <YAxis width={narrow ? 'auto' : 80} domain={[0, 'auto']} stroke="#ffffff80" tickFormatter={val => `${val}mW`} tickMargin={narrow ? 4 : 10} />
                                 <Tooltip
                                     formatter={(value) => formatValue(value)}
-                                    labelFormatter={formatTime}
+                                    labelFormatter={tooltipTimeFormat}
                                     contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: 'none', borderRadius: '8px' }}
                                     itemStyle={{ color: '#fff' }}
                                     cursor={{ stroke: CROSSHAIR_STROKE, strokeWidth: CROSSHAIR_WIDTH, strokeDasharray: `${CROSSHAIR_DASH} ${CROSSHAIR_DASH}` }}
@@ -421,7 +491,7 @@ const Dashboard = () => {
                         <ResponsiveContainer width="100%" height="100%">
                             <ComposedChart data={history} margin={{ top: 20, bottom: 20, ...wideChartMargin }}>
                                 <CartesianGrid yAxisId="left" strokeDasharray="3 3" vertical={false} stroke="#ffffff20" />
-                                <XAxis dataKey="uniqueTime" stroke="#ffffff80" tickFormatter={formatTime} tick={{ fontSize: 12 }} minTickGap={30} tickMargin={10} />
+                                <XAxis dataKey="uniqueTime" stroke="#ffffff80" tickFormatter={axisTimeFormat} tick={{ fontSize: 12 }} minTickGap={axisTickGap} tickMargin={10} />
                                 <YAxis yAxisId="left" width={narrow ? 'auto' : 80} domain={[0, 100]} ticks={[0, 25, 50, 75, 100]} stroke="#facc15" tickFormatter={val => `${val}%`} tickMargin={narrow ? 4 : 10} />
                                 <YAxis yAxisId="right" orientation="right" width={narrow ? 'auto' : 60} domain={[0, 40]} ticks={[0, 10, 20, 30, 40]} stroke="#ff6b6b" tickFormatter={val => `${val}°C`} tickMargin={narrow ? 4 : 10} />
                                 <Tooltip
@@ -429,7 +499,7 @@ const Dashboard = () => {
                                         `${formatValue(value)} ${entry?.dataKey === 'luminosity' ? '%' : '°C'}`,
                                         name,
                                     ]}
-                                    labelFormatter={formatTime}
+                                    labelFormatter={tooltipTimeFormat}
                                     contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: 'none', borderRadius: '8px' }}
                                     itemStyle={{ color: '#fff' }}
                                     cursor={{ stroke: CROSSHAIR_STROKE, strokeWidth: CROSSHAIR_WIDTH, strokeDasharray: `${CROSSHAIR_DASH} ${CROSSHAIR_DASH}` }}

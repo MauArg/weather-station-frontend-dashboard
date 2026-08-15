@@ -70,6 +70,9 @@ const DAY_TIME = new Intl.DateTimeFormat(LOCALE, {
     timeZone: TIME_ZONE, hourCycle: HOUR_CYCLE,
     day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
 });
+const DAY = new Intl.DateTimeFormat(LOCALE, {
+    timeZone: TIME_ZONE, day: '2-digit', month: '2-digit',
+});
 
 /** Parses once and rejects the unusable, so each formatter below stays one line. */
 const toDate = (value) => {
@@ -104,6 +107,20 @@ export const formatClock = (value) => {
 export const formatDayTime = (value) => {
     const date = toDate(value);
     return date ? DAY_TIME.format(date) : '';
+};
+
+/**
+ * DD/MM, for axes spanning more than a couple of days.
+ *
+ * Past about three days the hour stops carrying information on a tick: the
+ * samples are 15 min apart and the axis can only fit a handful of labels, so
+ * whichever minute a tick lands on is an accident of where the window started.
+ * The hour still belongs in the tooltip, where it describes one specific point
+ * rather than a region of the axis.
+ */
+export const formatDay = (value) => {
+    const date = toDate(value);
+    return date ? DAY.format(date) : '';
 };
 
 // Number formatters vary by call site, so they are cached by their option set

@@ -281,11 +281,90 @@ body {
     color: #e4e4e7;
 }
 
+/* Live-data section header and its range selector */
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.time-controls {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+/*
+   On a phone the six buttons and the heading no longer fit on one line, so the
+   header stacks and the row takes the full width. Wrapping the buttons under
+   the heading instead would leave them ragged against the right edge.
+*/
+@media (max-width: 600px) {
+    .section-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.75rem;
+    }
+
+    .time-controls {
+        justify-content: space-between;
+    }
+}
+
+.time-range-btn {
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: transparent;
+    color: white;
+    cursor: pointer;
+}
+
+/* The selected range. aria-pressed carries the same fact to a screen reader,
+   so the state is never colour-only. */
+.time-range-btn[aria-pressed='true'] {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.time-range-btn:focus-visible {
+    outline: 2px solid #4dabf7;
+    outline-offset: 2px;
+}
+
 /* Charts Grid */
 .charts-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 1rem;
+    /* Containing block for the loading overlay below. */
+    position: relative;
+}
+
+/*
+   A range change can take several seconds at 7 d and 14 d. The previous range's
+   curves stay up, dimmed, with this spinner over them — see the comment on
+   isHistoryLoading in Dashboard.jsx for why the whole page no longer blanks.
+*/
+.charts-grid.is-loading > .chart-card {
+    opacity: 0.4;
+    transition: opacity 0.2s ease;
+}
+
+.charts-loading {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    /* Pinned near the top rather than centred: the grid is taller than the
+       viewport, so a centred spinner would appear below the fold — off screen
+       from where the button that started the wait actually is. */
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 6rem;
+    z-index: 2;
+    pointer-events: none;
 }
 
 @media (max-width: 900px) {

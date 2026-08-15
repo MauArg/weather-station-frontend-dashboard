@@ -24,11 +24,46 @@ body {
     background-attachment: fixed;
 }
 
+/*
+ * box-sizing is not cosmetic here: with the default content-box, `width: 100%`
+ * plus `padding: 2rem` makes this element 64px wider than whatever contains it,
+ * which is what put a horizontal scrollbar on the phone layout. Nothing else in
+ * the sheet sets box-sizing, so it is declared where the bug was rather than
+ * globally — a project-wide reset would silently resize every padded box in the
+ * app, and this file has a lot of them.
+ *
+ * max-width follows it up from 1280 to 1344 so the *content* stays 1280px wide.
+ * The two changes cancel on desktop by design: the number that matters is how
+ * much room the charts get, and that is unchanged.
+ */
 #root {
+    box-sizing: border-box;
     width: 100%;
-    max-width: 1280px;
+    max-width: 1344px;
     margin: 0 auto;
     padding: 2rem;
+}
+
+/*
+ * On a phone the 2rem gutters are 16% of the screen, and the navbar cannot fit
+ * the logo (238px) beside the actions (113px) in the 311px it is left with. It
+ * stacks, and both gutters halve.
+ */
+@media (max-width: 600px) {
+    #root {
+        padding: 1rem;
+    }
+
+    .navbar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.75rem;
+        padding: 1rem;
+    }
+
+    .nav-actions {
+        justify-content: center;
+    }
 }
 
 .app-container {
@@ -382,6 +417,21 @@ body {
     height: 300px;
     display: flex;
     flex-direction: column;
+}
+
+/*
+   Pulling the page back inside the viewport costs the cards the 32px they used
+   to spend off-screen. Trimming their own gutters on a phone hands most of it
+   back to the plots, which is where it does something.
+
+   This has to sit *after* the .chart-card rule above, not up with the other
+   phone overrides near the top of the file: same specificity, so source order
+   decides, and from up there the 1.5rem simply won.
+*/
+@media (max-width: 600px) {
+    .chart-card {
+        padding: 1rem;
+    }
 }
 
 .chart-card.wide {

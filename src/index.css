@@ -547,16 +547,27 @@ body {
     font-size: 0.85rem;
 
     /*
-       The separator drawn over the painted cells. Near-black rather than a
-       translucent white, because a line only reads against the surface it sits
-       on and these cells have ten different ones: 10% white over #ffffbf or
-       #e0f3f8 is nothing at all, so the grid used to fade out exactly where the
-       data is and a row of painted cells read as one continuous band. Darker
-       than the page background it sits over, so that it reads as a gap even
-       against the two cold steps (#313695, #4575b4), which are themselves
-       darker than the page.
+       The separator drawn over the painted cells. It has to be opaque and it
+       cannot be white: a line only reads against the surface it sits on, and
+       these cells have ten different ones. 10% white over #ffffbf or #e0f3f8 is
+       nothing at all, which is why the grid used to fade out exactly where the
+       data is and a row of painted cells read as one continuous band.
+
+       This grey is the colour the header's own rgba(255, 255, 255, 0.25)
+       resolves to over its near-black band, written out flat so that the rule
+       over the cells and the rule over the header read as one line rather than
+       as two decisions.
+
+       Measured against the ten steps it is not the most robust choice — pure
+       black wins on luminance contrast against nine of them, and against the
+       cold pair (#313695, #4575b4) this grey scores only ~1.4. Checked on
+       screen anyway, because that number is luminance alone: the grey is
+       desaturated and those two steps are saturated blue, so the edge is
+       carried by chroma where brightness has nothing left to say, and the line
+       holds. Black held too, and harder — it was rejected for jumping out of a
+       surface whose whole palette is muted.
     */
-    --cell-rule: #05060a;
+    --cell-rule: #5c5e65;
 
     /*
        The gutter that closes a month's block of two columns. Six pixels is not

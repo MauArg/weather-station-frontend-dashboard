@@ -185,7 +185,11 @@ const CalendarView = ({ onBack }) => {
                             {yearData.map((_, i) => (
                                 <React.Fragment key={i}>
                                     <th className="sub-header">{t('column.max')}</th>
-                                    <th className="sub-header">{t('column.min')}</th>
+                                    {/* `month-end` closes the month's block of
+                                        two columns. It rides the Mín cell in
+                                        every row — header, data and blank — so
+                                        the gutter runs the whole height. */}
+                                    <th className="sub-header month-end">{t('column.min')}</th>
                                 </React.Fragment>
                             ))}
                         </tr>
@@ -201,7 +205,7 @@ const CalendarView = ({ onBack }) => {
                                         return (
                                             <React.Fragment key={mIdx}>
                                                 <td className="empty-cell"></td>
-                                                <td className="empty-cell"></td>
+                                                <td className="empty-cell month-end"></td>
                                             </React.Fragment>
                                         );
                                     }
@@ -216,7 +220,7 @@ const CalendarView = ({ onBack }) => {
                                                 {formatTemp(dayData.maxTemp)}
                                             </td>
                                             <td
-                                                className="data-cell"
+                                                className="data-cell month-end"
                                                 style={getStyle(dayData.minTemp)}
                                                 onClick={() => handleCellClick(dayData)}
                                                 title={t('cell.min', { temp: formatTemp(dayData.minTemp) })}

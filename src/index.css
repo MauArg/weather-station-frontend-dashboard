@@ -547,17 +547,38 @@ body {
     font-size: 0.85rem;
 
     /*
-       The separator drawn over the painted cells. It is the page's own
-       background rather than a translucent white, because a line only reads
-       against the surface it sits on and these cells have ten different ones:
-       10% white over #ffffbf or #e0f3f8 is nothing at all, so the grid used to
-       fade out exactly where the data is and a row of painted cells read as one
-       continuous band. A dark line reads as a gap against every step of the
-       scale, cold or hot.
+       The separator drawn over the painted cells. Near-black rather than a
+       translucent white, because a line only reads against the surface it sits
+       on and these cells have ten different ones: 10% white over #ffffbf or
+       #e0f3f8 is nothing at all, so the grid used to fade out exactly where the
+       data is and a row of painted cells read as one continuous band. Darker
+       than the page background it sits over, so that it reads as a gap even
+       against the two cold steps (#313695, #4575b4), which are themselves
+       darker than the page.
     */
-    --cell-rule: #1a1b26;
+    --cell-rule: #05060a;
+
+    /*
+       The gutter that closes a month's block of two columns. Six pixels is not
+       decoration: at three the month still lost against the day rules and you
+       had to travel up to the header to work out which pair belonged to which
+       month, which is the whole thing this table exists to save you.
+    */
+    --month-gutter: 6px;
 }
 
+/*
+   The default rule, written for the dark surfaces it was written against: the
+   two header bands and the day column. Everything below overrides it for the
+   painted cells.
+
+   NOTE, and the sheet has already been bitten by this once: this selector is
+   (0,1,1) — one class and one element — so a bare `.data-cell` at (0,1,0)
+   loses to it and its borders are silently ignored, whatever the order in the
+   file. Every override below therefore carries a `.calendar-table` or a tag
+   qualifier to outrank it. Simplifying one back to a single class turns the
+   grid light again without any error to notice.
+*/
 .calendar-table th,
 .calendar-table td {
     padding: 0.4rem;
@@ -570,21 +591,28 @@ body {
    The two columns under a month are one day's record, and nothing said so: the
    line between a month's Máx and its Mín was the same line as the one between
    that Mín and the next month's Máx. Every boundary alike is what lets the eye
-   pair a reading with the wrong day. The gutter is three times the hairline,
-   which makes the pair a unit and the month a block — a hierarchy, where before
-   there was a uniform mesh.
+   pair a reading with the wrong day.
+
+   So width carries meaning now, on three levels: a hairline inside the pair,
+   which has to stay the weakest so the two halves of a day hold together; the
+   day rule below it; and this gutter, six times the hairline, closing the
+   month. The month header spans both of its columns, so its own right edge is
+   already the gutter and only needs the width.
 */
-.calendar-table .month-end {
-    border-right-width: 3px;
+.calendar-table .month-end,
+.calendar-table .month-header {
+    border-right-width: var(--month-gutter);
 }
 
 /*
-   Widened, the header's hairline needs more contrast to still read as the same
-   divider that runs down the table: 10% white over the header's near-black is
-   legible as a hairline and vague as a band.
+   The gutter is drawn in two colours, by the same reasoning as the cell rules:
+   over the painted cells it is the near-black slot, but over the headers —
+   near-black themselves — the dark one would be the invisible one, so there it
+   stays white. 10% is enough for a hairline and vague across six pixels, hence
+   25%.
 */
-.month-header,
-.sub-header.month-end {
+.calendar-table .month-header,
+.calendar-table .sub-header.month-end {
     border-right-color: rgba(255, 255, 255, 0.25);
 }
 
@@ -608,7 +636,12 @@ body {
     z-index: 10;
 }
 
-.sticky-col {
+/*
+   Qualified for the same reason as the cells above — unqualified, its 2px edge
+   lost to `.calendar-table td` and the day column had been separated from the
+   data by the same hairline as everything else all along.
+*/
+.calendar-table .sticky-col {
     position: sticky;
     left: 0;
     background: rgba(26, 27, 38, 0.85);
@@ -635,15 +668,23 @@ body {
     min-width: 40px;
     color: black;
     /* Default text color for light cells */
+}
+
+/*
+   Qualified to outrank `.calendar-table td` — see the note there. Outranks it
+   rather than merely tying and winning on order, so that moving this block
+   cannot quietly undo it.
+*/
+.calendar-table td.data-cell {
     border-right-color: var(--cell-rule);
 
     /*
        Thicker than the vertical hairline because the row is the harder thing to
        hold: a day runs across 24 painted cells, and over that distance the eye
        drifts to the line above or below and pairs a Máx with the next day's
-       Mín. Two pixels is what turns each day into its own band.
+       Mín. Three pixels is what turns each day into its own band.
     */
-    border-bottom: 2px solid var(--cell-rule);
+    border-bottom: 3px solid var(--cell-rule);
 }
 
 .data-cell:hover {

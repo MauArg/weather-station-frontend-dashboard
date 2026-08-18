@@ -11,7 +11,8 @@
   },
   "pressure": {
     "qnh": "QNH · nivel del mar",
-    "station": "estación · lectura cruda del sensor"
+    "station": "estación · sensor local",
+    "tip": "El valor del medio de los últimos tres minutos de lecturas, no la última. Suelto, el sensor se mueve unos ±0,04 hPa de una muestra a la siguiente, y a esa escala eso es el sensor y no el clima — la presión cambia en horas."
   },
   "energy": {
     "title": "Estado energético",

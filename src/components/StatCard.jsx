@@ -27,8 +27,15 @@ import { ChevronDown } from 'lucide-react';
  * take nodes rather than a fixed shape because the card has no business knowing
  * what a daily extreme or a trend band is; it only knows there is a line right
  * under the headline and a quieter block below a rule.
+ *
+ * `captionTip` explains what the number *is*, and rides on the caption because
+ * that is the element already claiming to describe it. It is added to the
+ * caption's tooltip rather than replacing it: "click to see the other one" is
+ * still true and still worth saying, so the two thoughts sit on separate lines.
+ * Only pressure passes it — the other three cards show the reading they were
+ * handed, with nothing about it that needs explaining.
  */
-const StatCard = ({ title, value, unit, icon: Icon, color = 'blue', variants, activeVariant, onCycleVariant, note, footer }) => {
+const StatCard = ({ title, value, unit, icon: Icon, color = 'blue', variants, activeVariant, onCycleVariant, note, footer, captionTip }) => {
     const { t } = useTranslation();
     const switchable = Array.isArray(variants) && variants.length > 1;
     const current = switchable
@@ -77,7 +84,7 @@ const StatCard = ({ title, value, unit, icon: Icon, color = 'blue', variants, ac
                     type="button"
                     className="stat-caption"
                     onClick={() => onCycleVariant?.(next.key)}
-                    title={t('statCard.view', { caption: next.caption })}
+                    title={[captionTip, t('statCard.view', { caption: next.caption })].filter(Boolean).join('\n\n')}
                 >
                     {shown.caption}
                 </button>

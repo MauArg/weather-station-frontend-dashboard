@@ -552,6 +552,7 @@ const Dashboard = () => {
                     variants={pressureVariants}
                     activeVariant={pressureMode}
                     onCycleVariant={setPressureMode}
+                    captionTip={t('pressure.tip')}
                 />
                 <StatCard
                     title={t('card.dewPoint')}

@@ -11,7 +11,8 @@
   },
   "pressure": {
     "qnh": "QNH · sea level",
-    "station": "station · raw sensor reading"
+    "station": "station · local sensor",
+    "tip": "The middle of the last three minutes of readings, not the latest one. Left alone the sensor wanders about ±0.04 hPa from one sample to the next, and at these timescales that is the sensor rather than the weather — pressure moves over hours."
   },
   "energy": {
     "title": "Energy status",

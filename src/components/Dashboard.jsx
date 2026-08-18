@@ -5,7 +5,7 @@ import { Thermometer, Droplets, Gauge, CloudRain, Battery, BatteryCharging, Chec
 import StatCard from './StatCard';
 import ChartCrosshair, { CROSSHAIR_STROKE, CROSSHAIR_WIDTH, CROSSHAIR_DASH } from './ChartCrosshair';
 import { getRealTimeData, getDailyStats, getRecentHistory } from '../services/ApiService';
-import { formatTime, formatDayTime, formatDay, formatNumber } from '../utils/timezone';
+import { formatTime, formatDayTime, formatDay, formatNumber, formatFixed } from '../utils/timezone';
 import { useNarrowLayout } from '../hooks/useNarrowLayout';
 import toast from 'react-hot-toast';
 
@@ -68,7 +68,23 @@ const Dashboard = () => {
     const narrow = useNarrowLayout();
     const wideChartMargin = { right: narrow ? 10 : 30, left: narrow ? 0 : 30 };
 
+    /*
+      Two formatters, and which one a quantity gets says something about the
+      quantity rather than being a style choice.
+
+      formatValue is for the ones that are whole numbers by nature — the mW the
+      node reports as integers — where a decimal place would invent precision the
+      instrument never had.
+
+      formatReading is for the sensors, whose precision is fixed and is part of
+      what is being shown. Without the trailing zeros a reading loses a digit
+      whenever it lands on a round value: the headline goes from 14,04 °C to
+      14 °C, changes width mid-glance, and reads for a moment as a different kind
+      of number. The footer had it worse, with 19,2 and 2,54 sitting in the same
+      row of the same card.
+    */
     const formatValue = (val) => formatNumber(val);
+    const formatReading = (val) => formatFixed(val, 2);
 
     const [currentData, setCurrentData] = useState(null);
     const [history, setHistory] = useState([]);
@@ -295,7 +311,7 @@ const Dashboard = () => {
     //
     // Grouping is off for these two on purpose — see formatNumber in
     // utils/timezone.js for why a four-digit pressure must not carry a separator.
-    const formatPressure = (val) => formatNumber(val, { grouping: false });
+    const formatPressure = (val) => formatNumber(val, { digits: 2, minDigits: 2, grouping: false });
 
     const pressureVariants = currentData.pressureQnh == null ? null : [
         { key: 'qnh', value: formatPressure(currentData.pressureQnh), unit: 'hPa', caption: t('pressure.qnh') },
@@ -438,12 +454,12 @@ const Dashboard = () => {
             <>
                 <div className="stat-extreme">
                     <span className="stat-extreme-label">{t('extremes.maxToday')}</span>
-                    <span className="stat-extreme-value">{formatValue(hi.value)} {unit}</span>
+                    <span className="stat-extreme-value">{formatReading(hi.value)} {unit}</span>
                     <span className="stat-extreme-time">{t('extremes.at', { time: hi.time })}</span>
                 </div>
                 <div className="stat-extreme">
                     <span className="stat-extreme-label">{t('extremes.minToday')}</span>
-                    <span className="stat-extreme-value">{formatValue(lo.value)} {unit}</span>
+                    <span className="stat-extreme-value">{formatReading(lo.value)} {unit}</span>
                     <span className="stat-extreme-time">{t('extremes.at', { time: lo.time })}</span>
                 </div>
             </>
@@ -485,7 +501,7 @@ const Dashboard = () => {
         return (
             <div
                 className="stat-extreme stat-extreme-lead"
-                title={t('dayAgo.tip', { temp: formatValue(ref.value), time: ref.time })}
+                title={t('dayAgo.tip', { temp: formatReading(ref.value), time: ref.time })}
             >
                 <span className="stat-extreme-label">{t('dayAgo.label')}</span>
                 <span className="stat-extreme-value">
@@ -512,7 +528,7 @@ const Dashboard = () => {
             <div className="stats-grid">
                 <StatCard
                     title={t('card.temperature')}
-                    value={formatValue(currentData.temperature)}
+                    value={formatReading(currentData.temperature)}
                     unit="°C"
                     icon={Thermometer}
                     color="#ff6b6b"
@@ -521,7 +537,7 @@ const Dashboard = () => {
                 />
                 <StatCard
                     title={t('card.humidity')}
-                    value={formatValue(currentData.humidity)}
+                    value={formatReading(currentData.humidity)}
                     unit="%"
                     icon={Droplets}
                     color="#4dabf7"
@@ -529,7 +545,7 @@ const Dashboard = () => {
                 />
                 <StatCard
                     title={t('card.pressure')}
-                    value={formatValue(currentData.pressure)}
+                    value={formatPressure(currentData.pressure)}
                     unit="hPa"
                     icon={Gauge}
                     color="#ffd43b"
@@ -539,7 +555,7 @@ const Dashboard = () => {
                 />
                 <StatCard
                     title={t('card.dewPoint')}
-                    value={formatValue(currentData.dewPoint)}
+                    value={formatReading(currentData.dewPoint)}
                     unit="°C"
                     icon={CloudRain}
                     color="#69db7c"
@@ -569,8 +585,8 @@ const Dashboard = () => {
                 <div className="energy-state-detail">{energyUi.detail}</div>
                 <div className="energy-facts">
                     <div className="energy-fact" style={{ color: '#6ee7b7' }}>
-                        <Battery size={20} aria-hidden="true" /> {t('energy.battery')} {formatValue(currentData.batterySoc)}%
-                        {currentData.batteryVolts != null && ` · ${formatValue(currentData.batteryVolts)} V`}
+                        <Battery size={20} aria-hidden="true" /> {t('energy.battery')} {formatFixed(currentData.batterySoc, 1)}%
+                        {currentData.batteryVolts != null && ` · ${formatReading(currentData.batteryVolts)} V`}
                     </div>
                     <div className="energy-fact" style={{ color: '#fde047' }}>
                         <Sun size={20} aria-hidden="true" /> {t('energy.panel')} {formatValue(currentData.solarPower)} mW
@@ -624,7 +640,7 @@ const Dashboard = () => {
                                 <XAxis dataKey="uniqueTime" stroke="#ffffff80" tickFormatter={axisTimeFormat} tick={{ fontSize: 12 }} minTickGap={axisTickGap} />
                                 <YAxis domain={['auto', 'auto']} stroke="#ffffff80" tickFormatter={val => `${val}°`} />
                                 <Tooltip
-                                    formatter={(value) => formatValue(value)}
+                                    formatter={(value) => formatReading(value)}
                                     labelFormatter={tooltipTimeFormat}
                                     contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: 'none', borderRadius: '8px' }}
                                     itemStyle={{ color: '#fff' }}
@@ -657,7 +673,7 @@ const Dashboard = () => {
                                 <XAxis dataKey="uniqueTime" stroke="#ffffff80" tickFormatter={axisTimeFormat} tick={{ fontSize: 12 }} minTickGap={axisTickGap} />
                                 <YAxis domain={[0, 100]} stroke="#ffffff80" tickFormatter={val => `${val}%`} />
                                 <Tooltip
-                                    formatter={(value) => formatValue(value)}
+                                    formatter={(value) => formatReading(value)}
                                     labelFormatter={tooltipTimeFormat}
                                     contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: 'none', borderRadius: '8px' }}
                                     itemStyle={{ color: '#fff' }}
@@ -734,7 +750,9 @@ const Dashboard = () => {
                                 <YAxis yAxisId="right" orientation="right" width={narrow ? 'auto' : 60} domain={[0, 40]} ticks={[0, 10, 20, 30, 40]} stroke="#ff6b6b" tickFormatter={val => `${val}°C`} tickMargin={narrow ? 4 : 10} />
                                 <Tooltip
                                     formatter={(value, name, entry) => [
-                                        `${formatValue(value)} ${entry?.dataKey === 'luminosity' ? '%' : '°C'}`,
+                                        entry?.dataKey === 'luminosity'
+                                            ? `${formatValue(value)} %`
+                                            : `${formatReading(value)} °C`,
                                         name,
                                     ]}
                                     labelFormatter={tooltipTimeFormat}

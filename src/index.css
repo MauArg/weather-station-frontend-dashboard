@@ -802,6 +802,32 @@ body {
     min-width: 0;
 }
 
+/*
+   The one block that anchors the left end of the footer instead of travelling
+   right with the rest.
+
+   Three blocks packed against the right edge left the whole left half of the
+   rule empty and read as a list that had simply grown by one. Pushed out, the
+   footer gets the same two-ended balance the card already has above it, and the
+   gap in the middle does the grouping: the 24 h comparison is a different family
+   from today's extremes, and now it looks like one without needing a divider.
+
+   margin-right rather than justify-content: space-between, because the footer
+   has to keep working when this block is not there at all — the backend omits
+   the reading after an outage, and the extremes then fall back to hugging the
+   right edge exactly as they did before this existed.
+
+   Left-aligned, unlike its siblings. They are right-aligned so their digits
+   line up against the card's right edge; this one has no neighbour to its left,
+   so aligning it right would only push its shorter value away from the edge it
+   sits on.
+*/
+.stat-extreme-lead {
+    margin-right: auto;
+    align-items: flex-start;
+    text-align: left;
+}
+
 .stat-extreme-label {
     color: #a1a1aa;
     font-size: 0.75rem;

@@ -484,7 +484,7 @@ const Dashboard = () => {
         const delta = currentData.temperature - ref.value;
         return (
             <div
-                className="stat-extreme"
+                className="stat-extreme stat-extreme-lead"
                 title={t('dayAgo.tip', { temp: formatValue(ref.value), time: ref.time })}
             >
                 <span className="stat-extreme-label">{t('dayAgo.label')}</span>
@@ -517,7 +517,7 @@ const Dashboard = () => {
                     icon={Thermometer}
                     color="#ff6b6b"
                     note={temperatureTrend}
-                    footer={<>{extremesFooter(stats.maxTemp, stats.minTemp, currentData.temperature, '°C')}{dayAgoFooter}</>}
+                    footer={<>{dayAgoFooter}{extremesFooter(stats.maxTemp, stats.minTemp, currentData.temperature, '°C')}</>}
                 />
                 <StatCard
                     title={t('card.humidity')}

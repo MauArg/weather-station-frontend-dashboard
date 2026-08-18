@@ -450,6 +450,51 @@ const Dashboard = () => {
         );
     };
 
+    /*
+      How much warmer or colder it is than it was a day ago, in the same footer
+      the extremes live in.
+
+      The backend hands over the reading, not the difference, and the subtraction
+      happens here on purpose: the reading a day old only changes when the
+      reference instant slides, which is once every 60 s with the stats poll,
+      while the live figure it is compared against moves every 3 s. Doing the
+      arithmetic on the backend would freeze the answer to the slower of the two
+      clocks and make the block visibly disagree with the headline right above
+      it — the same reasoning that folds the live reading into the extremes.
+
+      No colour, unlike the trend on the headline line. That one already carries
+      the diverging blue/red scale for this quantity, and a second coloured
+      reading of "warmer or colder" a few centimetres below it would compete with
+      the first for the same meaning. The sign does the work here; the footer
+      stays the neutral grey it is for the extremes.
+
+      The reference itself goes in the tooltip rather than on a third line. It is
+      worth having — a difference is unreadable without knowing what it is
+      against — but not worth the vertical space, and the app already answers
+      that kind of question with a native title.
+    */
+    const dayAgoFooter = (() => {
+        const ref = stats.temp24hAgo;
+        // The backend omits this rather than sending a zero when the station has
+        // nothing near that instant, and a missing live reading leaves nothing to
+        // subtract from. Either way there is no comparison to show, and half of
+        // one would read as a confident number.
+        if (!ref || typeof currentData.temperature !== 'number') return null;
+
+        const delta = currentData.temperature - ref.value;
+        return (
+            <div
+                className="stat-extreme"
+                title={t('dayAgo.tip', { temp: formatValue(ref.value), time: ref.time })}
+            >
+                <span className="stat-extreme-label">{t('dayAgo.label')}</span>
+                <span className="stat-extreme-value">
+                    {formatNumber(delta, { digits: 1, minDigits: 1, sign: 'always' })} °C
+                </span>
+            </div>
+        );
+    })();
+
     return (
         <div className="dashboard-container">
             {/*
@@ -472,7 +517,7 @@ const Dashboard = () => {
                     icon={Thermometer}
                     color="#ff6b6b"
                     note={temperatureTrend}
-                    footer={extremesFooter(stats.maxTemp, stats.minTemp, currentData.temperature, '°C')}
+                    footer={<>{extremesFooter(stats.maxTemp, stats.minTemp, currentData.temperature, '°C')}{dayAgoFooter}</>}
                 />
                 <StatCard
                     title={t('card.humidity')}

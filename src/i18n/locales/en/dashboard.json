@@ -75,6 +75,10 @@
     "daylight": "Daylight",
     "ambientTemp": "Ambient Temp"
   },
+  "dayAgo": {
+    "label": "24 h change",
+    "tip": "How much warmer or colder it is than a day ago, when the station read {{temp}} °C at {{time}}. It disappears rather than guessing when nothing was recorded near that moment."
+  },
   "extremes": {
     "maxToday": "High today",
     "minToday": "Low today",

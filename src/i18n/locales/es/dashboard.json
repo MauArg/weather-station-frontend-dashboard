@@ -75,6 +75,10 @@
     "daylight": "Luz diurna",
     "ambientTemp": "Temp. ambiente"
   },
+  "dayAgo": {
+    "label": "Dif. 24 h",
+    "tip": "Cuánto más cálido o más frío está que hace 24 h, cuando la estación marcaba {{temp}} °C a las {{time}}. Si no hay registro cerca de ese momento desaparece en vez de adivinar."
+  },
   "extremes": {
     "maxToday": "Máx. hoy",
     "minToday": "Mín. hoy",

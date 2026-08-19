@@ -220,7 +220,7 @@ const ServiceMode = ({ onBack }) => {
                     <LivePanel state={state} connected={connected} />
                     <CommandConsole connected={connected} />
                 </>
-            ))}
+            ), 'svc-grid')}
 
             {panel('logs', <LogPanel state={state} connected={connected} />)}
 

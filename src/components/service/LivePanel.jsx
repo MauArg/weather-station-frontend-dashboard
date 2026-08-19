@@ -109,8 +109,14 @@ const LivePanel = ({ state, connected }) => {
         ? apiText(t, 'exitReason', lastEnded.reason, lastEnded.reason)
         : t('api:exitReason.unreported');
 
+    // Half width, paired with the command console. This used to span both
+    // columns because in the old single screen a half column here left the four
+    // cards above it unpaired; inside the Control tab the pairing runs the other
+    // way — this card and the console come out at 224 and 237 px, so side by
+    // side they stretch to a common height instead of stacking into two
+    // letterboxed bands with a screen's worth of empty space to their right.
     return (
-        <div className="svc-card svc-span-2">
+        <div className="svc-card">
             <div className="svc-card-head">
                 <h3 className="svc-h4"><Radio size={18} aria-hidden="true" /> {t('live.title')}</h3>
                 {isRunning && <span className="svc-badge">{t('live.running')}</span>}

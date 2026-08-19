@@ -1593,8 +1593,13 @@ button.svc-tip:focus-visible {
     gap: 0.35rem;
 }
 
+/* Capped, because this card spans both columns. At full width the track ran
+   1587 px for a range of 1 to 60 minutes — about 27 px per minute, so the
+   precision on offer was wildly beyond the choice being made, and the handle
+   ended up a screen away from the number it sets. */
 .svc-slider {
     width: 100%;
+    max-width: 22rem;
     accent-color: #4dabf7;
 }
 

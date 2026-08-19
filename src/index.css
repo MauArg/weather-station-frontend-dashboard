@@ -1106,7 +1106,10 @@ body {
     position: absolute;
     bottom: calc(100% + 8px);
     left: 50%;
-    transform: translateX(-50%);
+    /* Standalone `translate` rather than the `transform` shorthand, so the
+       anchoring variants below can drop the centering without also dropping
+       the collapse further down. */
+    translate: -50%;
     width: max-content;
     max-width: 280px;
     padding: 0.5rem 0.7rem;
@@ -1124,6 +1127,15 @@ body {
     white-space: normal;
     opacity: 0;
     visibility: hidden;
+    /* Collapsed, not merely invisible. `visibility: hidden` still lays the box
+       out, so a tooltip reaching past the right edge widens the page's
+       scrollable area permanently — a horizontal scrollbar for something nobody
+       can see, which is what the service view had. A zero scale takes it out of
+       that calculation while keeping the fade, which `display: none` would cost.
+       This is the half that has to be a rule rather than a per-site class: on
+       the sensor chips, which one lands at the edge depends on how the row
+       wraps, so there is no site to put the class on. */
+    scale: 0;
     transition: opacity 0.15s ease;
     z-index: 50;
     pointer-events: none;
@@ -1133,6 +1145,7 @@ body {
 .svc-tip:focus-visible::after {
     opacity: 1;
     visibility: visible;
+    scale: 1;
 }
 
 .svc-tip:focus-visible {
@@ -1156,7 +1169,22 @@ button.svc-tip:focus-visible {
 /* Near the left edge the centered tooltip would spill outside the card */
 .svc-tip-left::after {
     left: 0;
-    transform: none;
+    translate: none;
+}
+
+/* The mirror, for a host sitting at the right of its card — the state pill, the
+   countdown, and the two right-hand columns of the kv-grid, which had the left
+   variant on them and were the worst of the three positions there.
+   The collapse above already keeps a hidden tooltip from widening the page; this
+   is about the shown one still being readable. The two sides are not
+   symmetrical: spill to the right is scrollable-to and so extends the page,
+   while spill to the left is simply unreachable in LTR. Measured across eleven
+   viewport widths, anchoring right is the only one of the three positions that
+   never pushes a shown tooltip past the right edge. */
+.svc-tip-right::after {
+    left: auto;
+    right: 0;
+    translate: none;
 }
 
 /* Pills, chips, badges */

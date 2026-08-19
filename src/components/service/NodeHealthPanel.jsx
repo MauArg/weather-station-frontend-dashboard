@@ -71,7 +71,7 @@ const NodeHealthPanel = ({ state }) => {
         <div className="svc-card">
             <div className="svc-card-head">
                 <h3>{t('health.title')}</h3>
-                <Tip text={t(`health.state.${stateKey}Tip`)}>
+                <Tip className="svc-tip-right" text={t(`health.state.${stateKey}Tip`)}>
                     <span className="svc-status-pill" style={{ borderColor: ui.color, color: ui.color }}>
                         <StateIcon size={15} aria-hidden="true" /> {t(`health.state.${stateKey}`)}
                     </span>
@@ -93,13 +93,13 @@ const NodeHealthPanel = ({ state }) => {
                     </span>
                 </div>
                 <div className="svc-kv">
-                    <Tip className="svc-tip-left" text={t('health.bootCountTip')}>
+                    <Tip className="svc-tip-right" text={t('health.bootCountTip')}>
                         <span className="svc-kv-label"><HardDrive size={13} aria-hidden="true" /> boot_count</span>
                     </Tip>
                     <span className="svc-kv-value">{telemetry?.bootCount ?? '—'}</span>
                 </div>
                 <div className="svc-kv">
-                    <Tip className="svc-tip-left" text={t('health.rssiTip')}>
+                    <Tip className="svc-tip-right" text={t('health.rssiTip')}>
                         <span className="svc-kv-label"><Wifi size={13} aria-hidden="true" /> RSSI</span>
                     </Tip>
                     <span className="svc-kv-value">{telemetry?.rssiDbm != null ? `${telemetry.rssiDbm} dBm` : '—'}</span>
@@ -137,6 +137,7 @@ const NodeHealthPanel = ({ state }) => {
                         {node?.nextExpectedAt ? `~${formatClock(node.nextExpectedAt)}` : '—'}
                         {secondsUntil != null && (
                             <Tip
+                                className="svc-tip-right"
                                 text={
                                     secondsUntil > 0
                                         ? t('health.countdownTipFuture', { sec: node.expectedIntervalSec })

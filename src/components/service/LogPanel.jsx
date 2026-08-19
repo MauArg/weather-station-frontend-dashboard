@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 import {
     ScrollText, Download, Play, Square, DownloadCloud, AlertTriangle, Search,
-    ChevronRight, ChevronDown, Info, Wrench, Loader2, Clock,
+    Info, Wrench, Loader2, Clock,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Tip from './Tip';
@@ -29,10 +29,13 @@ import { sendServiceCommand, fetchNodeLogs, getLastLogCapture, LOG_EXPORT_JSON_U
  *   no clock. Cycles that published telemetry are anchored to real time; the rest
  *   are interpolated — and those are precisely the cycles worth looking at, so
  *   every row says which kind it is.
- * - The panel is collapsed by default because debugging the node is occasional.
- *   The capture state stays visible in the collapsed header anyway: the whole
+ * - Debugging the node is occasional, which is why this used to open collapsed.
+ *   It has a tab of its own now, and that tab is the disclosure — a collapse
+ *   inside it would be a second click to reach the same thing. What the collapsed
+ *   header existed to protect is instead carried by the dot on the tab: the whole
  *   reason the firmware spends payload bytes on log_active is so a capture left
- *   running cannot be forgotten, and hiding it behind a click would undo that.
+ *   running cannot be forgotten, so it has to be visible from anywhere in the
+ *   view, which a header in here never was.
  */
 
 // Entries per wake cycle at each level, used only to estimate how long a capture
@@ -109,7 +112,6 @@ const LogPanel = ({ state, connected }) => {
     const supported = state?.logs !== undefined;
     const logs = state?.logs ?? {};
 
-    const [open, setOpen] = useState(false);
     const [level, setLevel] = useState(2);
     const [keep, setKeep] = useState(false);
     const [busy, setBusy] = useState(false);
@@ -375,11 +377,10 @@ const LogPanel = ({ state, connected }) => {
         }
     };
 
-    // Shown collapsed or expanded, but never hidden: if a capture has been
-    // running for weeks, it has to be visible without opening anything. For the
-    // same reason the running time goes here and not only in the body: "has it
-    // already been the 2 h I wanted to capture?" has to be answerable without
-    // opening the panel.
+    // The tab's dot says something is running in here; this says what. Level,
+    // how full the ring is and how long it has been going are the numbers that
+    // answer "has it already been the 2 h I wanted to capture?", and they are too
+    // much to hang off a tab.
     const stateChip = logs.active ? (
         <span className="svc-chip" style={{ borderColor: '#4ade80', color: '#4ade80' }}>
             <Play size={13} aria-hidden="true" />{' '}
@@ -395,39 +396,25 @@ const LogPanel = ({ state, connected }) => {
     );
 
     const head = (
-        <button
-            className="svc-collapse-head"
-            onClick={() => setOpen((o) => !o)}
-            aria-expanded={open}
-        >
-            {open ? <ChevronDown size={17} aria-hidden="true" /> : <ChevronRight size={17} aria-hidden="true" />}
+        <div className="svc-card-head">
             <h3><ScrollText size={17} aria-hidden="true" /> {t('log.title')}</h3>
             {supported && stateChip}
-            <span className="svc-muted svc-small svc-collapse-spacer">
-                {open ? t('log.hide') : t('log.show')}
-            </span>
-        </button>
+        </div>
     );
 
     if (!supported) {
         return (
             <div className="svc-card svc-span-2">
                 {head}
-                {open && (
-                    <div className="svc-alert svc-alert-info" style={{ marginTop: '0.75rem' }}>
-                        <AlertTriangle size={18} aria-hidden="true" />
-                        <div>
-                            <strong>{t('log.unsupportedTitle')}</strong>
-                            <div className="svc-small"><Trans t={t} i18nKey="log.unsupportedBody" /></div>
-                        </div>
+                <div className="svc-alert svc-alert-info" style={{ marginTop: '0.75rem' }}>
+                    <AlertTriangle size={18} aria-hidden="true" />
+                    <div>
+                        <strong>{t('log.unsupportedTitle')}</strong>
+                        <div className="svc-small"><Trans t={t} i18nKey="log.unsupportedBody" /></div>
                     </div>
-                )}
+                </div>
             </div>
         );
-    }
-
-    if (!open) {
-        return <div className="svc-card svc-span-2">{head}</div>;
     }
 
     return (

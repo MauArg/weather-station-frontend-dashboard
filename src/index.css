@@ -1563,32 +1563,6 @@ button.svc-tip:focus-visible {
     grid-column: 1 / -1;
 }
 
-/* Header of a collapsible card. It's a full-width <button> so the clickable
-   area is the whole row and not just the text, and so it works with the
-   keyboard without adding handlers. */
-.svc-collapse-head {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    width: 100%;
-    padding: 0;
-    background: none;
-    border: none;
-    color: inherit;
-    font: inherit;
-    text-align: left;
-    cursor: pointer;
-}
-
-.svc-collapse-head h3 {
-    margin: 0;
-}
-
-/* Pushes whatever comes after it to the far right of the header row. */
-.svc-collapse-spacer {
-    margin-left: auto;
-}
-
 .svc-steps {
     display: flex;
     list-style: none;

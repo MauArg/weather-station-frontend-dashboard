@@ -24,7 +24,7 @@ const RISK_UI = {
 const THRESHOLD_SAFE = 4.0;
 const THRESHOLD_CAUTION = 3.85;
 
-const BatteryPanel = ({ battery }) => {
+const BatteryPanel = ({ battery, active = true }) => {
     const { t } = useTranslation('service');
     const [trend, setTrend] = useState([]);
     const [hours, setHours] = useState(72);
@@ -158,8 +158,20 @@ const BatteryPanel = ({ battery }) => {
                 </div>
             </div>
 
+            {/* The chart is built only while its tab is showing, and that is not an
+                optimisation. ResponsiveContainer sizes itself from its parent, and a
+                parent inside a hidden tab is display:none — it measures nothing, so
+                a window resized while this tab was away leaves the chart at whatever
+                width it last saw. Measured: revealing it at 390 px after a resize
+                left an 611 px chart and 273 px of page overflow. Skipping the render
+                while hidden means it measures for the first time when it is actually
+                visible. The series and the selected range live in state above, so
+                nothing is refetched. Worth remembering when the enclosure and RSSI
+                charts land here. */}
             {trendError ? (
                 <p className="svc-muted svc-small">{t('battery.trendError', { error: trendError })}</p>
+            ) : !active ? (
+                <div className="svc-spark" />
             ) : (
                 <div className="svc-spark">
                     <ResponsiveContainer width="100%" height="100%">

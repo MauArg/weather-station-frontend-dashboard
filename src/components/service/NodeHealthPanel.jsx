@@ -4,7 +4,6 @@ import { CheckCircle2, XCircle, Cpu, Wifi, AlertTriangle, Bug, HardDrive, Info, 
 import { formatClock, formatAge } from '../../utils/timezone';
 import { apiText } from '../../i18n/apiText';
 import { useNow } from '../../hooks/useNow';
-import { NODE_STATE_UI, nodeStateKey } from './nodeState';
 import Tip from './Tip';
 
 const NodeHealthPanel = ({ state }) => {
@@ -32,25 +31,12 @@ const NodeHealthPanel = ({ state }) => {
         .filter((a) => !onlyUnexplained || !a.expected)
         .reverse();
 
-    const now = useNow(1000);
-    const stateKey = nodeStateKey(node?.state);
-    const ui = NODE_STATE_UI[stateKey];
-    const StateIcon = ui.Icon;
-
-    // Both counters are derived from absolute instants against a running clock,
-    // not from the integer the backend sent: between pushes that number goes
-    // stale, and the case that matters most to show —the node that never comes
-    // back— is exactly the one with no new pushes to update it.
-    const lastSeenMs = node?.lastSeenAt ? new Date(node.lastSeenAt).getTime() : null;
-    const nextMs = node?.nextExpectedAt ? new Date(node.nextExpectedAt).getTime() : null;
-    const secondsSince = lastSeenMs != null ? Math.round((now - lastSeenMs) / 1000) : null;
-    const secondsUntil = nextMs != null ? Math.round((nextMs - now) / 1000) : null;
-
-    const countdownClass = node?.state === 'overdue'
-        ? 'svc-countdown svc-countdown-late'
-        : secondsUntil != null && secondsUntil <= 0
-            ? 'svc-countdown svc-countdown-due'
-            : 'svc-countdown';
+    // The one-second clock left with the countdown; what is still time-sensitive
+    // here is the age on each boot_count anomaly. Every 15 s is enough for those,
+    // the same call PayloadViewer makes for the same reason: ages are read in
+    // minutes and hours, and ticking every second would re-render the sensor and
+    // anomaly lists sixty times a minute to change nothing.
+    const now = useNow(15000);
 
     const sizeBytes = telemetry?.sizeBytes ?? 0;
     const usedPct = payloadBudget ? Math.min(100, (sizeBytes / payloadBudget) * 100) : 0;
@@ -61,13 +47,13 @@ const NodeHealthPanel = ({ state }) => {
 
     return (
         <div className="svc-card">
+            {/* The state pill and the last-seen/next-expected pair used to open this
+                card. They moved to the strip pinned above the tabs — they are the
+                context every tab needs, and behind one they would be the thing you
+                leave what you are doing to go check. Repeating them here would just
+                be the same fact twice on the same screen. */}
             <div className="svc-card-head">
                 <h3>{t('health.title')}</h3>
-                <Tip className="svc-tip-right" text={t(`health.state.${stateKey}Tip`)}>
-                    <span className="svc-status-pill" style={{ borderColor: ui.color, color: ui.color }}>
-                        <StateIcon size={15} aria-hidden="true" /> {t(`health.state.${stateKey}`)}
-                    </span>
-                </Tip>
             </div>
 
             <div className="svc-kv-grid">
@@ -95,56 +81,6 @@ const NodeHealthPanel = ({ state }) => {
                         <span className="svc-kv-label"><Wifi size={13} aria-hidden="true" /> RSSI</span>
                     </Tip>
                     <span className="svc-kv-value">{telemetry?.rssiDbm != null ? `${telemetry.rssiDbm} dBm` : '—'}</span>
-                </div>
-            </div>
-
-            {/* Its own row rather than another grid cell: with the source and the
-                next expected time it doesn't fit a 150px column and wrapped across
-                several lines. The source matters — in service mode the node does
-                not publish telemetry, only heartbeats, so watching the telemetry
-                clock would show a frozen time exactly when the node is most alive. */}
-            <div className="svc-lastseen">
-                <div>
-                    <span className="svc-kv-label">{t('health.lastSeen')}</span>
-                    <span className="svc-kv-value">
-                        {node?.lastSeenAt ? formatClock(node.lastSeenAt) : '—'}
-                        {/* A backend enum, same family as tier and the sensor
-                            keys — so it resolves through apiText into the `api`
-                            namespace, not by hand into this one. */}
-                        {node?.lastSeenSource && (
-                            <span className="svc-muted svc-small">
-                                {' '}({apiText(t, 'lastSeenSource', node.lastSeenSource, node.lastSeenSource)})
-                            </span>
-                        )}
-                        {secondsSince != null && secondsSince >= 0 && (
-                            <span className="svc-muted svc-small">{t('health.secondsAgo', { sec: secondsSince })}</span>
-                        )}
-                    </span>
-                </div>
-                <div className="svc-lastseen-next">
-                    <span className="svc-kv-label">
-                        {node?.state === 'overdue' ? t('health.wasExpected') : t('health.nextExpected')}
-                    </span>
-                    <span className="svc-kv-value">
-                        {node?.nextExpectedAt ? `~${formatClock(node.nextExpectedAt)}` : '—'}
-                        {secondsUntil != null && (
-                            <Tip
-                                className="svc-tip-right"
-                                text={
-                                    secondsUntil > 0
-                                        ? t('health.countdownTipFuture', { sec: node.expectedIntervalSec })
-                                        : t('health.countdownTipPast', { sec: Math.abs(secondsUntil) })
-                                }
-                            >
-                                {' '}
-                                <span className={countdownClass}>
-                                    · {secondsUntil >= 0
-                                        ? t('health.countdownIn', { sec: secondsUntil })
-                                        : t('health.countdownLate', { sec: secondsUntil })}
-                                </span>
-                            </Tip>
-                        )}
-                    </span>
                 </div>
             </div>
 

@@ -29,7 +29,13 @@ const LivePanel = ({ state, connected }) => {
     const [note, setNote] = useState(null);
 
     const status = state?.status;
-    const retained = state?.retained;
+    // retainedCmd, not retained: the backend has only ever served this under
+    // `retainedCmd` (models.ServiceState), so the old name read undefined and
+    // quietly pinned isArmed and otherCommand below to false. That cost the
+    // "armed, waiting for the wake" badge and, worse, the guard that stops a
+    // live session from overwriting a retained maintenance command — the same
+    // way a log_on used to silently eat an OTA session.
+    const retained = state?.retainedCmd;
     const telemetry = state?.telemetry;
 
     // Three different sources, because they answer three different questions and

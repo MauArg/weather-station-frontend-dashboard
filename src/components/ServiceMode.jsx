@@ -209,7 +209,7 @@ const ServiceMode = ({ onBack }) => {
                 so they stretch to a common height instead of leaving a ragged gap. */}
             {panel('status', (
                 <>
-                    <BatteryPanel battery={state.battery} />
+                    <BatteryPanel battery={state.battery} active={activeTab === 'status'} />
                     <NodeHealthPanel state={state} />
                 </>
             ), 'svc-grid')}

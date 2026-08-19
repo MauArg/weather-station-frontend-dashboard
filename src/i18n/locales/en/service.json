@@ -211,8 +211,6 @@
   },
   "log": {
     "title": "Node logs",
-    "show": "show",
-    "hide": "hide",
     "intro": "Capturing runs during normal cycles and costs no energy. Transferring is the only part that needs the node awake, which is why it's a separate step.",
     "unsupportedTitle": "The backend does not expose the logging system yet.",
     "unsupportedBody": "This panel needs the <code>logs</code> field in the state snapshot. Rebuild and redeploy the backend image; the node's firmware also needs to be on 1.3.0 or newer.",

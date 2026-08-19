@@ -211,8 +211,6 @@
   },
   "log": {
     "title": "Logs del nodo",
-    "show": "mostrar",
-    "hide": "ocultar",
     "intro": "Capturar corre durante los ciclos normales y no cuesta energía. Transferir es lo único que necesita al nodo despierto, y por eso es un paso aparte.",
     "unsupportedTitle": "El backend todavía no expone el sistema de logging.",
     "unsupportedBody": "Este panel necesita el campo <code>logs</code> en el snapshot de estado. Rebuildeá y redesplegá la imagen del backend; el firmware del nodo también tiene que estar en 1.3.0 o más nuevo.",

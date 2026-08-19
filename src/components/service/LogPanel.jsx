@@ -45,18 +45,20 @@ const LEVELS = [
     { value: 3, entriesPerCycle: 5 },
 ];
 
-// Observed interval between cycles. The node sleeps SLEEP_INTERVAL_SEC = 60, but
-// each wake also spends time on WiFi, MQTT, waiting on the retained topic and
-// sensors before publishing. Measured against InfluxDB this comes out to 60-67 s
-// with a median of 64.
-const CYCLE_SEC = 64;
+// Only for a backend that predates `normalCycleSec` on the node health. The node
+// has reported its own sleep interval since firmware 1.18.0 and the backend folds
+// in the wake overhead, so the real number arrives over the wire — this is the
+// figure the estimate used to assume, measured against InfluxDB at 60-67 s with a
+// median of 64. Kept so the panel stays honest when the two halves deploy apart,
+// the same guarantee the coded backend notes get.
+const FALLBACK_CYCLE_SEC = 64;
 
 // `value` rather than i18next's `count`: `count` is the plural selector, and
 // handing it "8.0" would quietly make the plural rules depend on a decimal
 // string. These keys have no plural forms and should not grow one by accident.
-const formatWindow = (t, ringEntries, entriesPerCycle) => {
+const formatWindow = (t, ringEntries, entriesPerCycle, cycleSec) => {
     if (!ringEntries || !entriesPerCycle) return '—';
-    const hours = (ringEntries / entriesPerCycle) * CYCLE_SEC / 3600;
+    const hours = (ringEntries / entriesPerCycle) * cycleSec / 3600;
     return hours < 1
         ? t('log.windowMinutes', { value: Math.round(hours * 60) })
         : t('log.windowHours', { value: formatFixed(hours, 1) });
@@ -338,6 +340,14 @@ const LogPanel = ({ state, connected }) => {
     const ring = logs.ringEntries || 768;
     const fillPct = logs.active && ring ? Math.min(100, (logs.count / ring) * 100) : 0;
 
+    // How much wall-clock time fits in the ring is a question about the cycle the
+    // node keeps between wakes — deliberately not `expectedIntervalSec`, which is
+    // what the *last message* implies and drops to the 30 s heartbeat while a
+    // service session is open. That is exactly when this panel is being read, and
+    // it would halve every window on screen.
+    const reportedCycleSec = state?.node?.normalCycleSec || 0;
+    const cycleSec = reportedCycleSec || FALLBACK_CYCLE_SEC;
+
     // Transferring needs the node awake and subscribed, i.e. in service mode.
     // This is the part of the flow that didn't explain itself: the status said
     // "capturing" and the button was dead, without saying what to do about it.
@@ -474,7 +484,7 @@ const LogPanel = ({ state, connected }) => {
             <label className="svc-kv-label" style={{ marginTop: '0.4rem' }}>{t('log.captureLevel')}</label>
             <div className="svc-toolbar">
                 {LEVELS.map((l) => {
-                    const window = formatWindow(t, ring, l.entriesPerCycle);
+                    const window = formatWindow(t, ring, l.entriesPerCycle, cycleSec);
                     return (
                         <button
                             key={l.value}
@@ -492,10 +502,10 @@ const LogPanel = ({ state, connected }) => {
                 })}
             </div>
             <p className="svc-muted svc-small" style={{ marginTop: '0.4rem' }}>
-                {t('log.levelHint', {
+                {t(reportedCycleSec ? 'log.levelHint' : 'log.levelHintAssumed', {
                     level,
                     blurb: t(`log.level.${level}blurb`),
-                    sec: CYCLE_SEC,
+                    sec: cycleSec,
                 })}
             </p>
 

@@ -13,6 +13,18 @@
     "streamReconnecting": "reconnecting…",
     "noBrokerTitle": "No connection to the MQTT broker."
   },
+  "tabs": {
+    "aria": "Service mode sections",
+    "status": "Status",
+    "control": "Control",
+    "logs": "Logs",
+    "mqtt": "MQTT",
+    "badge": {
+      "capturing": "A log capture is running.",
+      "live": "Live mode is running.",
+      "retained": "The node has a retained command: {{cmd}}."
+    }
+  },
   "ota": {
     "title": "OTA session",
     "step": {

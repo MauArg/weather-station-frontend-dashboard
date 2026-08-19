@@ -1,19 +1,11 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { CheckCircle2, XCircle, Cpu, Wifi, Moon, Radio, AlertTriangle, HelpCircle, Bug, HardDrive, Info, Eye, EyeOff } from 'lucide-react';
+import { CheckCircle2, XCircle, Cpu, Wifi, AlertTriangle, Bug, HardDrive, Info, Eye, EyeOff } from 'lucide-react';
 import { formatClock, formatAge } from '../../utils/timezone';
 import { apiText } from '../../i18n/apiText';
 import { useNow } from '../../hooks/useNow';
+import { NODE_STATE_UI, nodeStateKey } from './nodeState';
 import Tip from './Tip';
-
-// Presentation only; the label and tip for each state live in the dictionary,
-// keyed by the same node.state value the backend sends.
-const NODE_STATE_UI = {
-    service_mode: { color: '#4dabf7', Icon: Radio },
-    sleeping: { color: '#4ade80', Icon: Moon },
-    overdue: { color: '#f87171', Icon: AlertTriangle },
-    unknown: { color: '#a1a1aa', Icon: HelpCircle },
-};
 
 const NodeHealthPanel = ({ state }) => {
     const { t } = useTranslation('service');
@@ -41,7 +33,7 @@ const NodeHealthPanel = ({ state }) => {
         .reverse();
 
     const now = useNow(1000);
-    const stateKey = NODE_STATE_UI[node?.state] ? node.state : 'unknown';
+    const stateKey = nodeStateKey(node?.state);
     const ui = NODE_STATE_UI[stateKey];
     const StateIcon = ui.Icon;
 

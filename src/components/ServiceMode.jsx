@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Loader2, Wifi, WifiOff, ArrowLeft, Cpu } from 'lucide-react';
+import { Loader2, Wifi, WifiOff, ArrowLeft, Cpu, Activity, SlidersHorizontal, ScrollText, Radio } from 'lucide-react';
 import OtaWizard from './service/OtaWizard';
 import BatteryPanel from './service/BatteryPanel';
 import NodeHealthPanel from './service/NodeHealthPanel';
@@ -8,9 +8,19 @@ import PayloadViewer from './service/PayloadViewer';
 import CommandConsole from './service/CommandConsole';
 import LogPanel from './service/LogPanel';
 import LivePanel from './service/LivePanel';
+import NodeStatusStrip from './service/NodeStatusStrip';
+import TabBar from './service/TabBar';
 import { openServiceStream, getServiceState } from '../services/ServiceApi';
 
 const MAX_PAYLOADS = 500;
+
+// The view grew one loose card at a time until seven of them shared a single
+// screen. These four group them by the question being asked: Status is what the
+// node reports, Control is what you do to it, and the two heavy instruments get
+// a surface each. It is also where the enclosure and RSSI charts land later —
+// Status — which is the reason the split happened before they were written.
+const TAB_IDS = ['status', 'control', 'logs', 'mqtt'];
+const TAB_STORAGE_KEY = 'serviceTab';
 
 const ServiceMode = ({ onBack }) => {
     const { t } = useTranslation('service');
@@ -26,6 +36,26 @@ const ServiceMode = ({ onBack }) => {
     // boundary, opening the dashboard after a few hours shows a wall of old
     // messages that look like they just arrived.
     const [backlogUntilSeq, setBacklogUntilSeq] = useState(null);
+
+    // Same idiom as pressureMode in Dashboard.jsx: read lazily, write in an
+    // effect, and let storage failures pass in silence — localStorage throws
+    // when cookies are blocked, and the cost of that is landing on Status.
+    const [activeTab, setActiveTab] = useState(() => {
+        try {
+            const saved = localStorage.getItem(TAB_STORAGE_KEY);
+            return TAB_IDS.includes(saved) ? saved : 'status';
+        } catch {
+            return 'status';
+        }
+    });
+
+    useEffect(() => {
+        try {
+            localStorage.setItem(TAB_STORAGE_KEY, activeTab);
+        } catch {
+            // Not worth surfacing: the choice just does not survive a reload.
+        }
+    }, [activeTab]);
 
     // Held in a ref so the SSE callbacks, which are registered once, always see the
     // current value instead of the one captured when the stream opened.
@@ -84,6 +114,58 @@ const ServiceMode = ({ onBack }) => {
 
     const connected = state.broker?.connected;
 
+    // What the tab dots are for: the two things that keep running after you look
+    // away. A capture left on was already a known way to lose months of nothing,
+    // and a retained command is the "did I leave the node armed?" check — both
+    // used to be visible because every panel was on screen at once.
+    const liveRunning = state.status?.state === 'live_mode_active' || state.status?.state === 'live_mode_alive';
+    const tabs = [
+        { id: 'status', label: t('tabs.status'), Icon: Activity },
+        {
+            id: 'control',
+            label: t('tabs.control'),
+            Icon: SlidersHorizontal,
+            badge: state.retainedCmd?.present
+                ? t('tabs.badge.retained', { cmd: state.retainedCmd.cmd })
+                : liveRunning ? t('tabs.badge.live') : null,
+        },
+        {
+            id: 'logs',
+            label: t('tabs.logs'),
+            Icon: ScrollText,
+            badge: state.logs?.active ? t('tabs.badge.capturing') : null,
+        },
+        { id: 'mqtt', label: t('tabs.mqtt'), Icon: Radio },
+    ];
+
+    // hidden rather than unmounted, and the distinction is load-bearing. LogPanel
+    // holds the wait for a capture command to be confirmed —- a four minute
+    // timeout plus the effect watching for it — in its own state, with nothing
+    // that rebuilds it from the server. Unmounting would drop the spinner while
+    // the command was still in flight and re-enable the buttons on top of it.
+    // BatteryPanel would also re-query InfluxDB on every switch, and the range,
+    // the filters and a half-typed raw command would all reset.
+    //
+    // It costs nothing: all seven panels already re-render on every SSE push, so
+    // keeping them mounted is exactly today's behaviour. These tabs are a
+    // visibility mechanism, not a mounting one.
+    //
+    // The two-column grid only survives where a tab actually holds a pair to
+    // balance. Alone in a tab, a half-width card leaves the other half empty,
+    // so the rest stack full width — which is what the wizard, live mode and the
+    // log table already asked for by spanning both columns.
+    const panel = (id, children, layout = 'svc-stack') => (
+        <div
+            id={`svc-tabpanel-${id}`}
+            role="tabpanel"
+            aria-labelledby={`svc-tab-${id}`}
+            className={`svc-tabpanel ${layout}`}
+            hidden={activeTab !== id}
+        >
+            {children}
+        </div>
+    );
+
     return (
         <div className="svc-container">
             <div className="svc-header">
@@ -119,30 +201,39 @@ const ServiceMode = ({ onBack }) => {
                 </div>
             )}
 
-            {/* Two columns pairing a tall card with a short one on each row, so the
-                cards stretch to a common height instead of leaving ragged gaps:
-                battery ↔ node health, then command console ↔ payloads. */}
-            <div className="svc-grid">
-                <OtaWizard state={state} session={session} onSession={setSession} />
-                <BatteryPanel battery={state.battery} />
-                <NodeHealthPanel state={state} />
-                <CommandConsole connected={connected} />
+            <NodeStatusStrip node={state.node} />
+
+            <TabBar tabs={tabs} active={activeTab} onChange={setActiveTab} label={t('tabs.aria')} />
+
+            {/* Within a tab the two columns still pair a tall card with a short one
+                so they stretch to a common height instead of leaving a ragged gap. */}
+            {panel('status', (
+                <>
+                    <BatteryPanel battery={state.battery} />
+                    <NodeHealthPanel state={state} />
+                </>
+            ), 'svc-grid')}
+
+            {panel('control', (
+                <>
+                    <OtaWizard state={state} session={session} onSession={setSession} />
+                    <LivePanel state={state} connected={connected} />
+                    <CommandConsole connected={connected} />
+                </>
+            ))}
+
+            {panel('logs', <LogPanel state={state} connected={connected} />)}
+
+            {panel('mqtt', (
                 <PayloadViewer
                     payloads={payloads}
                     paused={paused}
                     onTogglePause={() => setPaused((p) => !p)}
                     onClear={() => { setPayloads([]); setBacklogUntilSeq(null); }}
                     backlogUntilSeq={backlogUntilSeq}
+                    active={activeTab === 'mqtt'}
                 />
-                {/* Both full width, like the wizard, and both below the paired
-                    cards on purpose. Live mode and the log panel are occasional
-                    controls, and giving either one a half column would leave the
-                    four cards above it unpaired — which is the ragged edge the
-                    pairing exists to avoid. Log rows also carry a time, a cycle
-                    number and a whole sentence, unreadable at half width. */}
-                <LivePanel state={state} connected={connected} />
-                <LogPanel state={state} connected={connected} />
-            </div>
+            ))}
         </div>
     );
 };

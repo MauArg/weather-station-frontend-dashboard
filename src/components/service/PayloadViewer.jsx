@@ -14,7 +14,7 @@ const TOPIC_COLORS = {
 
 const shortTopic = (topic) => topic.split('/').pop();
 
-const PayloadViewer = ({ payloads, paused, onTogglePause, onClear, backlogUntilSeq }) => {
+const PayloadViewer = ({ payloads, paused, onTogglePause, onClear, backlogUntilSeq, active = true }) => {
     const { t } = useTranslation('service');
 
     // Resolved once per render rather than per row: these three take no
@@ -47,11 +47,15 @@ const PayloadViewer = ({ payloads, paused, onTogglePause, onClear, backlogUntilS
         return payloads.filter((p) => shortTopic(p.topic) === filter);
     }, [payloads, filter]);
 
+    // `active` is in the deps because this list lives in a tab, and a hidden tab
+    // is display:none: scrollHeight reads 0 there, so every scroll written while
+    // the tab was away was written to nothing. Without it, coming back lands at
+    // the top of the log until the next payload happens to arrive.
     useEffect(() => {
-        if (autoScroll && !paused && listRef.current) {
+        if (active && autoScroll && !paused && listRef.current) {
             listRef.current.scrollTop = listRef.current.scrollHeight;
         }
-    }, [filtered, autoScroll, paused]);
+    }, [filtered, autoScroll, paused, active]);
 
     const toggleExpanded = (seq) => {
         setExpanded((prev) => {

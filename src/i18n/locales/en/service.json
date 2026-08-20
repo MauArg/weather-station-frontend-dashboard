@@ -98,9 +98,42 @@
     },
     "trendTitle": "Trend — a single instantaneous reading can't tell \"it's recovering\" from \"it's been dropping for three days\"",
     "trendError": "Couldn't load the history: {{error}}",
+    "rangeAria": "Battery history range",
     "refSafe": "safe {{volts}}V",
     "refRisk": "risk {{volts}}V",
     "series": "Battery"
+  },
+  "enclosure": {
+    "title": "Enclosure climate",
+    "rangeAria": "Enclosure history range",
+    "intro": "Inside the sealed box. The two probes read the same air but at different speeds — the DS18B20 has almost no thermal mass and tracks the air, the DHT22 sits in a plastic housing and lags — so the gap between the lines is how hard the box is being heated right now.",
+    "humidityTitle": "Humidity inside",
+    "error": "Couldn't load the enclosure history: {{error}}",
+    "marginTip": "How far the air inside is from condensing on the electronics: the enclosure temperature minus its dew point. Under {{tight}} °C is worth watching, under {{critical}} °C means condensation is close. Computed from the DHT22's own temperature and humidity, since a relative humidity only means something at the temperature it was measured at.",
+    "margin": {
+      "clear": "{{margin}} °C from the dew point — dry",
+      "tight": "{{margin}} °C from the dew point — getting tight",
+      "critical": "{{margin}} °C from the dew point — condensation close"
+    },
+    "series": {
+      "probe": "DS18B20 (probe)",
+      "dht": "DHT22 (lags)",
+      "ambient": "Outdoors",
+      "humidity": "Humidity inside"
+    }
+  },
+  "wifi": {
+    "title": "WiFi signal",
+    "rangeAria": "Signal history range",
+    "intro": "The line is each window's average; the shaded band is its best and worst minute.",
+    "bandTip": "The average on its own barely moves — two weeks of daily means fit inside 4.5 dB — so it would draw a flat line and hide the thing that matters. What drops a publish is the bad moments, and those live in the band, not the mean.",
+    "error": "Couldn't load the signal history: {{error}}",
+    "refWeak": "weak {{dbm}} dBm",
+    "refMarginal": "marginal {{dbm}} dBm",
+    "series": {
+      "mean": "Average",
+      "band": "Range in window"
+    }
   },
   "health": {
     "title": "Node health",

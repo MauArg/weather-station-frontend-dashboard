@@ -98,9 +98,42 @@
     },
     "trendTitle": "Tendencia — una sola lectura instantánea no distingue «se está recuperando» de «viene cayendo hace tres días»",
     "trendError": "No se pudo cargar el historial: {{error}}",
+    "rangeAria": "Rango del historial de batería",
     "refSafe": "seguro {{volts}}V",
     "refRisk": "riesgo {{volts}}V",
     "series": "Batería"
+  },
+  "enclosure": {
+    "title": "Clima del gabinete",
+    "rangeAria": "Rango del historial del gabinete",
+    "intro": "Adentro de la caja estanca. Las dos sondas leen el mismo aire pero a distinta velocidad — el DS18B20 casi no tiene masa térmica y sigue al aire, el DHT22 vive en una carcasa plástica y llega tarde — así que la separación entre las líneas es cuánto se está calentando la caja en ese momento.",
+    "humidityTitle": "Humedad adentro",
+    "error": "No se pudo cargar el historial del gabinete: {{error}}",
+    "marginTip": "Cuánto le falta al aire de adentro para condensar sobre la electrónica: la temperatura del gabinete menos su punto de rocío. Por debajo de {{tight}} °C conviene mirarlo, por debajo de {{critical}} °C la condensación está cerca. Se calcula con la temperatura y la humedad del propio DHT22, porque una humedad relativa sólo significa algo a la temperatura a la que se midió.",
+    "margin": {
+      "clear": "{{margin}} °C hasta el punto de rocío — seco",
+      "tight": "{{margin}} °C hasta el punto de rocío — se está ajustando",
+      "critical": "{{margin}} °C hasta el punto de rocío — condensación cerca"
+    },
+    "series": {
+      "probe": "DS18B20 (sonda)",
+      "dht": "DHT22 (atrasado)",
+      "ambient": "Exterior",
+      "humidity": "Humedad adentro"
+    }
+  },
+  "wifi": {
+    "title": "Señal WiFi",
+    "rangeAria": "Rango del historial de señal",
+    "intro": "La línea es el promedio de cada ventana; la banda sombreada es su mejor y su peor minuto.",
+    "bandTip": "El promedio solo casi no se mueve — dos semanas de medias diarias entran en 4,5 dB — así que dibujaría una línea plana y taparía lo que importa. Lo que hace fallar un publish son los malos momentos, y esos viven en la banda, no en la media.",
+    "error": "No se pudo cargar el historial de señal: {{error}}",
+    "refWeak": "débil {{dbm}} dBm",
+    "refMarginal": "límite {{dbm}} dBm",
+    "series": {
+      "mean": "Promedio",
+      "band": "Rango en la ventana"
+    }
   },
   "health": {
     "title": "Salud del nodo",

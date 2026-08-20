@@ -1,10 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { BatteryCharging, Battery, ShieldCheck, AlertTriangle, ShieldX, Sun } from 'lucide-react';
 import { getBatteryTrend } from '../../services/ServiceApi';
 import { formatDayTime, formatFixed } from '../../utils/timezone';
 import { apiText } from '../../i18n/apiText';
+import { useTrend } from '../../hooks/useTrend';
+import TrendRange from './TrendRange';
 import Tip from './Tip';
 
 // Flash-risk presentation. Colour alone never carries the meaning: every state
@@ -26,28 +28,14 @@ const THRESHOLD_CAUTION = 3.85;
 
 const BatteryPanel = ({ battery, active = true }) => {
     const { t } = useTranslation('service');
-    const [trend, setTrend] = useState([]);
     const [hours, setHours] = useState(72);
-    const [trendError, setTrendError] = useState(null);
 
     // Re-queried on every new reading, not just on mount. It used to be frozen
     // at the moment the view was opened. And during service mode InfluxDB
     // receives nothing —the node doesn't publish telemetry— so fresh points
     // come from the backend's in-memory ring, which the endpoint appends to
     // the end of the historical series.
-    const measuredAt = battery?.measuredAt;
-
-    useEffect(() => {
-        let isMounted = true;
-        getBatteryTrend(hours)
-            .then((points) => {
-                if (!isMounted) return;
-                setTrend(points.map((p) => ({ ...p, t: new Date(p.time).getTime() })));
-                setTrendError(null);
-            })
-            .catch((err) => isMounted && setTrendError(err.message));
-        return () => { isMounted = false; };
-    }, [hours, measuredAt]);
+    const { points: trend, error: trendError } = useTrend(getBatteryTrend, hours, battery?.measuredAt);
 
     if (!battery) {
         return (
@@ -145,17 +133,7 @@ const BatteryPanel = ({ battery, active = true }) => {
 
             <div className="svc-card-head" style={{ marginTop: '1rem' }}>
                 <h4 className="svc-h4">{t('battery.trendTitle')}</h4>
-                <div className="svc-range">
-                    {[24, 72, 168].map((h) => (
-                        <button
-                            key={h}
-                            onClick={() => setHours(h)}
-                            className={`svc-range-btn ${hours === h ? 'active' : ''}`}
-                        >
-                            {h === 168 ? '7d' : `${h}h`}
-                        </button>
-                    ))}
-                </div>
+                <TrendRange hours={hours} onChange={setHours} label={t('battery.rangeAria')} />
             </div>
 
             {/* The chart is built only while its tab is showing, and that is not an

@@ -1470,6 +1470,16 @@ button.svc-tip:focus-visible {
     width: 100%;
 }
 
+/* The second plot of a stacked pair — the enclosure card's humidity under its
+   temperature. Shorter and not allowed to grow, so the two never end up sharing
+   the card's slack evenly: the temperature chart carries three series and the
+   dew-point reading, the humidity one carries a single line, and giving them
+   equal height reads as equal importance. */
+.svc-spark-short {
+    flex: 0 0 auto;
+    min-height: 130px;
+}
+
 /* Live countdown: tabular-nums keeps the width from jumping with each digit */
 .svc-countdown {
     font-variant-numeric: tabular-nums;

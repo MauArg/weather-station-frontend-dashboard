@@ -4,6 +4,8 @@ import { Loader2, Wifi, WifiOff, ArrowLeft, Cpu, Activity, SlidersHorizontal, Sc
 import OtaWizard from './service/OtaWizard';
 import BatteryPanel from './service/BatteryPanel';
 import NodeHealthPanel from './service/NodeHealthPanel';
+import EnclosurePanel from './service/EnclosurePanel';
+import WifiPanel from './service/WifiPanel';
 import PayloadViewer from './service/PayloadViewer';
 import CommandConsole from './service/CommandConsole';
 import LogPanel from './service/LogPanel';
@@ -207,10 +209,16 @@ const ServiceMode = ({ onBack }) => {
 
             {/* Within a tab the two columns still pair a tall card with a short one
                 so they stretch to a common height instead of leaving a ragged gap. */}
+            {/* All three history charts gate their render on `active`, and that is
+                load-bearing rather than an optimisation — see BatteryPanel for the
+                measurement. They keep their series and their selected range in
+                state, so a hidden tab costs a skipped render and nothing else. */}
             {panel('status', (
                 <>
                     <BatteryPanel battery={state.battery} active={activeTab === 'status'} />
                     <NodeHealthPanel state={state} />
+                    <EnclosurePanel node={state.node} active={activeTab === 'status'} />
+                    <WifiPanel node={state.node} active={activeTab === 'status'} />
                 </>
             ), 'svc-grid')}
 

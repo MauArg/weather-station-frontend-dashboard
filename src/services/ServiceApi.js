@@ -98,3 +98,20 @@ export const getBatteryTrend = async (hours = 72) => {
     if (!response.ok) throw new Error(`API Error (${response.status})`);
     return response.json();
 };
+
+/**
+ * Climate history inside the sealed box: both enclosure probes, the outdoor
+ * reference they only mean something against, and the dew point.
+ */
+export const getEnclosureTrend = async (hours = 72) => {
+    const response = await fetch(`${API_BASE_URL}/service/enclosure-trend?hours=${hours}`);
+    if (!response.ok) throw new Error(`API Error (${response.status})`);
+    return response.json();
+};
+
+/** RSSI history as a mean over a min/max band. */
+export const getWifiTrend = async (hours = 72) => {
+    const response = await fetch(`${API_BASE_URL}/service/wifi-trend?hours=${hours}`);
+    if (!response.ok) throw new Error(`API Error (${response.status})`);
+    return response.json();
+};

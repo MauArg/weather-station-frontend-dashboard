@@ -106,7 +106,7 @@ const WifiPanel = ({ node, active = true }) => {
                             />
                             <Line
                                 type="monotone" dataKey="meanDbm" name={t('wifi.series.mean')}
-                                stroke={SIGNAL} strokeWidth={2} dot={false}
+                                stroke={SIGNAL} strokeWidth={2} dot={false} isAnimationActive={false}
                             />
                         </ComposedChart>
                     </ResponsiveContainer>

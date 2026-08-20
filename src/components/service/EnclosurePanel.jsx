@@ -28,8 +28,14 @@ import Tip from './Tip';
 // quantises to 0.5 °C — the raw series contains nothing but multiples of a half
 // degree. It does not show here because the backend averages minutes into
 // windows, but it is why the panel's instantaneous reading steps coarsely.
+// The lagging probe keeps the exact same hex and steps back through weight,
+// opacity and dash instead. A lighter tint was tried first and read as a second
+// colour at chart scale — which is the claim we are trying not to make — while
+// still not looking subordinate, because on a dark surface a lighter red is more
+// prominent, not less. Three attenuations together are what finally separate two
+// lines that sit on top of each other 90 % of the time.
 const PROBE = '#ff6b6b';
-const PROBE_LAGGING = '#ff9d9d';
+const PROBE_LAGGING_OPACITY = 0.5;
 
 // Outdoors is a reference, not a fourth reading, so it wears the muted ink the
 // reference lines on the battery chart already use rather than a series hue.
@@ -53,6 +59,18 @@ const marginUi = (margin) => {
     return { key: 'clear', color: '#4ade80', Icon: ShieldCheck };
 };
 
+// isAnimationActive={false} on every series below, and it is a fix rather than a
+// preference. Recharts draws a line by animating stroke-dasharray from
+// "0, totalLength" to the real pattern, and this panel re-renders on every SSE
+// push — about once a second. The animation restarted faster than it could
+// finish, so the chart sat permanently at its first frame: measured mid-session,
+// the leading probe's dasharray read "32.15px 987.76px", i.e. 32 px drawn of a
+// 1020 px line. It looks exactly like a chart with no data, which is how it went
+// unnoticed until the paths were measured instead of eyeballed.
+//
+// The battery chart survives with animation on because it hangs off `measuredAt`,
+// which moves once a telemetry cycle. These hang off the node clock and would
+// re-animate every 5 s during a live session.
 const axis = { stroke: '#ffffff66', tick: { fontSize: 11 } };
 const grid = <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ffffff14" />;
 const tooltipStyle = {
@@ -70,6 +88,16 @@ const EnclosurePanel = ({ node, active = true }) => {
     // Follows the node's clock, not the page load: same reason the battery series
     // refetches on every new reading. lastSeenAt moves once per duty cycle.
     const { points, error } = useTrend(getEnclosureTrend, hours, node?.lastSeenAt);
+
+    // Padded around the data rather than 0–100. The box has never left the 45–70 %
+    // band, and a humidity axis anchored at zero spends two thirds of its height
+    // on states this enclosure cannot reach while flattening the movement that is
+    // actually there — the same reason the battery chart pads around its pack
+    // voltage instead of starting at 0 V.
+    const hums = points.map((p) => p.humPct).filter((v) => v != null);
+    const humDomain = hums.length
+        ? [Math.floor(Math.min(...hums) / 5) * 5 - 5, Math.ceil(Math.max(...hums) / 5) * 5 + 5]
+        : [0, 100];
 
     const latest = points.length ? points[points.length - 1] : null;
     const margin = latest?.tempC != null && latest?.dewPointC != null
@@ -134,18 +162,27 @@ const EnclosurePanel = ({ node, active = true }) => {
                                     {...tooltipStyle}
                                     formatter={(value, name) => [`${formatFixed(value, 2)} °C`, name]}
                                 />
+                                {/* This legend lists DHT22 before DS18B20 and there is
+                                    no cheap way to stop it: the order tracks neither
+                                    render order nor an explicit `payload`, which was
+                                    tried and ignored. Left alone deliberately, because
+                                    the labels carry the hierarchy on their own — one
+                                    says "probe", the other says "lags" — and the chart
+                                    itself is unambiguous now that the two differ in
+                                    weight, opacity and dash. */}
                                 <Legend wrapperStyle={{ fontSize: 11, color: '#a1a1aa' }} />
                                 <Line
                                     type="monotone" dataKey="ambientC" name={t('enclosure.series.ambient')}
-                                    stroke={AMBIENT} strokeWidth={1.5} strokeDasharray="2 3" dot={false} connectNulls
+                                    stroke={AMBIENT} strokeWidth={1.5} strokeDasharray="2 3" dot={false} connectNulls isAnimationActive={false}
                                 />
                                 <Line
                                     type="monotone" dataKey="dhtTempC" name={t('enclosure.series.dht')}
-                                    stroke={PROBE_LAGGING} strokeWidth={1.5} strokeDasharray="6 3" dot={false} connectNulls
+                                    stroke={PROBE} strokeOpacity={PROBE_LAGGING_OPACITY}
+                                    strokeWidth={1.2} strokeDasharray="5 4" dot={false} connectNulls isAnimationActive={false}
                                 />
                                 <Line
                                     type="monotone" dataKey="tempC" name={t('enclosure.series.probe')}
-                                    stroke={PROBE} strokeWidth={2} dot={false} connectNulls
+                                    stroke={PROBE} strokeWidth={2.2} dot={false} connectNulls isAnimationActive={false}
                                 />
                             </ComposedChart>
                         </ResponsiveContainer>
@@ -169,14 +206,14 @@ const EnclosurePanel = ({ node, active = true }) => {
                                 </defs>
                                 {grid}
                                 {xAxis}
-                                <YAxis {...axis} width={52} tickFormatter={(v) => `${formatFixed(v, 0)}%`} />
+                                <YAxis {...axis} width={52} domain={humDomain} tickFormatter={(v) => `${formatFixed(v, 0)}%`} />
                                 <Tooltip
                                     {...tooltipStyle}
                                     formatter={(value) => [`${formatFixed(value, 1)} %`, t('enclosure.series.humidity')]}
                                 />
                                 <Area
                                     type="monotone" dataKey="humPct" name={t('enclosure.series.humidity')}
-                                    stroke={HUMIDITY} strokeWidth={2} fill="url(#encHumFill)" dot={false} connectNulls
+                                    stroke={HUMIDITY} strokeWidth={2} fill="url(#encHumFill)" dot={false} connectNulls isAnimationActive={false}
                                 />
                             </AreaChart>
                         </ResponsiveContainer>

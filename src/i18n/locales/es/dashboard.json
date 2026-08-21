@@ -105,6 +105,21 @@
       "series": "Humedad",
       "wet": "Aire húmedo",
       "wetNote": "del tiempo al {{threshold}} % o más"
+    },
+    "dew": {
+      "series": "Punto de rocío",
+      "gap": "Margen",
+      "pairTitle": "El aire y su punto de rocío",
+      "pairIntro": "La franja entre las dos líneas es cuánto le falta al aire para saturar. Cuando se juntan se forma rocío; por debajo de 0 °C, escarcha.",
+      "near": "Casi saturado",
+      "nearNote": "del tiempo a {{margin}} °C o menos",
+      "frost": "Bajo cero",
+      "frostNote": "del tiempo: sería escarcha, no rocío",
+      "margin": {
+        "near": "Margen {{margin}} °C — el aire está cerca de saturar",
+        "damp": "Margen {{margin}} °C — aire húmedo, pero sin saturar",
+        "dry": "Margen {{margin}} °C — el aire está lejos de saturar"
+      }
     }
   }
 }

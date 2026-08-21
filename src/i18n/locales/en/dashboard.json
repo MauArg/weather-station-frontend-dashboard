@@ -105,6 +105,21 @@
       "series": "Humidity",
       "wet": "Damp air",
       "wetNote": "of the window at {{threshold}} % or above"
+    },
+    "dew": {
+      "series": "Dew point",
+      "gap": "Margin",
+      "pairTitle": "The air and its dew point",
+      "pairIntro": "The band between the two lines is how far the air is from saturating. Where they meet, dew forms; below 0 °C it is frost instead.",
+      "near": "Near saturation",
+      "nearNote": "of the window at {{margin}} °C or less",
+      "frost": "Below freezing",
+      "frostNote": "of the window: frost rather than dew",
+      "margin": {
+        "near": "Margin {{margin}} °C — the air is close to saturating",
+        "damp": "Margin {{margin}} °C — damp air, but not saturating",
+        "dry": "Margin {{margin}} °C — the air is far from saturating"
+      }
     }
   }
 }

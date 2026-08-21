@@ -6,6 +6,7 @@ import StatCard from './StatCard';
 import MetricModal from './MetricModal';
 import TemperatureDetail from './detail/TemperatureDetail';
 import HumidityDetail from './detail/HumidityDetail';
+import DewPointDetail from './detail/DewPointDetail';
 import ChartCrosshair, { CROSSHAIR_STROKE, CROSSHAIR_WIDTH, CROSSHAIR_DASH } from './ChartCrosshair';
 import { getRealTimeData, getDailyStats, getRecentHistory } from '../services/ApiService';
 import { formatTime, formatDayTime, formatDay, formatNumber, formatFixed } from '../utils/timezone';
@@ -521,6 +522,7 @@ const Dashboard = () => {
                     unit="°C"
                     icon={CloudRain}
                     color="#69db7c"
+                    onOpenDetail={() => setOpenMetric('dewPoint')}
                 />
             </div>
 
@@ -769,6 +771,24 @@ const Dashboard = () => {
                 <HumidityDetail
                     history={history}
                     stats={stats}
+                    hours={timeRange}
+                    axisTimeFormat={axisTimeFormat}
+                    tooltipTimeFormat={tooltipTimeFormat}
+                    axisTickGap={axisTickGap}
+                />
+            </MetricModal>
+
+            <MetricModal
+                open={openMetric === 'dewPoint'}
+                onClose={() => setOpenMetric(null)}
+                title={t('card.dewPoint')}
+                icon={CloudRain}
+                color="#69db7c"
+                toolbar={rangeSelector}
+                loading={isHistoryLoading}
+            >
+                <DewPointDetail
+                    history={history}
                     hours={timeRange}
                     axisTimeFormat={axisTimeFormat}
                     tooltipTimeFormat={tooltipTimeFormat}

@@ -24,7 +24,11 @@
   },
   "statCard": {
     "view": "View {{caption}}",
-    "switchTo": "Switch to {{next}}. Currently showing {{current}}."
+    "switchTo": "Switch to {{next}}. Currently showing {{current}}.",
+    "openDetail": "Open {{title}} in detail"
+  },
+  "metricModal": {
+    "close": "Close"
   },
   "unknown": "unknown",
   "confirm": "Confirm",

@@ -123,6 +123,40 @@ export const formatDay = (value) => {
     return date ? DAY.format(date) : '';
 };
 
+/*
+  Grouping keys, not display strings. The detail views bucket a series by hour of
+  the day or by calendar day, and both have to be done in the station's zone
+  rather than the browser's: a reader in another timezone must still see this
+  station's midnight, or "the coldest hour" names an hour that never happened
+  here.
+
+  Fixed locales, chosen for their output shape and never shown to anyone —
+  'en-CA' is ISO-ordered so the day key sorts lexicographically, and h23 keeps
+  midnight at 0 instead of 24. Neither follows the app's es-AR display locale on
+  purpose: these are identities, and an identity that changes with the language
+  switch would regroup the data underneath the reader.
+*/
+const HOUR_KEY = new Intl.DateTimeFormat('en-GB', {
+    timeZone: TIME_ZONE, hourCycle: 'h23', hour: '2-digit',
+});
+const DAY_KEY = new Intl.DateTimeFormat('en-CA', {
+    timeZone: TIME_ZONE, year: 'numeric', month: '2-digit', day: '2-digit',
+});
+
+/** Hour of the local day, 0-23. Null when the value cannot be parsed. */
+export const localHour = (value) => {
+    const date = toDate(value);
+    if (!date) return null;
+    const h = parseInt(HOUR_KEY.format(date), 10);
+    return isNaN(h) ? null : h;
+};
+
+/** YYYY-MM-DD in the station's zone, for grouping a series into local days. */
+export const localDayKey = (value) => {
+    const date = toDate(value);
+    return date ? DAY_KEY.format(date) : null;
+};
+
 // Number formatters vary by call site, so they are cached by their option set
 // rather than declared up front. Half a dozen distinct shapes exist in the app.
 const numberFormatters = new Map();

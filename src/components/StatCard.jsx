@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Maximize2 } from 'lucide-react';
 
 /**
  * A single headline reading.
@@ -35,7 +35,7 @@ import { ChevronDown } from 'lucide-react';
  * Only pressure passes it — the other three cards show the reading they were
  * handed, with nothing about it that needs explaining.
  */
-const StatCard = ({ title, value, unit, icon: Icon, color = 'blue', variants, activeVariant, onCycleVariant, note, footer, captionTip }) => {
+const StatCard = ({ title, value, unit, icon: Icon, color = 'blue', variants, activeVariant, onCycleVariant, note, footer, captionTip, onOpenDetail }) => {
     const { t } = useTranslation();
     const switchable = Array.isArray(variants) && variants.length > 1;
     const current = switchable
@@ -48,10 +48,33 @@ const StatCard = ({ title, value, unit, icon: Icon, color = 'blue', variants, ac
         : null;
 
     return (
-        <div className="stat-card">
+        <div className={`stat-card${onOpenDetail ? ' is-expandable' : ''}`}>
+            {/*
+              The whole card opens the detail view, and it does it through an
+              absolutely-positioned button behind the content rather than by
+              wrapping the card in one. The pressure card carries its own
+              controls, and a button inside a button is invalid HTML that screen
+              readers resolve inconsistently — this way the two never nest, and
+              the inner controls simply sit above it.
+
+              It is left empty and labelled instead of holding the card's text,
+              or the accessible name would be the whole card read aloud.
+            */}
+            {onOpenDetail && (
+                <button
+                    type="button"
+                    className="stat-card-open"
+                    onClick={onOpenDetail}
+                    aria-label={t('statCard.openDetail', { title })}
+                />
+            )}
             <div className="stat-header">
                 <span className="stat-title">{title}</span>
                 <div className="stat-header-right">
+                    {/* Decorative: the overlay button above already carries the
+                        name and the focus. This is the affordance that says the
+                        card does something, nothing more. */}
+                    {onOpenDetail && <Maximize2 className="stat-expand-hint" size={13} aria-hidden="true" />}
                     {switchable && (
                         <button
                             type="button"

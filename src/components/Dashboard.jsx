@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ComposedChart } from 'recharts';
 import { Thermometer, Droplets, Gauge, CloudRain, Battery, BatteryCharging, CheckCircle2, Moon, AlertTriangle, HelpCircle, Sun, Zap, Loader2, ChevronUp, ChevronDown, ChevronsUp, ChevronsDown, Minus } from 'lucide-react';
 import StatCard from './StatCard';
+import MetricModal from './MetricModal';
+import TemperatureDetail from './detail/TemperatureDetail';
 import ChartCrosshair, { CROSSHAIR_STROKE, CROSSHAIR_WIDTH, CROSSHAIR_DASH } from './ChartCrosshair';
 import { getRealTimeData, getDailyStats, getRecentHistory } from '../services/ApiService';
 import { formatTime, formatDayTime, formatDay, formatNumber, formatFixed } from '../utils/timezone';
@@ -90,6 +92,12 @@ const Dashboard = () => {
     const [history, setHistory] = useState([]);
     const [stats, setStats] = useState(null);
     const [timeRange, setTimeRange] = useState(24); // hours; see RANGES
+    /*
+      Which headline reading is expanded, or null. One at a time by construction
+      — the detail view is a modal, so a second one could not be seen anyway, and
+      a single value means closing is always the same operation.
+    */
+    const [openMetric, setOpenMetric] = useState(null);
 
     /*
       Past a day a bare HH:MM repeats itself once per day on the axis and in the
@@ -467,49 +475,28 @@ const Dashboard = () => {
     };
 
     /*
-      How much warmer or colder it is than it was a day ago, in the same footer
-      the extremes live in.
-
-      The backend hands over the reading, not the difference, and the subtraction
-      happens here on purpose: the reading a day old only changes when the
-      reference instant slides, which is once every 60 s with the stats poll,
-      while the live figure it is compared against moves every 3 s. Doing the
-      arithmetic on the backend would freeze the answer to the slower of the two
-      clocks and make the block visibly disagree with the headline right above
-      it — the same reasoning that folds the live reading into the extremes.
-
-      No colour, unlike the trend on the headline line. That one already carries
-      the diverging blue/red scale for this quantity, and a second coloured
-      reading of "warmer or colder" a few centimetres below it would compete with
-      the first for the same meaning. The sign does the work here; the footer
-      stays the neutral grey it is for the extremes.
-
-      The reference itself goes in the tooltip rather than on a third line. It is
-      worth having — a difference is unreadable without knowing what it is
-      against — but not worth the vertical space, and the app already answers
-      that kind of question with a native title.
+      One selector, rendered in two places. The detail views read the same
+      `history` the charts below draw from, so giving a modal its own range
+      control would mean either a second fetch of the same window or two
+      controls that silently disagree about which one is showing. Sharing the
+      state means changing the window anywhere changes it everywhere, which is
+      also the only answer that survives the modal being closed.
     */
-    const dayAgoFooter = (() => {
-        const ref = stats.temp24hAgo;
-        // The backend omits this rather than sending a zero when the station has
-        // nothing near that instant, and a missing live reading leaves nothing to
-        // subtract from. Either way there is no comparison to show, and half of
-        // one would read as a confident number.
-        if (!ref || typeof currentData.temperature !== 'number') return null;
-
-        const delta = currentData.temperature - ref.value;
-        return (
-            <div
-                className="stat-extreme stat-extreme-lead"
-                title={t('dayAgo.tip', { temp: formatReading(ref.value), time: ref.time })}
-            >
-                <span className="stat-extreme-label">{t('dayAgo.label')}</span>
-                <span className="stat-extreme-value">
-                    {formatNumber(delta, { digits: 1, minDigits: 1, sign: 'always' })} °C
-                </span>
-            </div>
-        );
-    })();
+    const rangeSelector = (
+        <div className="time-controls">
+            {RANGES.map(({ hours, label }) => (
+                <button
+                    key={hours}
+                    type="button"
+                    className="time-range-btn"
+                    aria-pressed={timeRange === hours}
+                    onClick={() => setTimeRange(hours)}
+                >
+                    {label}
+                </button>
+            ))}
+        </div>
+    );
 
     return (
         <div className="dashboard-container">
@@ -533,7 +520,15 @@ const Dashboard = () => {
                     icon={Thermometer}
                     color="#ff6b6b"
                     note={temperatureTrend}
-                    footer={<>{dayAgoFooter}{extremesFooter(stats.maxTemp, stats.minTemp, currentData.temperature, '°C')}</>}
+                    /*
+                      The extremes and the day-ago comparison used to live in a
+                      footer here. They moved into the detail view: this card is
+                      what you read without stopping, and a reading plus where it
+                      is heading is all that survives that test. Everything that
+                      asks you to compare two numbers wants room the card never
+                      had.
+                    */
+                    onOpenDetail={() => setOpenMetric('temperature')}
                 />
                 <StatCard
                     title={t('card.humidity')}
@@ -605,19 +600,7 @@ const Dashboard = () => {
             {/* Main Graphs */}
             <div className="section-header">
                 <h3>{t('section.trends')}</h3>
-                <div className="time-controls">
-                    {RANGES.map(({ hours, label }) => (
-                        <button
-                            key={hours}
-                            type="button"
-                            className="time-range-btn"
-                            aria-pressed={timeRange === hours}
-                            onClick={() => setTimeRange(hours)}
-                        >
-                            {label}
-                        </button>
-                    ))}
-                </div>
+                {rangeSelector}
             </div>
 
             <div className={`charts-grid${isHistoryLoading ? ' is-loading' : ''}`}>
@@ -780,6 +763,32 @@ const Dashboard = () => {
                 </div>
 
             </div>
+
+            {/*
+              One modal for whichever card was opened. It sits outside the two
+              sections because it belongs to neither — and because <dialog>
+              renders in the top layer regardless of where it is mounted, so its
+              position here is about which component owns the state, not about
+              where it appears.
+            */}
+            <MetricModal
+                open={openMetric === 'temperature'}
+                onClose={() => setOpenMetric(null)}
+                title={t('card.temperature')}
+                icon={Thermometer}
+                color="#ff6b6b"
+                toolbar={<>{temperatureTrend}{rangeSelector}</>}
+            >
+                <TemperatureDetail
+                    history={history}
+                    currentData={currentData}
+                    stats={stats}
+                    hours={timeRange}
+                    axisTimeFormat={axisTimeFormat}
+                    tooltipTimeFormat={tooltipTimeFormat}
+                    axisTickGap={axisTickGap}
+                />
+            </MetricModal>
         </div>
     );
 };

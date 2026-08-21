@@ -229,6 +229,7 @@ body {
 
 /* Stat Card */
 .stat-card {
+    position: relative;
     background: var(--glass-bg);
     backdrop-filter: blur(5px);
     border: 1px solid var(--glass-border);
@@ -236,6 +237,50 @@ body {
     padding: 1.5rem;
     box-shadow: var(--glass-shadow);
     transition: transform 0.2s;
+}
+
+/* The card's primary action, stretched behind its content. See StatCard for why
+   it is a sibling of the content rather than a wrapper around it. */
+.stat-card-open {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    padding: 0;
+    border: 0;
+    border-radius: inherit;
+    background: none;
+    cursor: pointer;
+}
+
+.stat-card-open:focus-visible {
+    outline: 2px solid #4dabf7;
+    outline-offset: 2px;
+}
+
+/* Everything the card draws sits above the overlay, so the pressure card's own
+   controls keep receiving their clicks. */
+.stat-card > *:not(.stat-card-open) {
+    position: relative;
+    z-index: 1;
+    pointer-events: none;
+}
+
+/* ...except the controls themselves, which have to take pointer events back.
+   The blanket rule above is what stops the headline text from swallowing a click
+   meant for the card. */
+.stat-card button:not(.stat-card-open),
+.stat-card a {
+    pointer-events: auto;
+}
+
+.stat-expand-hint {
+    color: #71717a;
+    transition: color 0.2s;
+}
+
+.stat-card.is-expandable:hover .stat-expand-hint,
+.stat-card.is-expandable:focus-within .stat-expand-hint {
+    color: #e4e4e7;
 }
 
 .stat-card:hover {
@@ -1996,4 +2041,200 @@ button.svc-tip:focus-visible {
 @keyframes svc-spin {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
+}
+
+/* ─── Metric detail modal ──────────────────────────────────────────────────
+   The expanded view of one headline reading. Sized to be roomy on a desktop and
+   to give up gracefully on a phone: `min` against both viewport axes so it never
+   grows past the screen, and the body scrolls inside rather than the page behind
+   it. */
+/* A flex column so the body is whatever is left after the header and toolbar,
+   rather than a calc() that has to be kept in step with their padding by hand. */
+.metric-modal {
+    display: flex;
+    flex-direction: column;
+    width: min(56rem, calc(100vw - 2rem));
+    max-height: min(90vh, 56rem);
+    padding: 0;
+    border-radius: 16px;
+    border: 1px solid var(--glass-border);
+    background: #131722;
+    color: #e4e4e7;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.65);
+    overflow: hidden;
+}
+
+/* dialog defaults to display:block when open; the flex column above only takes
+   effect once it is, so it has to be restated here. */
+.metric-modal[open] {
+    display: flex;
+}
+
+.metric-modal::backdrop {
+    background: rgba(5, 7, 12, 0.7);
+    backdrop-filter: blur(3px);
+}
+
+.metric-modal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--glass-border);
+    flex: 0 0 auto;
+}
+
+.metric-modal-title {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 600;
+}
+
+.metric-modal-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 8px;
+    border: 1px solid var(--glass-border);
+    background: rgba(255, 255, 255, 0.04);
+    color: #a1a1aa;
+    cursor: pointer;
+    transition: color 0.15s, background 0.15s;
+}
+
+.metric-modal-close:hover {
+    color: #e4e4e7;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.metric-modal-close:focus-visible {
+    outline: 2px solid #4dabf7;
+    outline-offset: 2px;
+}
+
+/* Trend on the left, range selector on the right; they wrap onto separate rows
+   before either one shrinks. Always on screen, because the charts run past a
+   screen and the range selector is wanted precisely while looking at the one
+   furthest down. */
+.metric-modal-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    padding: 0.7rem 1.25rem;
+    border-bottom: 1px solid var(--glass-border);
+    flex: 0 0 auto;
+}
+
+.metric-modal-body {
+    padding: 1rem 1.25rem 1.5rem;
+    overflow-y: auto;
+    flex: 1 1 auto;
+    /* Without this a flex item refuses to shrink below its content, so the body
+       would grow the dialog past its max-height instead of scrolling. */
+    min-height: 0;
+}
+
+/* auto-fit rather than a fixed count: this row carries four figures for
+   temperature and will carry a different number for every other reading, and
+   none of them should have to know what the grid looks like. */
+.metric-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.metric-stat {
+    padding: 0.7rem 0.85rem;
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.metric-stat-label {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #a1a1aa;
+}
+
+.metric-stat-value {
+    margin-top: 0.25rem;
+    font-size: 1.5rem;
+    font-weight: 600;
+    line-height: 1.1;
+}
+
+.metric-stat-unit {
+    margin-left: 0.15rem;
+    font-size: 0.85rem;
+    font-weight: 400;
+    color: #a1a1aa;
+}
+
+.metric-stat-when {
+    margin-top: 0.2rem;
+    font-size: 0.75rem;
+    color: #71717a;
+}
+
+.metric-section {
+    margin: 0 0 0.5rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #e4e4e7;
+}
+
+.metric-note {
+    margin: 0 0 0.75rem;
+    font-size: 0.8rem;
+    color: #a1a1aa;
+}
+
+.metric-empty {
+    padding: 2rem 0;
+    text-align: center;
+    color: #a1a1aa;
+}
+
+.metric-chart {
+    height: 260px;
+    margin-bottom: 1.5rem;
+}
+
+.metric-chart-short {
+    height: 200px;
+}
+
+@media (max-width: 600px) {
+    .metric-modal {
+        width: 100vw;
+        max-width: 100vw;
+        max-height: 100vh;
+        border-radius: 0;
+        border: 0;
+    }
+
+    .metric-modal-body {
+        padding: 0.85rem 0.9rem 1.25rem;
+    }
+
+    .metric-modal-toolbar {
+        padding: 0.6rem 0.9rem;
+    }
+
+    .metric-chart {
+        height: 220px;
+    }
 }

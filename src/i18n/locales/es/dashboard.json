@@ -48,6 +48,14 @@
     "rising": "▲ {{mvh}} mV/h en las últimas 2 h",
     "falling": "▼ {{mvh}} mV/h en las últimas 2 h"
   },
+  "pressureTrend": {
+    "fallingFast": "Cayendo rápido",
+    "falling": "Bajando",
+    "steady": "Estable",
+    "rising": "Subiendo",
+    "risingFast": "Subiendo rápido",
+    "tip": "Cuánto cambió la presión en las últimas 3 horas, ya descontada la marea atmosférica — el ciclo diario de ~3 hPa que sube y baja todos los días a la misma hora sin que cambie el tiempo. Sin descontarla, este indicador diría «bajando» todas las tardes. Menos de ±1 hPa/3h se considera estable; más de ±2,5 hPa/3h, rápido."
+  },
   "trend": {
     "coolingFast": "Enfriando rápido",
     "cooling": "Enfriando",
@@ -105,6 +113,12 @@
       "series": "Humedad",
       "wet": "Aire húmedo",
       "wetNote": "del tiempo al {{threshold}} % o más"
+    },
+    "pressure": {
+      "series": "Presión",
+      "modeAria": "Marco de referencia de la presión",
+      "tideTitle": "La marea atmosférica",
+      "tideIntro": "Cuánto se aparta cada hora local de la media de su propio día. Restar la media diaria es lo que separa la marea del tiempo: un día bajo un frente está bajo todo el día y no dice nada sobre qué horas corren altas. Lo que queda es el ciclo solar de la atmósfera, y es el mismo que se le descuenta a la tendencia de la tarjeta."
     },
     "dew": {
       "series": "Punto de rocío",

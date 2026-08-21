@@ -324,23 +324,10 @@ body {
     gap: 0.35rem;
 }
 
-.stat-variant-btn {
-    display: flex;
-    align-items: center;
-    padding: 2px;
-    border: none;
-    border-radius: 4px;
-    background: transparent;
-    color: #71717a;
-    cursor: pointer;
-    transition: color 0.2s, background 0.2s;
-}
-
-.stat-variant-btn:hover {
-    color: #e4e4e7;
-    background: rgba(255, 255, 255, 0.1);
-}
-
+/* A label, not a control. It was a button while the pressure card carried its
+   own QNH/station switch; that moved into the detail view, so the pointer cursor
+   and the hover lift went with it — an element that reacts to the mouse without
+   doing anything is a promise the card cannot keep. */
 .stat-caption {
     display: block;
     margin-top: 0.15rem;
@@ -351,21 +338,8 @@ body {
     font-size: 0.75rem;
     color: #71717a;
     text-align: left;
-    cursor: pointer;
-    transition: color 0.2s;
 }
 
-.stat-caption:hover {
-    color: #a1a1aa;
-}
-
-/* Keyboard users get the affordance the mouse gets on hover. */
-.stat-variant-btn:focus-visible,
-.stat-caption:focus-visible {
-    outline: 2px solid #4dabf7;
-    outline-offset: 2px;
-    color: #e4e4e7;
-}
 
 /* Live-data section header and its range selector */
 .section-header {
@@ -2206,6 +2180,17 @@ button.svc-tip:focus-visible {
     margin-top: 0.2rem;
     font-size: 0.75rem;
     color: #71717a;
+}
+
+/* The QNH / station switch, in the detail view where it has room. Reuses the
+   range buttons' own styling — it is the same kind of control making the same
+   kind of choice, and giving it a look of its own would say the two are
+   different mechanisms. */
+.metric-modes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 1rem;
 }
 
 /* Today's high and low. A quiet line rather than more tiles: it is a different

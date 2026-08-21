@@ -1,61 +1,45 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChevronDown, Maximize2 } from 'lucide-react';
+import { Maximize2 } from 'lucide-react';
 
 /**
- * A single headline reading.
+ * A single headline reading on the dashboard.
  *
- * `variants` turns the card into a switchable one: pass a list of
- * `{ key, value, unit, caption }` and the card renders one of them plus an
- * affordance to cycle to the next. Left out, the card behaves exactly as before
- * — the other three on the dashboard never pass it.
+ * The card carries what has to be legible at a glance and nothing else: the
+ * figure, what it is, and — through `note` — where it is heading. Everything
+ * that asks the reader to compare two numbers lives in the detail view behind
+ * `onOpenDetail`, which is what emptied these cards of their footers.
  *
- * The switch is deliberately quiet. Only pressure needs it, and only rarely:
- * the sea-level figure is the one anybody reads, and the station reading is for
- * the odd occasion someone wants to see what the sensor actually measured. So
- * it earns a caption and a small chevron, not a segmented control that would
- * imply the two are equally likely choices.
+ * `caption` is a quiet label under the figure, for a number that cannot be read
+ * without knowing which of two things it is. Only pressure needs one: 923 hPa
+ * and 1014 hPa are both plausible barometric pressures, so a reader who glances
+ * at the figure without noticing whether it is the station reading or QNH has no
+ * way to tell them apart. `captionTip` explains what the number *is*, and rides
+ * on the caption because that is the element already claiming to describe it.
  *
- * The caption carries the meaning, not the position of a switch: 923 hPa and
- * 1014 hPa are both plausible-looking pressures, so a reader who glances at the
- * number without noticing which mode is active would have no way to tell them
- * apart. That is the same rule the service view follows for colour — the state
- * always says what it is in words.
+ * This used to host a `variants` mechanism that let the pressure card cycle
+ * between those two readings in place. It was the card's only user, and the
+ * switch has moved into the detail view where a real control fits — so the
+ * mechanism went with it rather than staying as an unused parameter. That also
+ * left every card with exactly one thing a click can mean, which is what makes
+ * the whole-card target below safe.
  *
- * `note` and `footer` are open slots for context about the same quantity — the
- * temperature card puts its trend in one and today's extremes in the other. They
+ * `note` and `footer` are open slots for context about the same quantity. They
  * take nodes rather than a fixed shape because the card has no business knowing
- * what a daily extreme or a trend band is; it only knows there is a line right
- * under the headline and a quieter block below a rule.
- *
- * `captionTip` explains what the number *is*, and rides on the caption because
- * that is the element already claiming to describe it. It is added to the
- * caption's tooltip rather than replacing it: "click to see the other one" is
- * still true and still worth saying, so the two thoughts sit on separate lines.
- * Only pressure passes it — the other three cards show the reading they were
- * handed, with nothing about it that needs explaining.
+ * what a trend band is; it only knows there is a line right under the headline
+ * and a quieter block below a rule.
  */
-const StatCard = ({ title, value, unit, icon: Icon, color = 'blue', variants, activeVariant, onCycleVariant, note, footer, captionTip, onOpenDetail }) => {
+const StatCard = ({ title, value, unit, icon: Icon, color = 'blue', note, footer, caption, captionTip, onOpenDetail }) => {
     const { t } = useTranslation();
-    const switchable = Array.isArray(variants) && variants.length > 1;
-    const current = switchable
-        ? variants.find((v) => v.key === activeVariant) ?? variants[0]
-        : null;
-
-    const shown = current ?? { value, unit, caption: null };
-    const next = switchable
-        ? variants[(variants.findIndex((v) => v.key === shown.key) + 1) % variants.length]
-        : null;
 
     return (
         <div className={`stat-card${onOpenDetail ? ' is-expandable' : ''}`}>
             {/*
               The whole card opens the detail view, and it does it through an
               absolutely-positioned button behind the content rather than by
-              wrapping the card in one. The pressure card carries its own
-              controls, and a button inside a button is invalid HTML that screen
-              readers resolve inconsistently — this way the two never nest, and
-              the inner controls simply sit above it.
+              wrapping the card in one. A button inside a button is invalid HTML
+              that screen readers resolve inconsistently, and this way nothing
+              ever nests even if a card grows a control of its own later.
 
               It is left empty and labelled instead of holding the card's text,
               or the accessible name would be the whole card read aloud.
@@ -75,17 +59,6 @@ const StatCard = ({ title, value, unit, icon: Icon, color = 'blue', variants, ac
                         name and the focus. This is the affordance that says the
                         card does something, nothing more. */}
                     {onOpenDetail && <Maximize2 className="stat-expand-hint" size={13} aria-hidden="true" />}
-                    {switchable && (
-                        <button
-                            type="button"
-                            className="stat-variant-btn"
-                            onClick={() => onCycleVariant?.(next.key)}
-                            title={t('statCard.view', { caption: next.caption })}
-                            aria-label={t('statCard.switchTo', { next: next.caption, current: shown.caption })}
-                        >
-                            <ChevronDown size={14} aria-hidden="true" />
-                        </button>
-                    )}
                     {Icon && <Icon size={20} color={color} />}
                 </div>
             </div>
@@ -98,19 +71,14 @@ const StatCard = ({ title, value, unit, icon: Icon, color = 'blue', variants, ac
             */}
             <div className="stat-headline">
                 <div className="stat-value">
-                    {shown.value} <span className="stat-unit">{shown.unit}</span>
+                    {value} <span className="stat-unit">{unit}</span>
                 </div>
                 {note && <div className="stat-note">{note}</div>}
             </div>
-            {shown.caption && (
-                <button
-                    type="button"
-                    className="stat-caption"
-                    onClick={() => onCycleVariant?.(next.key)}
-                    title={[captionTip, t('statCard.view', { caption: next.caption })].filter(Boolean).join('\n\n')}
-                >
-                    {shown.caption}
-                </button>
+            {caption && (
+                <div className="stat-caption" title={captionTip || undefined}>
+                    {caption}
+                </div>
             )}
             {footer && <div className="stat-footer">{footer}</div>}
         </div>

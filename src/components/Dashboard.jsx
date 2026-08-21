@@ -7,6 +7,7 @@ import MetricModal from './MetricModal';
 import TemperatureDetail from './detail/TemperatureDetail';
 import HumidityDetail from './detail/HumidityDetail';
 import DewPointDetail from './detail/DewPointDetail';
+import PressureDetail from './detail/PressureDetail';
 import ChartCrosshair, { CROSSHAIR_STROKE, CROSSHAIR_WIDTH, CROSSHAIR_DASH } from './ChartCrosshair';
 import { getRealTimeData, getDailyStats, getRecentHistory } from '../services/ApiService';
 import { formatTime, formatDayTime, formatDay, formatNumber, formatFixed } from '../utils/timezone';
@@ -51,6 +52,23 @@ const TREND_UI = {
     steady: { color: '#a1a1aa', Icon: Minus },
     warming: { color: '#ffa94d', Icon: ChevronUp },
     warmingFast: { color: '#ff6b6b', Icon: ChevronsUp },
+};
+
+/*
+  The barometric tendency, keyed by the band internal/pressuretrend sends.
+
+  Diverging like the temperature scale and using the same chevrons, so the two
+  indicators read the same way — but not the same hues, because a falling
+  barometer is not a cold one. Amber for falling and blue for rising follows the
+  barometer's own convention: the falling side is the one that precedes weather,
+  so it gets the warmer, more urgent ink.
+*/
+const PRESSURE_TREND_UI = {
+    fallingFast: { color: '#ff6b6b', Icon: ChevronsDown },
+    falling: { color: '#ffa94d', Icon: ChevronDown },
+    steady: { color: '#a1a1aa', Icon: Minus },
+    rising: { color: '#74c0fc', Icon: ChevronUp },
+    risingFast: { color: '#4dabf7', Icon: ChevronsUp },
 };
 
 const RANGES = [
@@ -335,10 +353,47 @@ const Dashboard = () => {
     // utils/timezone.js for why a four-digit pressure must not carry a separator.
     const formatPressure = (val) => formatNumber(val, { digits: 2, minDigits: 2, grouping: false });
 
-    const pressureVariants = currentData.pressureQnh == null ? null : [
-        { key: 'qnh', value: formatPressure(currentData.pressureQnh), unit: 'hPa', caption: t('pressure.qnh') },
-        { key: 'station', value: formatPressure(currentData.pressure), unit: 'hPa', caption: t('pressure.station') },
-    ];
+    /*
+      Which of the two pressures the card shows. The preference is the reader's
+      and persists; what forces the hand is the payload — the node leaves
+      pressureQnh out when the BMP085 read fails, and a card showing a blank
+      because of a stored preference would be worse than one that quietly falls
+      back to the reading it does have.
+    */
+    const showQnh = pressureMode === 'qnh' && currentData.pressureQnh != null;
+    const shownPressure = showQnh ? currentData.pressureQnh : currentData.pressure;
+
+    /*
+      The barometric tendency, keyed by the band the backend sends — see
+      internal/pressuretrend. Same diverging shape as the temperature trend and
+      the same chevrons, because it answers the same kind of question; the hues
+      differ because falling pressure is not "cold".
+
+      Amber for falling and blue for rising is the barometer's own convention:
+      pressure dropping is the side that precedes weather. It is still never the
+      colour alone — the word and the chevron carry it, and the doubled chevron
+      carries the fast bands.
+    */
+    const pressureTrend = (() => {
+        const band = stats?.pressureTrend;
+        if (!band) return null;
+        const ui = PRESSURE_TREND_UI[band];
+        if (!ui) return null;
+
+        const { color, Icon } = ui;
+        const change = stats?.pressureChangeHPa3h;
+        return (
+            <span className="stat-trend" style={{ color }} title={t('pressureTrend.tip')}>
+                <Icon size={16} aria-hidden="true" />
+                {t(`pressureTrend.${band}`)}
+                {change != null && (
+                    <span className="stat-trend-rate">
+                        ({formatNumber(change, { digits: 1, minDigits: 1, sign: 'always' })} hPa/3h)
+                    </span>
+                )}
+            </span>
+        );
+    })();
 
     /*
       Day boundaries, drawn as vertical rules so an overnight curve can be read
@@ -507,14 +562,14 @@ const Dashboard = () => {
                 />
                 <StatCard
                     title={t('card.pressure')}
-                    value={formatPressure(currentData.pressure)}
+                    value={formatPressure(shownPressure)}
                     unit="hPa"
                     icon={Gauge}
                     color="#ffd43b"
-                    variants={pressureVariants}
-                    activeVariant={pressureMode}
-                    onCycleVariant={setPressureMode}
+                    note={pressureTrend}
+                    caption={t(`pressure.${showQnh ? 'qnh' : 'station'}`)}
                     captionTip={t('pressure.tip')}
+                    onOpenDetail={() => setOpenMetric('pressure')}
                 />
                 <StatCard
                     title={t('card.dewPoint')}
@@ -790,6 +845,39 @@ const Dashboard = () => {
                 <DewPointDetail
                     history={history}
                     hours={timeRange}
+                    axisTimeFormat={axisTimeFormat}
+                    tooltipTimeFormat={tooltipTimeFormat}
+                    axisTickGap={axisTickGap}
+                />
+            </MetricModal>
+
+            <MetricModal
+                open={openMetric === 'pressure'}
+                onClose={() => setOpenMetric(null)}
+                title={t('card.pressure')}
+                icon={Gauge}
+                color="#ffd43b"
+                toolbar={rangeSelector}
+                loading={isHistoryLoading}
+            >
+                <PressureDetail
+                    history={history}
+                    stats={stats}
+                    hours={timeRange}
+                    mode={showQnh ? 'qnh' : 'station'}
+                    onModeChange={setPressureMode}
+                    hasQnh={currentData.pressureQnh != null}
+                    /*
+                      The altitude correction, taken from the one instant the node
+                      reports both figures for. It is what lets the stored station
+                      series be redrawn at sea level without a second series
+                      existing to disagree with it.
+                    */
+                    qnhOffset={
+                        currentData.pressureQnh != null && typeof currentData.pressure === 'number'
+                            ? currentData.pressureQnh - currentData.pressure
+                            : null
+                    }
                     axisTimeFormat={axisTimeFormat}
                     tooltipTimeFormat={tooltipTimeFormat}
                     axisTickGap={axisTickGap}

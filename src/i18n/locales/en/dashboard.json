@@ -48,6 +48,14 @@
     "rising": "▲ {{mvh}} mV/h over the last 2 h",
     "falling": "▼ {{mvh}} mV/h over the last 2 h"
   },
+  "pressureTrend": {
+    "fallingFast": "Falling fast",
+    "falling": "Falling",
+    "steady": "Steady",
+    "rising": "Rising",
+    "risingFast": "Rising fast",
+    "tip": "How much the pressure has changed over the last 3 hours, with the atmospheric tide already removed — the ~3 hPa daily cycle that rises and falls at the same hours every day with no change in the weather. Left in, this indicator would read “falling” every afternoon. Under ±1 hPa/3h counts as steady, over ±2.5 hPa/3h as fast."
+  },
   "trend": {
     "coolingFast": "Cooling fast",
     "cooling": "Cooling",
@@ -105,6 +113,12 @@
       "series": "Humidity",
       "wet": "Damp air",
       "wetNote": "of the window at {{threshold}} % or above"
+    },
+    "pressure": {
+      "series": "Pressure",
+      "modeAria": "Pressure reference frame",
+      "tideTitle": "The atmospheric tide",
+      "tideIntro": "How far each local hour departs from its own day's mean. Removing the daily mean is what separates the tide from the weather: a day under a front is low all day and says nothing about which hours run high. What is left is the atmosphere's solar cycle — the same one subtracted from the tendency on the card."
     },
     "dew": {
       "series": "Dew point",

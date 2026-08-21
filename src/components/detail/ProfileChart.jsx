@@ -26,16 +26,33 @@ const TOOLTIP = {
  * Shared across the readings because the question is the same for all of them
  * and only the units change.
  */
-const ProfileChart = ({ profile, hours, color, unit, digits = 1, domain }) => {
+const ProfileChart = ({
+    profile, hours, color, unit, digits = 1, domain, intro, tickDigits = 0,
+    // Off for a curve that does not come from the selected window. The pressure
+    // tide is served by the backend from four months of history — it neither
+    // improves with a wider range here nor degrades with a narrower one, so
+    // gating it on the selector would be answering a question nobody asked.
+    requireRange = true,
+}) => {
     const { t } = useTranslation('dashboard');
 
-    if (hours < PROFILE_MIN_HOURS) {
+    if (requireRange && hours < PROFILE_MIN_HOURS) {
         return <p className="metric-note">{t('detail.profileNeedsRange')}</p>;
     }
+    if (!profile?.length) {
+        return <p className="metric-note">{t('detail.noData')}</p>;
+    }
+
+    const hasEnvelope = profile.some((p) => Array.isArray(p.envelope));
 
     return (
         <>
-            <p className="metric-note">{t('detail.profileIntro')}</p>
+            {/* `intro` overrides the default because not every profile answers
+                the same question. The pressure one plots each hour's deviation
+                from its own day's mean rather than an absolute reading, and a
+                caption saying "averaged across the window" would describe the
+                wrong quantity. */}
+            <p className="metric-note">{intro ?? t('detail.profileIntro')}</p>
             <div className="metric-chart metric-chart-short">
                 <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart data={profile} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
@@ -47,7 +64,7 @@ const ProfileChart = ({ profile, hours, color, unit, digits = 1, domain }) => {
                         <XAxis dataKey="label" stroke="#ffffff66" tick={{ fontSize: 11 }} interval={2} />
                         <YAxis
                             stroke="#ffffff66" tick={{ fontSize: 11 }} width={52} domain={domain}
-                            tickFormatter={(v) => `${formatFixed(v, 0)}${unit}`}
+                            tickFormatter={(v) => `${formatFixed(v, tickDigits)}${unit}`}
                         />
                         <Tooltip
                             {...TOOLTIP}
@@ -63,11 +80,17 @@ const ProfileChart = ({ profile, hours, color, unit, digits = 1, domain }) => {
                             with a dot — the same mark the mean gets, in the same hue.
                             Two identical swatches label two things that look nothing
                             alike on the chart. */}
-                        <Area
-                            type="monotone" dataKey="envelope" name={t('detail.profileRange')}
-                            stroke="none" fill={color} fillOpacity={0.18}
-                            legendType="rect" isAnimationActive={false}
-                        />
+                        {/* Only when the profile carries one. A climatology is a
+                            mean and nothing else — drawing a band around it from
+                            some other source would be attaching a spread to a
+                            figure that does not have one. */}
+                        {hasEnvelope && (
+                            <Area
+                                type="monotone" dataKey="envelope" name={t('detail.profileRange')}
+                                stroke="none" fill={color} fillOpacity={0.18}
+                                legendType="rect" isAnimationActive={false}
+                            />
+                        )}
                         <Line
                             type="monotone" dataKey="mean" name={t('detail.profileMean')}
                             stroke={color} strokeWidth={2.2} dot={false}

@@ -164,10 +164,31 @@ const TemperatureDetail = ({
                 {stat('max', formatFixed(max.temperature, 1), '°C', formatDayTime(max.uniqueTime), ArrowUp, TEMP)}
                 {stat('min', formatFixed(min.temperature, 1), '°C', formatDayTime(min.uniqueTime), ArrowDown, '#4dabf7')}
                 {stat('mean', formatFixed(mean, 1), '°C', null)}
-                {meanSwing != null && stat(
-                    'swing', formatFixed(meanSwing, 1), '°C',
-                    t('detail.temp.swingOver', { count: completeDays }),
-                )}
+                {/*
+                  Two different questions wearing one tile, and the label says
+                  which one is being answered.
+
+                  With whole days to average, "daily swing" is a climate figure:
+                  how much a day here typically moves. Without them it falls back
+                  to the plain span of the window, which is a fact about this
+                  window and nothing more — worth showing, because subtracting the
+                  two tiles to its left in your head is friction for a number
+                  people actually want, but not worth calling "daily" when it
+                  covers six hours.
+
+                  Two whole days rather than one, because a mean over a single
+                  day is that day, and "averaged over 1 day" invites the reader to
+                  trust it as a typical value.
+                */}
+                {completeDays >= 2
+                    ? stat(
+                        'swing', formatFixed(meanSwing, 1), '°C',
+                        t('detail.temp.swingOver', { count: completeDays }),
+                    )
+                    : stat(
+                        'span', formatFixed(max.temperature - min.temperature, 1), '°C',
+                        t('detail.temp.spanNote'),
+                    )}
                 {dayAgo != null && stat(
                     'dayAgo', formatNumber(dayAgo, { digits: 1, minDigits: 1, sign: 'always' }), '°C',
                     t('detail.temp.dayAgoRef', { temp: formatFixed(ref.value, 1) }),

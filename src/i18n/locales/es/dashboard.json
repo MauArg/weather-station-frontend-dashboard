@@ -90,6 +90,8 @@
       "swing": "Amplitud diaria",
       "swingOver_one": "promedio de {{count}} día",
       "swingOver_other": "promedio de {{count}} días",
+      "span": "Amplitud",
+      "spanNote": "de máxima a mínima en la ventana",
       "dayAgo": "Dif. 24 h",
       "dayAgoRef": "marcaba {{temp}} °C",
       "seriesTitle": "En la ventana",

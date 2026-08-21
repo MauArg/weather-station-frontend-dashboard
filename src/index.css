@@ -2049,9 +2049,15 @@ button.svc-tip:focus-visible {
    grows past the screen, and the body scrolls inside rather than the page behind
    it. */
 /* A flex column so the body is whatever is left after the header and toolbar,
-   rather than a calc() that has to be kept in step with their padding by hand. */
+   rather than a calc() that has to be kept in step with their padding by hand.
+
+   ⚠️ `display` belongs on the [open] rule below and NOWHERE else. A closed
+   <dialog> is hidden by the user-agent rule `dialog:not([open]) {display:none}`,
+   and any author `display` here beats it — origin wins over specificity — so the
+   dialog stays laid out after it closes. What that looks like is a stripped
+   header and an empty body floating over the page with no backdrop, because the
+   children are gone but the chrome is not. */
 .metric-modal {
-    display: flex;
     flex-direction: column;
     width: min(56rem, calc(100vw - 2rem));
     max-height: min(90vh, 56rem);
@@ -2064,8 +2070,7 @@ button.svc-tip:focus-visible {
     overflow: hidden;
 }
 
-/* dialog defaults to display:block when open; the flex column above only takes
-   effect once it is, so it has to be restated here. */
+/* The only place this element is given a display. See the warning above. */
 .metric-modal[open] {
     display: flex;
 }

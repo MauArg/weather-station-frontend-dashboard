@@ -90,6 +90,8 @@
       "swing": "Daily swing",
       "swingOver_one": "averaged over {{count}} day",
       "swingOver_other": "averaged over {{count}} days",
+      "span": "Swing",
+      "spanNote": "high to low over the window",
       "dayAgo": "24 h change",
       "dayAgoRef": "was {{temp}} °C",
       "seriesTitle": "Over the window",

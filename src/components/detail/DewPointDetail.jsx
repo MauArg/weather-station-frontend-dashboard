@@ -141,17 +141,19 @@ const DewPointDetail = ({
                     when={formatDayTime(s.min.uniqueTime)} icon={ArrowDown} color={COLD}
                 />
                 <StatTile label={t('detail.mean')} value={formatFixed(s.mean, 1)} unit="°C" />
-                {s.completeDays >= 2 ? (
-                    <StatTile
-                        label={t('detail.swing')} value={formatFixed(s.meanSwing, 1)} unit="°C"
-                        when={t('detail.swingOver', { count: s.completeDays })}
-                    />
-                ) : (
-                    <StatTile
-                        label={t('detail.span')} value={formatFixed(s.windowSwing, 1)} unit="°C"
-                        when={t('detail.spanNote')}
-                    />
-                )}
+                {/*
+                  No daily-swing tile here, unlike the temperature and humidity
+                  views, and it is not only to keep the row from wrapping to a
+                  single orphan.
+
+                  Temperature swings because the sun rises and sets, so "how much
+                  does a day here move" is a real property of the place. The dew
+                  point is a property of the air mass sitting over the station,
+                  and it changes when the weather changes rather than on a daily
+                  cycle — its swing mostly measures whether a front happened to
+                  cross during the window. The two readings the tiles below carry
+                  say far more about this quantity than an average of that.
+                */}
                 {nearFraction != null && (
                     <StatTile
                         label={t('detail.dew.near')} value={formatFixed(nearFraction * 100, 0)} unit="%"

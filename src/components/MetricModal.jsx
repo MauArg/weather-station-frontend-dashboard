@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { X } from 'lucide-react';
+import { Loader2, X } from 'lucide-react';
 
 /**
  * The expanded view of a single headline reading.
@@ -24,7 +24,7 @@ import { X } from 'lucide-react';
  * tabs hit this exact wall and solved it the same way. It also means no detail
  * view computes anything until someone asks to see it.
  */
-const MetricModal = ({ open, onClose, title, icon: Icon, color, toolbar, children }) => {
+const MetricModal = ({ open, onClose, title, icon: Icon, color, toolbar, loading, children }) => {
     const { t } = useTranslation();
     const ref = useRef(null);
 
@@ -73,8 +73,36 @@ const MetricModal = ({ open, onClose, title, icon: Icon, color, toolbar, childre
               visible, which is what "sticky" was reaching for, with no stacking
               context to get wrong.
             */}
-            {open && toolbar && <div className="metric-modal-toolbar">{toolbar}</div>}
-            <div className="metric-modal-body">
+            {open && toolbar && (
+                <div className="metric-modal-toolbar">
+                    {toolbar}
+                    {/*
+                      The wait lives in the toolbar rather than as an overlay over
+                      the content, because the toolbar is the only part of this
+                      view guaranteed to be on screen: the body scrolls, and a
+                      spinner pinned inside it disappears the moment the reader is
+                      looking at the second chart. It also sits where the click
+                      that started the wait landed.
+
+                      A longer range is 3-5 s against the Pi, so without this the
+                      range button latches and nothing else happens — which reads
+                      as a dead control rather than as a fetch.
+                    */}
+                    {loading && (
+                        <div className="metric-modal-wait" role="status" aria-label={t('loadingData')}>
+                            <Loader2 className="animate-spin" size={16} aria-hidden="true" />
+                        </div>
+                    )}
+                </div>
+            )}
+            {/*
+              The content stays put and dims rather than being replaced by a
+              placeholder. Everything on screen is still true — it is the previous
+              window, drawn from data that really arrived — and swapping it for an
+              empty frame would throw away a correct answer to show nothing. It is
+              the same choice the charts below the dashboard make.
+            */}
+            <div className={`metric-modal-body${loading ? ' is-loading' : ''}`}>
                 {open && children}
             </div>
         </dialog>

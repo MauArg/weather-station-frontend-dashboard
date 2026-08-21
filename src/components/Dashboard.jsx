@@ -20,9 +20,17 @@ import toast from 'react-hot-toast';
 
   Nothing above 24 h needed a backend change: the handler accepts any positive
   `hours`, and the Flux query already aggregates into 15-minute windows, so 14 d
-  is 1344 points rather than the raw sample count. Measured against the Pi: 673
-  points and 3.7 s for 7 d, 1344 points and 4.7 s for 14 d. That wait is the
-  reason the charts got their own loading state — see below.
+  is 1345 points rather than the raw sample count. That wait is the reason the
+  charts got their own loading state — see below — and the detail modals get a
+  spinner of their own.
+
+  Measured against the Pi: 673 points and 3.7 s for 7 d, 1344 points and 4.7 s
+  for 14 d when this was written; 1345 points and 7.7 s for 14 d on 2026-08-21.
+  Both figures kept, because the interesting part is the direction: the point
+  count is flat — the 15-minute window fixes it — while the time is not, so what
+  grew is the scan behind the aggregation and not the payload. The window is
+  hardcoded at "15m" regardless of `hours`, which is the thing to revisit if this
+  keeps climbing.
 */
 /*
   The temperature trend, keyed by the band the backend sends — see
@@ -736,6 +744,7 @@ const Dashboard = () => {
                 icon={Thermometer}
                 color="#ff6b6b"
                 toolbar={<>{temperatureTrend}{rangeSelector}</>}
+                loading={isHistoryLoading}
             >
                 <TemperatureDetail
                     history={history}
@@ -755,6 +764,7 @@ const Dashboard = () => {
                 icon={Droplets}
                 color="#4dabf7"
                 toolbar={rangeSelector}
+                loading={isHistoryLoading}
             >
                 <HumidityDetail
                     history={history}

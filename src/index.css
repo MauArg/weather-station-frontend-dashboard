@@ -2138,6 +2138,20 @@ button.svc-tip:focus-visible {
     flex: 0 0 auto;
 }
 
+.metric-modal-wait {
+    display: inline-flex;
+    align-items: center;
+    color: #4dabf7;
+}
+
+/* The content dims while a new window is on its way. Everything on screen is
+   still true — it is the previous range, really measured — so it stays legible
+   rather than being replaced by an empty frame. */
+.metric-modal-body.is-loading > * {
+    opacity: 0.4;
+    transition: opacity 0.2s ease;
+}
+
 .metric-modal-body {
     padding: 1rem 1.25rem 1.5rem;
     overflow-y: auto;

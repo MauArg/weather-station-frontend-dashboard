@@ -30,6 +30,7 @@
   "metricModal": {
     "close": "Cerrar"
   },
+  "loadingData": "Cargando datos…",
   "unknown": "desconocido",
   "confirm": "Confirmar",
   "cancel": "Cancelar",

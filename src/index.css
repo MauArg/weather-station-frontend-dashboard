@@ -2194,6 +2194,43 @@ button.svc-tip:focus-visible {
     color: #71717a;
 }
 
+/* Today's high and low. A quiet line rather than more tiles: it is a different
+   scope from the row above it, and structure carries that better than two more
+   labels ending in "today". Wraps part-by-part on a phone. */
+.metric-today {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.4rem 1.1rem;
+    margin: -0.75rem 0 1.5rem;
+    padding: 0.55rem 0.85rem;
+    border-left: 2px solid var(--glass-border);
+    font-size: 0.85rem;
+    color: #a1a1aa;
+}
+
+.metric-today-scope {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #71717a;
+}
+
+.metric-today-part {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.metric-today-part strong {
+    color: #e4e4e7;
+    font-weight: 600;
+}
+
+.metric-today-at {
+    color: #71717a;
+}
+
 .metric-section {
     margin: 0 0 0.5rem;
     font-size: 0.9rem;

@@ -5,6 +5,7 @@ import { Thermometer, Droplets, Gauge, CloudRain, Battery, BatteryCharging, Chec
 import StatCard from './StatCard';
 import MetricModal from './MetricModal';
 import TemperatureDetail from './detail/TemperatureDetail';
+import HumidityDetail from './detail/HumidityDetail';
 import ChartCrosshair, { CROSSHAIR_STROKE, CROSSHAIR_WIDTH, CROSSHAIR_DASH } from './ChartCrosshair';
 import { getRealTimeData, getDailyStats, getRecentHistory } from '../services/ApiService';
 import { formatTime, formatDayTime, formatDay, formatNumber, formatFixed } from '../utils/timezone';
@@ -211,12 +212,16 @@ const Dashboard = () => {
           midnight, unaggregated — about 110 ms by mid-afternoon and growing
           through the day. At 3 s that is a full day's scan running continuously
           for a figure that cannot move faster than telemetry arrives, which is
-          once a minute. The card still reacts instantly to a new record; see the
-          fold in extremesFooter, which is what makes a minute here invisible.
+          once a minute.
 
-          What the minute actually bounds is the midnight reset, the one case the
-          fold cannot cover: extending a maximum is something a live reading can
-          do on its own, but dropping back to a new day's is not.
+          A minute of staleness used to be invisible because the cards folded the
+          live reading into the pair before drawing them. That fold is gone with
+          the cards' footers: today's extremes now live in the detail views, which
+          are open only while someone is looking at them, and a minute-old high in
+          a view you deliberately opened reads as what it is. What still has no
+          cheaper answer is the midnight reset — extending a maximum is something
+          a live reading can do on its own, dropping back to a new day's is not —
+          and that is what this interval is really for.
         */
         const statsInterval = setInterval(async () => {
             try {
@@ -428,53 +433,6 @@ const Dashboard = () => {
     })();
 
     /*
-      The live reading is folded into the pair before they are drawn, so the
-      card cannot contradict itself.
-
-      Without it the headline and the footer answer to different clocks — the
-      reading every 3 s, the extremes every 60 — and for up to a minute either
-      side of a new record the card reads "8,92 °C" above "High today 8,87 °C".
-      That is not a stale figure, it is an impossible one, and it appears exactly
-      at the daily peak, which is when someone is most likely to be looking.
-
-      This is not a guess at what the backend will say: an extreme *is* the
-      furthest reading of the day, so a reading beyond it has already changed the
-      answer. The fold is running the same comparison the backend runs, one
-      sample earlier. It can only ever widen the pair, never narrow it, so it
-      cannot erase a real extreme that the current reading happens to sit inside
-      — including the one case it must not touch, the reset at local midnight,
-      which is left to the refetch.
-
-      The time comes from the same formatTime the fetched extremes go through, or
-      the folded row would wear a different format than the one it replaces.
-    */
-    const extremesFooter = (max, min, live, unit) => {
-        // A sensor that did not report all day leaves these out of the payload,
-        // and half a comparison is worse than none.
-        if (!max || !min) return null;
-
-        const at = formatTime(currentData.timestamp);
-        const reported = typeof live === 'number';
-        const hi = reported && live > max.value ? { value: live, time: at } : max;
-        const lo = reported && live < min.value ? { value: live, time: at } : min;
-
-        return (
-            <>
-                <div className="stat-extreme">
-                    <span className="stat-extreme-label">{t('extremes.maxToday')}</span>
-                    <span className="stat-extreme-value">{formatReading(hi.value)} {unit}</span>
-                    <span className="stat-extreme-time">{t('extremes.at', { time: hi.time })}</span>
-                </div>
-                <div className="stat-extreme">
-                    <span className="stat-extreme-label">{t('extremes.minToday')}</span>
-                    <span className="stat-extreme-value">{formatReading(lo.value)} {unit}</span>
-                    <span className="stat-extreme-time">{t('extremes.at', { time: lo.time })}</span>
-                </div>
-            </>
-        );
-    };
-
-    /*
       One selector, rendered in two places. The detail views read the same
       `history` the charts below draw from, so giving a modal its own range
       control would mean either a second fetch of the same window or two
@@ -536,7 +494,7 @@ const Dashboard = () => {
                     unit="%"
                     icon={Droplets}
                     color="#4dabf7"
-                    footer={extremesFooter(stats.maxHumidity, stats.minHumidity, currentData.humidity, '%')}
+                    onOpenDetail={() => setOpenMetric('humidity')}
                 />
                 <StatCard
                     title={t('card.pressure')}
@@ -782,6 +740,24 @@ const Dashboard = () => {
                 <TemperatureDetail
                     history={history}
                     currentData={currentData}
+                    stats={stats}
+                    hours={timeRange}
+                    axisTimeFormat={axisTimeFormat}
+                    tooltipTimeFormat={tooltipTimeFormat}
+                    axisTickGap={axisTickGap}
+                />
+            </MetricModal>
+
+            <MetricModal
+                open={openMetric === 'humidity'}
+                onClose={() => setOpenMetric(null)}
+                title={t('card.humidity')}
+                icon={Droplets}
+                color="#4dabf7"
+                toolbar={rangeSelector}
+            >
+                <HumidityDetail
+                    history={history}
                     stats={stats}
                     hours={timeRange}
                     axisTimeFormat={axisTimeFormat}

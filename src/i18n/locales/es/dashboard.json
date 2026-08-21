@@ -77,30 +77,34 @@
     "ambientTemp": "Temp. ambiente"
   },
   "extremes": {
-    "maxToday": "Máx. hoy",
-    "minToday": "Mín. hoy",
     "at": "a las {{time}}"
   },
   "detail": {
     "noData": "Todavía no hay registros en esta ventana.",
+    "today": "Hoy",
+    "max": "Máximo",
+    "min": "Mínimo",
+    "mean": "Media",
+    "swing": "Amplitud diaria",
+    "swingOver_one": "promedio de {{count}} día",
+    "swingOver_other": "promedio de {{count}} días",
+    "span": "Amplitud",
+    "spanNote": "del máximo al mínimo en la ventana",
+    "seriesTitle": "En la ventana",
+    "profileTitle": "El día promedio",
+    "profileIntro": "Cada hora local promediada sobre la ventana, con la banda sombreada mostrando cuánto varió esa hora.",
+    "profileNeedsRange": "Elegí 3 d o más para ver esto: en una ventana más corta cada hora tiene una sola lectura, así que el promedio sería la serie de nuevo.",
+    "profileMean": "Media",
+    "profileRange": "Rango",
     "temp": {
-      "max": "Máxima",
-      "min": "Mínima",
-      "mean": "Media",
-      "swing": "Amplitud diaria",
-      "swingOver_one": "promedio de {{count}} día",
-      "swingOver_other": "promedio de {{count}} días",
-      "span": "Amplitud",
-      "spanNote": "de máxima a mínima en la ventana",
-      "dayAgo": "Dif. 24 h",
-      "dayAgoRef": "marcaba {{temp}} °C",
-      "seriesTitle": "En la ventana",
       "series": "Temperatura",
-      "profileTitle": "El día promedio",
-      "profileIntro": "Cada hora local promediada sobre la ventana, con la banda sombreada mostrando cuánto varió esa hora.",
-      "profileNeedsRange": "Elegí 3 d o más para ver esto: en una ventana más corta cada hora tiene una sola lectura, así que el promedio sería la serie de nuevo.",
-      "profileMean": "Media",
-      "profileRange": "Rango"
+      "dayAgo": "Dif. 24 h",
+      "dayAgoRef": "marcaba {{temp}} °C"
+    },
+    "humidity": {
+      "series": "Humedad",
+      "wet": "Aire húmedo",
+      "wetNote": "del tiempo al {{threshold}} % o más"
     }
   }
 }

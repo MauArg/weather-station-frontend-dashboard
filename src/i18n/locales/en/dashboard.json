@@ -77,30 +77,34 @@
     "ambientTemp": "Ambient Temp"
   },
   "extremes": {
-    "maxToday": "High today",
-    "minToday": "Low today",
     "at": "at {{time}}"
   },
   "detail": {
     "noData": "Nothing recorded in this window yet.",
+    "today": "Today",
+    "max": "High",
+    "min": "Low",
+    "mean": "Average",
+    "swing": "Daily swing",
+    "swingOver_one": "averaged over {{count}} day",
+    "swingOver_other": "averaged over {{count}} days",
+    "span": "Swing",
+    "spanNote": "high to low over the window",
+    "seriesTitle": "Over the window",
+    "profileTitle": "The average day",
+    "profileIntro": "Each local hour averaged across the window, with the shaded band showing how far that hour has ranged.",
+    "profileNeedsRange": "Pick 3 d or more to see this: over a shorter window each hour has a single reading, so the average would just be the series again.",
+    "profileMean": "Average",
+    "profileRange": "Range",
     "temp": {
-      "max": "High",
-      "min": "Low",
-      "mean": "Average",
-      "swing": "Daily swing",
-      "swingOver_one": "averaged over {{count}} day",
-      "swingOver_other": "averaged over {{count}} days",
-      "span": "Swing",
-      "spanNote": "high to low over the window",
-      "dayAgo": "24 h change",
-      "dayAgoRef": "was {{temp}} °C",
-      "seriesTitle": "Over the window",
       "series": "Temperature",
-      "profileTitle": "The average day",
-      "profileIntro": "Each local hour averaged across the window, with the shaded band showing how far that hour has ranged.",
-      "profileNeedsRange": "Pick 3 d or more to see this: over a shorter window each hour has a single reading, so the average would just be the series again.",
-      "profileMean": "Average",
-      "profileRange": "Range"
+      "dayAgo": "24 h change",
+      "dayAgoRef": "was {{temp}} °C"
+    },
+    "humidity": {
+      "series": "Humidity",
+      "wet": "Damp air",
+      "wetNote": "of the window at {{threshold}} % or above"
     }
   }
 }

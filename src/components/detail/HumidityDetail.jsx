@@ -18,14 +18,23 @@ const DRY = '#facc15';
   The line above which the air counts as damp, and it was measured rather than
   picked from a table.
 
-  Over 14 days this station reads a median of 77.6 % with a p75 of 84.8 %, so 80
-  sits between them and splits the window near 45/55. That balance is the whole
-  point: a threshold almost never crossed, or almost always, tells the reader
-  nothing they could not have guessed. At 80 the figure moves with the weather.
+  Over 5,5 months this station reads a median of 83.5 % against a p25 of 64.3 %,
+  and 80 % comes up 56.8 % of the time — a 57/43 split of the record. That balance
+  is the whole point: a threshold almost never crossed, or almost always, tells
+  the reader nothing they could not have guessed. At 80 the figure moves with the
+  weather.
 
-  For reference on the rest of the distribution: the fortnight ran 20.4 % to
-  91.1 %, and the approach to that ceiling is smooth and every value distinct —
-  so it is a real local maximum, not a sensor clipping.
+  Kept at 80 rather than retuned to the 85 that would halve the record exactly.
+  The first version of this number came off a fortnight with a median of 77.6 %,
+  so 80 was picked a little high for the wrong sample and lands about right for
+  the real one — and moving a figure that has been read for months to buy six
+  points of balance is not a trade worth making.
+
+  For reference on the rest of the distribution: the full record runs 20.4 % to
+  97.3 %. The 91.1 % this note used to quote as the ceiling was that fortnight's
+  maximum read as if it were the station's — the sensor was never clipping, the
+  sample was dry. Against the SHT31's ±2 %, 97.3 % is the ordinary reading of air
+  at saturation.
 */
 const DAMP_PCT = 80;
 
@@ -49,7 +58,7 @@ const HumidityDetail = ({
     /*
       Padded around the data rather than pinned to 0-100. Relative humidity has
       real bounds, which is the argument for showing them — but this station has
-      never left 20-91 %, and an axis anchored at both ends spends a third of its
+      never left 20-97 %, and an axis anchored at both ends spends a third of its
       height on states it cannot reach while flattening the movement that is
       actually there. The same reasoning the enclosure chart already follows.
 

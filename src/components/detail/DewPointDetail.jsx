@@ -17,25 +17,32 @@ const GAP = '#a1a1aa';
 
 /*
   The bands for how close the air is to saturating, and both edges came off this
-  station's own fortnight rather than a textbook.
+  station's own record rather than a textbook.
 
-  The textbook line for fog is a spread under 1 °C. Here that fires 0.0 % of the
-  time — the spread never went below 1.31 °C in two weeks, which is the same fact
-  the humidity view sees from the other side when it tops out at 91 %. A
-  threshold that can never fire is a decoration, so the interesting line is
-  higher: at 2 °C the air is as close to saturating as it gets here, 20 % of the
-  time. 5 °C splits off the merely damp, at 61 %.
+  Rebuilt on 5,5 months — 13.399 quarter-hours, 2026-03-25 to 2026-09-06 — after
+  the first pair came off a single fortnight that turned out to be an unusually
+  dry one. That window put the spread's floor at 1.31 °C and the humidity ceiling
+  at 91 %, and this note concluded from it that the textbook fog line, a spread
+  under 1 °C, was a threshold that could never fire here. Over the full record it
+  fires 8.2 % of the time: the floor is 0.41 °C and the humidity reaches 97.3 %. A
+  fortnight is a sample of the weather, not of the climate.
 
-  Quartiles for scale: p25 2.23, p50 3.56, p75 8.70, max 23.49.
+  2 °C stays the near line, now for a better reason than "1 °C never happens": it
+  is the operational line for dew and fog, and it splits this record into thirds
+  a reader can use — 40 % near, 28 % damp, 31 % dry.
+
+  Quartiles for scale: p25 1.55, p50 2.61, p75 6.56, max 24.42.
 */
 const NEAR_C = 2;
 const DAMP_C = 5;
 
 /*
   Below freezing, what forms when a surface reaches the dew point is frost rather
-  than dew. It happens 48.3 % of the time here, so it is not an edge case — it is
-  half the readings, and the single most consequential thing this number says if
-  anything living is nearby.
+  than dew. Over the full record it happens 20.4 % of the time — the 48 % this
+  note used to claim came from the same unrepresentative fortnight, and that one
+  was sampled in autumn. A fifth of the year is still not an edge case, and it is
+  the single most consequential thing this number says if anything living is
+  nearby.
 */
 const FROST_C = 0;
 
@@ -62,6 +69,21 @@ const marginBand = (spread) => {
  * crossings that are artefacts of where each was pinned. Two quantities in the
  * same unit have no such problem: when these lines converge, the air really is
  * approaching saturation.
+ *
+ * They converge and never cross, and that is arithmetic rather than a fact about
+ * the site: relative humidity cannot exceed 100 %, so the dew point cannot
+ * exceed the air temperature. So the chart is read by the width of the band and
+ * never by a crossing — which is why the margin is stated as a number above it
+ * instead of being left to the eye, and why the near/damp/dry bands are cut on
+ * that width.
+ *
+ * Nor does dew wait for the band to close, which is the part that surprises
+ * anyone who has seen dew outside and then come here looking for the lines to
+ * touch. Dew forms on surfaces, not in the air: grass and sheet metal radiate to
+ * a night sky far colder than the air and settle 3-5 °C below it on a clear, calm
+ * night, so they reach the dew point while the air is still short of it. A
+ * margin of 2-4 °C on this chart and a wet lawn underneath are the same night,
+ * not a contradiction.
  */
 const DewPointDetail = ({
     history, hours, axisTimeFormat, tooltipTimeFormat, axisTickGap,

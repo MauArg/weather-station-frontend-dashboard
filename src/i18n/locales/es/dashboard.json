@@ -124,7 +124,7 @@
       "series": "Punto de rocío",
       "gap": "Margen",
       "pairTitle": "El aire y su punto de rocío",
-      "pairIntro": "La franja entre las dos líneas es cuánto le falta al aire para saturar. Cuando se juntan se forma rocío; por debajo de 0 °C, escarcha.",
+      "pairIntro": "La franja entre las dos líneas es cuánto le falta al aire para saturar. No se cruzan nunca: la humedad no pasa de 100 %. Y el rocío no espera a que se junten — se forma sobre superficies, que en noche despejada y calma quedan 3-5 °C más frías que el aire. Por debajo de 0 °C, escarcha.",
       "near": "Casi saturado",
       "nearNote": "del tiempo a {{margin}} °C o menos",
       "frost": "Bajo cero",

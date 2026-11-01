@@ -10,6 +10,7 @@ import DewPointDetail from './detail/DewPointDetail';
 import PressureDetail from './detail/PressureDetail';
 import ChartCrosshair, { CROSSHAIR_STROKE, CROSSHAIR_WIDTH, CROSSHAIR_DASH } from './ChartCrosshair';
 import { getRealTimeData, getDailyStats, getRecentHistory } from '../services/ApiService';
+import { apiText } from '../i18n/apiText';
 import { formatTime, formatDayTime, formatDay, formatNumber, formatFixed } from '../utils/timezone';
 import { useNarrowLayout } from '../hooks/useNarrowLayout';
 import toast from 'react-hot-toast';
@@ -115,6 +116,14 @@ const Dashboard = () => {
     */
     const formatValue = (val) => formatNumber(val);
     const formatReading = (val) => formatFixed(val, 2);
+
+    /*
+      What a card shows when the backend sent no reading: a dash and no unit. A
+      sensor that has gone quiet is not at zero, and the warning above the cards
+      says what happened to it.
+    */
+    const cardValue = (val, format) => (typeof val === 'number' ? format(val) : '—');
+    const cardUnit = (val, unit) => (typeof val === 'number' ? unit : undefined);
 
     const [currentData, setCurrentData] = useState(null);
     const [history, setHistory] = useState([]);
@@ -362,6 +371,29 @@ const Dashboard = () => {
     */
     const showQnh = pressureMode === 'qnh' && currentData.pressureQnh != null;
     const shownPressure = showQnh ? currentData.pressureQnh : currentData.pressure;
+    const hasPressure = typeof shownPressure === 'number';
+
+    /*
+      The modal is a different question from the card. It draws stored history, so
+      the sea-level frame stays available while the barometer is silent as long as
+      the backend sent the factor; only a backend too old to send it depends on the
+      live reading.
+    */
+    const qnhFactor = currentData.pressureQnhFactor ?? null;
+    const qnhAvailable = qnhFactor != null || currentData.pressureQnh != null;
+
+    /*
+      What is wrong with the sensors right now. The filters in the backend make a
+      failure quieter on the charts, so this is what keeps it visible. Worded here
+      by code, with the raw code as the fallback for one this build has never seen.
+    */
+    const sensorIssues = (currentData.sensorIssues ?? []).map((issue) => {
+        const key = issue.since || issue.code === 'bmp_suspect' ? issue.code : `${issue.code}_nosince`;
+        return {
+            code: issue.code,
+            text: apiText(t, 'sensorIssue', key, issue.code, { since: formatTime(issue.since) }),
+        };
+    });
 
     /*
       The barometric tendency, keyed by the band the backend sends — see
@@ -433,13 +465,9 @@ const Dashboard = () => {
 
       Temperature and humidity only. The API also returns maxPressure/minPressure
       but they are taken over `pressure_hpa`, the raw station reading, while this
-      card shows sea-level QNH by default — about 90 hPa apart. Putting "930,84
-      hPa" under a headline of "1016,39 hPa" would read as a broken card, and
-      rescaling the extremes by the current offset would be a guess: the offset
-      moves with temperature through the day, by enough to matter against a
-      6 hPa spread, and the *times* of the two series' extremes need not agree.
-      The honest fix is a `pressure_qnh` pair from the backend, which already has
-      that field. Dew point has no extremes at all — it is derived.
+      card shows sea-level QNH by default — about 90 hPa apart. The detail view
+      redraws them through pressureQnhFactor, which is a constant of the site's
+      altitude. Dew point has no extremes at all — it is derived.
     */
     /*
       Which way the air is going, under the reading it qualifies.
@@ -533,15 +561,26 @@ const Dashboard = () => {
                 <h3>{t('section.liveData')}</h3>
             </div>
 
+            {sensorIssues.length > 0 && (
+                <div className="sensor-issues" role="status">
+                    {sensorIssues.map(({ code, text }) => (
+                        <p key={code} className="sensor-issue">
+                            <AlertTriangle size={16} aria-hidden="true" />
+                            <span>{text}</span>
+                        </p>
+                    ))}
+                </div>
+            )}
+
             {/* Top Stats Row */}
             <div className="stats-grid">
                 <StatCard
                     title={t('card.temperature')}
-                    value={formatReading(currentData.temperature)}
-                    unit="°C"
+                    value={cardValue(currentData.temperature, formatReading)}
+                    unit={cardUnit(currentData.temperature, '°C')}
                     icon={Thermometer}
                     color="#ff6b6b"
-                    note={temperatureTrend}
+                    note={typeof currentData.temperature === 'number' ? temperatureTrend : null}
                     /*
                       The extremes and the day-ago comparison used to live in a
                       footer here. They moved into the detail view: this card is
@@ -554,27 +593,27 @@ const Dashboard = () => {
                 />
                 <StatCard
                     title={t('card.humidity')}
-                    value={formatReading(currentData.humidity)}
-                    unit="%"
+                    value={cardValue(currentData.humidity, formatReading)}
+                    unit={cardUnit(currentData.humidity, '%')}
                     icon={Droplets}
                     color="#4dabf7"
                     onOpenDetail={() => setOpenMetric('humidity')}
                 />
                 <StatCard
                     title={t('card.pressure')}
-                    value={formatPressure(shownPressure)}
-                    unit="hPa"
+                    value={cardValue(shownPressure, formatPressure)}
+                    unit={cardUnit(shownPressure, 'hPa')}
                     icon={Gauge}
                     color="#ffd43b"
-                    note={pressureTrend}
-                    caption={t(`pressure.${showQnh ? 'qnh' : 'station'}`)}
+                    note={hasPressure ? pressureTrend : null}
+                    caption={hasPressure ? t(`pressure.${showQnh ? 'qnh' : 'station'}`) : undefined}
                     captionTip={t('pressure.tip')}
                     onOpenDetail={() => setOpenMetric('pressure')}
                 />
                 <StatCard
                     title={t('card.dewPoint')}
-                    value={formatReading(currentData.dewPoint)}
-                    unit="°C"
+                    value={cardValue(currentData.dewPoint, formatReading)}
+                    unit={cardUnit(currentData.dewPoint, '°C')}
                     icon={CloudRain}
                     color="#69db7c"
                     onOpenDetail={() => setOpenMetric('dewPoint')}
@@ -864,15 +903,16 @@ const Dashboard = () => {
                     history={history}
                     stats={stats}
                     hours={timeRange}
-                    mode={showQnh ? 'qnh' : 'station'}
+                    mode={pressureMode === 'qnh' && qnhAvailable ? 'qnh' : 'station'}
                     onModeChange={setPressureMode}
-                    hasQnh={currentData.pressureQnh != null}
+                    hasQnh={qnhAvailable}
                     /*
-                      The altitude correction, taken from the one instant the node
-                      reports both figures for. It is what lets the stored station
-                      series be redrawn at sea level without a second series
-                      existing to disagree with it.
+                      The altitude correction is what lets the stored station series
+                      be redrawn at sea level without a second series existing to
+                      disagree with it. The factor is the real one. The offset is
+                      only for a backend too old to send it.
                     */
+                    qnhFactor={qnhFactor}
                     qnhOffset={
                         currentData.pressureQnh != null && typeof currentData.pressure === 'number'
                             ? currentData.pressureQnh - currentData.pressure

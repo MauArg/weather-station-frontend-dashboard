@@ -243,7 +243,7 @@ const DewPointDetail = ({
                         <Line
                             type="monotone" dataKey="dewPoint" name={t('detail.dew.series')}
                             stroke={DEW} strokeWidth={2} strokeDasharray="5 4"
-                            dot={false} connectNulls isAnimationActive={false}
+                            dot={false} isAnimationActive={false}
                         />
                     </ComposedChart>
                 </ResponsiveContainer>

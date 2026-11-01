@@ -29,29 +29,35 @@ const LOW = '#a78bfa';
  * control instead of a chevron small enough to be deniable.
  */
 const PressureDetail = ({
-    history, stats, hours, mode, onModeChange, hasQnh, qnhOffset,
+    history, stats, hours, mode, onModeChange, hasQnh, qnhFactor, qnhOffset,
     axisTimeFormat, tooltipTimeFormat, axisTickGap,
 }) => {
     const { t } = useTranslation('dashboard');
 
     /*
-      Only the station reading is stored, so the sea-level series is derived by
-      shifting it — the node reports both for the current instant, and their
-      difference is the altitude correction, which does not change.
+      The sea-level series is the stored station series scaled by the altitude
+      reduction. It depends on the station's height, not on the weather, so it is
+      a constant the backend sends.
 
-      Derived rather than fetched because storing a second series of the same
-      measurement would create two things that can disagree, and because the
-      offset is available for free from the live payload. It is a constant to
-      four figures: the reduction depends on the station's height, not on the
-      weather.
+      It used to be an offset taken from the two live figures, which put the whole
+      chart at the mercy of one reading: on 2026-10-31 a bad BMP085 read moved every
+      point of the window by 5 hPa. The offset survives only as the fallback for a
+      backend too old to send the factor.
     */
+    const toFrame = useMemo(() => {
+        if (mode !== 'qnh') return null;
+        if (qnhFactor != null) return (v) => v * qnhFactor;
+        if (qnhOffset != null) return (v) => v + qnhOffset;
+        return null;
+    }, [mode, qnhFactor, qnhOffset]);
+
     const data = useMemo(() => {
-        if (mode !== 'qnh' || qnhOffset == null) return history ?? [];
+        if (!toFrame) return history ?? [];
         return (history ?? []).map((p) => ({
             ...p,
-            pressure: typeof p.pressure === 'number' ? p.pressure + qnhOffset : p.pressure,
+            pressure: typeof p.pressure === 'number' ? toFrame(p.pressure) : p.pressure,
         }));
-    }, [history, mode, qnhOffset]);
+    }, [history, toFrame]);
 
     const s = useMemo(() => seriesStats(data, 'pressure'), [data]);
 
@@ -85,8 +91,7 @@ const PressureDetail = ({
     // barometric axis is read against round numbers.
     const domain = [Math.floor(s.minValue) - 1, Math.ceil(s.maxValue) + 1];
 
-    const todayShift = mode === 'qnh' && qnhOffset != null ? qnhOffset : 0;
-    const shiftExtreme = (e) => (e ? { ...e, value: e.value + todayShift } : e);
+    const shiftExtreme = (e) => (e && toFrame ? { ...e, value: toFrame(e.value) } : e);
 
     return (
         <>

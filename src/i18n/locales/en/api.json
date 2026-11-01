@@ -1,4 +1,11 @@
 {
+  "sensorIssue": {
+    "sht31_missing": "The temperature and humidity sensor has sent no data since {{since}}.",
+    "sht31_missing_nosince": "The temperature and humidity sensor has sent no data in the last 24 h.",
+    "bmp_missing": "The pressure sensor has sent no data since {{since}}.",
+    "bmp_missing_nosince": "The pressure sensor has sent no data in the last 24 h.",
+    "bmp_suspect": "Pressure may be off: the sensor's two readings no longer agree. Check the sensor and its wiring."
+  },
   "note": {
     "timeout_clamped_service": "timeout_min clamped from {{from}} to {{to}} (SERVICE_MODE_MAX_TIMEOUT_MIN)",
     "timeout_clamped_live": "timeout_min clamped from {{from}} to {{to}} (the backend watchdog bounds any retained command to this)",

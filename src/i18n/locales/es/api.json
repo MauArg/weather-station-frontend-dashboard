@@ -1,10 +1,14 @@
 {
   "sensorIssue": {
-    "sht31_missing": "El sensor de temperatura y humedad no envía datos desde las {{since}}.",
+    "sht31_missing": "El sensor de temperatura y humedad no envía datos desde el {{since}}.",
     "sht31_missing_nosince": "El sensor de temperatura y humedad no envió datos en las últimas 24 h.",
-    "bmp_missing": "El sensor de presión no envía datos desde las {{since}}.",
+    "sht31_implausible": "El sensor de temperatura y humedad reporta valores imposibles desde el {{since}}. Revisá el sensor y su cableado.",
+    "sht31_implausible_nosince": "El sensor de temperatura y humedad sólo reportó valores imposibles en las últimas 24 h. Revisá el sensor y su cableado.",
+    "bmp_missing": "El sensor de presión no envía datos desde el {{since}}.",
     "bmp_missing_nosince": "El sensor de presión no envió datos en las últimas 24 h.",
-    "bmp_suspect": "La presión puede estar corrida: las dos lecturas del sensor ya no coinciden. Revisá el sensor y su cableado."
+    "bmp_implausible": "El sensor de presión reporta valores imposibles desde el {{since}}. Revisá el sensor y su cableado.",
+    "bmp_implausible_nosince": "El sensor de presión sólo reportó valores imposibles en las últimas 24 h. Revisá el sensor y su cableado.",
+    "bmp_suspect_nosince": "La presión puede estar corrida: las dos lecturas del sensor ya no coinciden. Revisá el sensor y su cableado."
   },
   "note": {
     "timeout_clamped_service": "timeout_min recortado de {{from}} a {{to}} (SERVICE_MODE_MAX_TIMEOUT_MIN)",

@@ -354,20 +354,15 @@ const Dashboard = () => {
         detail: drift ? `${detail.replace(/\.$/, '')} · ${drift}` : detail,
     };
 
-    // Only offer the switch when the node actually reported QNH. The field is left
-    // out of the payload when the BMP085 read fails, and a card that can be
-    // flipped into a blank reading is worse than one that cannot be flipped.
-    //
     // Grouping is off for these two on purpose — see formatNumber in
     // utils/timezone.js for why a four-digit pressure must not carry a separator.
     const formatPressure = (val) => formatNumber(val, { digits: 2, minDigits: 2, grouping: false });
 
     /*
       Which of the two pressures the card shows. The preference is the reader's
-      and persists; what forces the hand is the payload — the node leaves
-      pressureQnh out when the BMP085 read fails, and a card showing a blank
-      because of a stored preference would be worse than one that quietly falls
-      back to the reading it does have.
+      and persists. The backend sends both figures or neither; the fallback is for
+      an older one, where pressureQnh could be missing with the station reading
+      still there.
     */
     const showQnh = pressureMode === 'qnh' && currentData.pressureQnh != null;
     const shownPressure = showQnh ? currentData.pressureQnh : currentData.pressure;
@@ -385,15 +380,16 @@ const Dashboard = () => {
     /*
       What is wrong with the sensors right now. The filters in the backend make a
       failure quieter on the charts, so this is what keeps it visible. Worded here
-      by code, with the raw code as the fallback for one this build has never seen.
+      by code, with the backend's sentence as the fallback for one this build has
+      never seen. With a date as well as a time: the query looks back 24 h, so a bare
+      "14:13" could be yesterday's and read as later today.
     */
-    const sensorIssues = (currentData.sensorIssues ?? []).map((issue) => {
-        const key = issue.since || issue.code === 'bmp_suspect' ? issue.code : `${issue.code}_nosince`;
-        return {
-            code: issue.code,
-            text: apiText(t, 'sensorIssue', key, issue.code, { since: formatTime(issue.since) }),
-        };
-    });
+    const sensorIssues = (currentData.sensorIssues ?? []).map(({ code, message, since }) => ({
+        code,
+        text: since
+            ? apiText(t, 'sensorIssue', code, message ?? code, { since: formatDayTime(since) })
+            : apiText(t, 'sensorIssue', `${code}_nosince`, message ?? code),
+    }));
 
     /*
       The barometric tendency, keyed by the band the backend sends — see

@@ -2193,9 +2193,6 @@ button.svc-tip:focus-visible {
     margin-bottom: 1rem;
 }
 
-/* Today's high and low. A quiet line rather than more tiles: it is a different
-   scope from the row above it, and structure carries that better than two more
-   labels ending in "today". Wraps part-by-part on a phone. */
 /* A sensor warning above the cards. Icon and words carry it, never the amber alone. */
 .sensor-issues {
     display: flex;
@@ -2223,6 +2220,9 @@ button.svc-tip:focus-visible {
     margin-top: 0.1rem;
 }
 
+/* Today's high and low. A quiet line rather than more tiles: it is a different
+   scope from the row above it, and structure carries that better than two more
+   labels ending in "today". Wraps part-by-part on a phone. */
 .metric-today {
     display: flex;
     flex-wrap: wrap;

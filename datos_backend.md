@@ -108,3 +108,5 @@
 ---
 
 *Documento generado para estación WELT-406 · Embalse, Córdoba · Marzo 2026*
+
+> Temperatura, humedad, presión, QNH y rocío pueden faltar en la API cuando no hay lectura creíble: ver `backend_api_specs.md`.

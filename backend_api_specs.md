@@ -10,6 +10,8 @@ Se asume que la API estará servida bajo un prefijo común, por ejemplo: `/api/v
 ## 1. Datos en Tiempo Real
 Obtiene los datos más recientes capturados por la estación. Reemplaza a `getRealTimeData()`.
 
+> **Lecturas ausentes:** `temperature`, `humidity`, `pressure`, `pressureQnh` y `dewPoint` se omiten cuando no hay una lectura creíble, también en cada punto de la historia, y los extremos de `/weather/stats/daily` salen de a pares. Nunca llegan como 0. `/weather/current` agrega `pressureQnhFactor` (estación × factor = QNH) y, si hay un problema, `sensorIssues: [{ code, message, since? }]` con `code` entre `sht31_missing`, `bmp_missing`, `sht31_implausible`, `bmp_implausible` y `bmp_suspect`. `hours` tiene tope de 720 en la historia.
+
 **Endpoint:** `GET /weather/current`
 
 **Respuesta Esperada (200 OK):**
